@@ -51,7 +51,15 @@ const CATEGORIES: MainCategory[] = [
 ];
 
 export const PublicCompetitionPage: React.FC = () => {
-    const [activeMainCat, setActiveMainCat] = useState<MainCategory>(CATEGORIES[0]);
+    const params = new URLSearchParams(window.location.search);
+    const catParam = params.get('cat');
+    const subParam = params.get('sub') || '';
+
+    const [activeMainCat, setActiveMainCat] = useState<MainCategory>(() => {
+        const found = CATEGORIES.find(c => c.id === catParam);
+        return found || CATEGORIES[0];
+    });
+
     const [selectedComp, setSelectedComp] = useState<Competition | null>(null);
     const [applyingComp, setApplyingComp] = useState<Competition | null>(null);
     const [applyTabHint, setApplyTabHint] = useState<string>('');
@@ -69,9 +77,9 @@ export const PublicCompetitionPage: React.FC = () => {
     );
 
     return (
-        <div className="flex flex-col lg:flex-row min-h-screen bg-[#F8FAFB] text-slate-900 font-sans selection:bg-teal-100">
+        <div className="flex flex-col lg:flex-row flex-nowrap bg-[#F8FAFB] text-slate-900 font-sans selection:bg-teal-100 items-start">
             {/* 🏛️ Premium Sidebar (Dark Design Reverted) */}
-            <aside className="w-full lg:w-[320px] bg-[#0F172A] shrink-0 flex flex-col pt-16 border-r border-slate-800 relative shadow-2xl z-20">
+            <div className="w-full lg:w-[320px] bg-[#0F172A] flex-shrink-0 flex flex-col pt-16 pb-10 border-r border-slate-800 relative shadow-none z-0 rounded-l-[16px]">
                 <div className="px-10 mb-20">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/20">
@@ -79,7 +87,7 @@ export const PublicCompetitionPage: React.FC = () => {
                         </div>
                         <span className="text-[10px] font-black text-teal-400 tracking-[0.3em] uppercase">Registration</span>
                     </div>
-                    <h2 className="text-3xl font-black text-white leading-tight tracking-tighter">
+                    <h2 className="text-3xl font-black text-white leading-tight tracking-tighter" style={{ color: 'white' }}>
                         대회 <br /> 안내 및 신청
                     </h2>
                 </div>
@@ -98,7 +106,7 @@ export const PublicCompetitionPage: React.FC = () => {
                                 <div className={`transition-colors ${activeMainCat.id === cat.id ? 'text-white' : 'text-slate-500 group-hover:text-teal-400'}`}>
                                     {cat.icon}
                                 </div>
-                                <span className="text-[15px] font-bold tracking-tight">{cat.name}</span>
+                                <span className="text-[15px] font-bold tracking-tight !text-white">{cat.name}</span>
                             </div>
                             {activeMainCat.id === cat.id && (
                                 <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
@@ -107,14 +115,14 @@ export const PublicCompetitionPage: React.FC = () => {
                     ))}
                 </nav>
 
-                <div className="p-10 mt-auto opacity-30">
+                <div className="p-10 mt-10 opacity-30">
                     <p className="text-[11px] font-bold text-slate-500 tracking-widest uppercase">© KKC Dog Show Service</p>
                 </div>
-            </aside>
+            </div>
 
             {/* 🖼️ Main Content Area (Original Design Restored) */}
-            <main className="flex-1 flex flex-col p-8 lg:p-16 max-w-[1600px] mx-auto w-full">
-                <header className="mb-12">
+            <div className="flex-1 min-w-0 flex flex-col p-8 lg:p-16 max-w-full lg:max-w-[1600px] mx-auto w-full relative z-20 overflow-hidden bg-[#F8FAFB]">
+                <header className="mb-12 w-full">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="h-[2px] w-8 bg-teal-500 rounded-full" />
                         <span className="text-[11px] font-black text-teal-600 uppercase tracking-widest">{activeMainCat.name}</span>
@@ -123,25 +131,29 @@ export const PublicCompetitionPage: React.FC = () => {
                         {activeMainCat.name}
                     </h1>
 
-                    <Suspense fallback={TabLoading}>
-                        {activeMainCat.id === 'stylist' ? (
-                            <StylistTab
-                                key={activeMainCat.id}
-                                subTabs={activeMainCat.subTabs}
-                                onSelectComp={setSelectedComp}
-                                onApplyComp={(c, tab) => { setApplyingComp(c); setApplyTabHint(tab); }}
-                            />
-                        ) : (
-                            <BaseTab
-                                key={activeMainCat.id}
-                                subTabs={activeMainCat.subTabs}
-                                onSelectComp={setSelectedComp}
-                                onApplyComp={(c, tab) => { setApplyingComp(c); setApplyTabHint(tab); }}
-                            />
-                        )}
-                    </Suspense>
+                    <div className="w-full">
+                        <Suspense fallback={TabLoading}>
+                            {activeMainCat.id === 'stylist' ? (
+                                <StylistTab
+                                    key={activeMainCat.id}
+                                    subTabs={activeMainCat.subTabs}
+                                    onSelectComp={setSelectedComp}
+                                    onApplyComp={(c, tab) => { setApplyingComp(c); setApplyTabHint(tab); }}
+                                    initialSubTab={subParam}
+                                />
+                            ) : (
+                                <BaseTab
+                                    key={activeMainCat.id}
+                                    subTabs={activeMainCat.subTabs}
+                                    onSelectComp={setSelectedComp}
+                                    onApplyComp={(c, tab) => { setApplyingComp(c); setApplyTabHint(tab); }}
+                                    initialSubTab={subParam}
+                                />
+                            )}
+                        </Suspense>
+                    </div>
                 </header>
-            </main>
+            </div>
 
             {/* 📋 Competition Detail Modal (Original Style Restored) */}
             {selectedComp && (
@@ -282,7 +294,7 @@ export const PublicCompetitionPage: React.FC = () => {
                             <h3 className="text-2xl font-[900] text-slate-900 tracking-tight mb-3">{alert.title}</h3>
                             <p className="text-[15px] font-bold text-slate-500 leading-relaxed">{alert.message}</p>
                         </div>
-                        <button onClick={() => setAlert(null)} className="w-full py-5 bg-slate-900 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] hover:bg-teal-600 transition-all shadow-xl shadow-slate-900/10">확인하였습니다</button>
+                        <button onClick={() => setAlert(null)} className="w-full py-5 bg-slate-900 !text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] hover:bg-teal-600 transition-all shadow-xl shadow-slate-900/10">확인하였습니다</button>
                     </div>
                 </div>
             )}
@@ -300,6 +312,15 @@ export const PublicCompetitionPage: React.FC = () => {
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
                     background: #cbd5e1;
+                }
+                /* 🚀 [STYLE FIX] Force white text for premium buttons to override theme defaults */
+                #root .text-white, 
+                #root .!text-white,
+                #root button.text-white,
+                #root button.bg-slate-900,
+                #root button.bg-slate-800,
+                #root button.bg-teal-500 {
+                    color: white !important;
                 }
             `}</style>
         </div>

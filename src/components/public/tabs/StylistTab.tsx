@@ -6,9 +6,10 @@ interface StylistTabProps {
     subTabs: string[];
     onSelectComp: (c: Competition) => void;
     onApplyComp: (c: Competition, tabName: string) => void;
+    initialSubTab?: string;
 }
 
-export const StylistTab: React.FC<StylistTabProps> = ({ subTabs, onSelectComp, onApplyComp }) => {
+export const StylistTab: React.FC<StylistTabProps> = ({ subTabs, onSelectComp, onApplyComp, initialSubTab }) => {
     const renderHeader = (activeSubTab: string, setActiveSubTab: (t: string) => void) => (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-7xl">
             {subTabs.map((tab) => {
@@ -53,6 +54,7 @@ export const StylistTab: React.FC<StylistTabProps> = ({ subTabs, onSelectComp, o
             onSelectComp={onSelectComp}
             onApplyComp={onApplyComp}
             customRenderHeader={renderHeader}
+            initialSubTab={initialSubTab}
         />
     );
 };

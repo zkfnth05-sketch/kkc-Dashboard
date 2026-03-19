@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Upload, ArrowLeft, Download, FileText, CheckCircle2 } from 'lucide-react';
 import Papa from 'papaparse';
 import { downloadCsv } from '../lib/downloadUtils';
-import { SKILL_CONFIG } from './SkillManagementPage';
+import { fetchProClasses } from '../services/memberService';
+import { ProClass } from '../types';
 
 interface MemberProClassUploadPageProps {
     onClose: () => void;
@@ -17,6 +18,11 @@ export const MemberProClassUploadPage: React.FC<MemberProClassUploadPageProps> =
 
     const [selectedSkill, setSelectedSkill] = useState('');
     const [isSkillDisabled, setIsSkillDisabled] = useState(false);
+    const [proClasses, setProClasses] = useState<ProClass[]>([]);
+
+    useEffect(() => {
+        fetchProClasses().then(setProClasses).catch(console.error);
+    }, []);
 
     const handleDownloadTemplate = () => {
         const headers = [
@@ -135,8 +141,8 @@ export const MemberProClassUploadPage: React.FC<MemberProClassUploadPageProps> =
                                 onChange={(e) => setSelectedSkill(e.target.value)}
                             >
                                 <option value="">-- 직능을 선택하세요 --</option>
-                                {Object.keys(SKILL_CONFIG).map((skillName) => (
-                                    <option key={skillName} value={SKILL_CONFIG[skillName]}>{skillName}</option>
+                                {proClasses.map((pc) => (
+                                    <option key={pc.uid} value={pc.keyy}>{pc.name}</option>
                                 ))}
                             </select>
                         </div>

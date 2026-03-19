@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Member, MEMBER_RANK_MAP } from '../types';
+import { Member, MEMBER_RANK_MAP, ProClass } from '../types';
 import { CheckpointBar } from './CheckpointBar';
 import { RotateCcw, Save, Search, Plus, X, Loader2, Check } from 'lucide-react';
-import { formatSkillNames, SKILL_CONFIG, getAllSkills } from './SkillManagementPage';
+import { formatSkillNames } from './SkillManagementPage';
 import { fetchPedigrees } from '../services/pedigreeService';
+import { fetchProClasses } from '../services/memberService';
 
 interface MemberDetailProps {
   member: Member | null;
@@ -29,12 +30,14 @@ const SkillSelectionModal = ({
   isOpen,
   onClose,
   initialSelectedCodes,
-  onSave
+  onSave,
+  availableSkills
 }: {
   isOpen: boolean;
   onClose: () => void;
   initialSelectedCodes: string[];
   onSave: (selectedCodes: string[]) => void;
+  availableSkills: ProClass[];
 }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set(initialSelectedCodes));
 
@@ -75,19 +78,19 @@ const SkillSelectionModal = ({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
           <div className="grid grid-cols-2 gap-3">
-            {Object.entries(getAllSkills()).map(([name, code]) => {
-              const isSelected = selected.has(code);
+            {availableSkills.map((pc) => {
+              const isSelected = selected.has(pc.keyy);
               return (
                 <button
-                  key={code}
+                  key={pc.uid}
                   type="button"
-                  onClick={() => toggleSelection(code)}
+                  onClick={() => toggleSelection(pc.keyy)}
                   className={`flex items-center justify-between px-4 py-3 rounded border text-left transition-colors font-medium text-[13px] ${isSelected
                     ? 'bg-blue-50 border-blue-200 text-blue-600'
                     : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300'
                     }`}
                 >
-                  <span className="truncate pr-2">{name}</span>
+                  <span className="truncate pr-2">{pc.name}</span>
                   {isSelected && <Check size={18} className="text-blue-500 shrink-0" />}
                 </button>
               );
@@ -117,6 +120,11 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
   const [formData, setFormData] = useState<Member | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isAddingSkill, setIsAddingSkill] = useState(false);
+  const [proClasses, setProClasses] = useState<ProClass[]>([]);
+
+  useEffect(() => {
+    fetchProClasses().then(setProClasses).catch(console.error);
+  }, []);
 
   // 부모로부터 member가 바뀔 때(저장 성공 포함) 내부 폼 데이터를 동기화
   useEffect(() => {
@@ -327,8 +335,12 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
                 handleChange('proClass', newCodes.join('-'));
               };
 
+              // 🎯 DB에서 실시간으로 불러온 직무 맵 생성
+              const skillMap: Record<string, string> = {};
+              proClasses.forEach(p => { skillMap[p.keyy] = p.name; });
+
               // 🎯 SkillManagementPage에서 제공하는 강력한 이름 변환 함수 활용
-              const skillNames = formatSkillNames(formData.proClass);
+              const skillNames = formatSkillNames(formData.proClass, skillMap);
 
               return currentCodes.length > 0 ? (
                 currentCodes.map((code, idx) => (
@@ -359,6 +371,7 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
           onSave={(selectedCodes) => {
             handleChange('proClass', selectedCodes.join('-'));
           }}
+          availableSkills={proClasses}
         />
 
         {/* Owned Dogs Table */}

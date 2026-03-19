@@ -39,6 +39,9 @@ export const MemberAddForm: React.FC<MemberAddFormProps> = ({ onClose, onSave })
     const [idCheckStatus, setIdCheckStatus] = useState<'idle' | 'checking' | 'available' | 'duplicate'>('idle');
     const checkTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [idMessage, setIdMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
+    const [isManualMemNo, setIsManualMemNo] = useState(false);
+    const [memNoCheckStatus, setMemNoCheckStatus] = useState<'idle' | 'checking' | 'available' | 'duplicate'>('idle');
+    const [memNoMessage, setMemNoMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
 
     const handleChange = (field: keyof Member, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -87,6 +90,30 @@ export const MemberAddForm: React.FC<MemberAddFormProps> = ({ onClose, onSave })
         };
     }, [formData.loginId]);
 
+    const checkMemNoDuplicate = async () => {
+        const val = (formData.mem_no || '').trim();
+        if (!val) {
+            setMemNoMessage({ text: '회원 번호를 입력해주세요.', type: 'error' });
+            return;
+        }
+        setMemNoCheckStatus('checking');
+        setMemNoMessage({ text: '중복 확인 중...', type: 'info' });
+        try {
+            const res = await fetchMembers('memTab', 1, val, 'all', 10);
+            const isDuplicate = res.data.some((m: Member) => m.mem_no === val);
+            if (isDuplicate) {
+                setMemNoCheckStatus('duplicate');
+                setMemNoMessage({ text: '이미 존재하는 회원 번호입니다.', type: 'error' });
+            } else {
+                setMemNoCheckStatus('available');
+                setMemNoMessage({ text: '사용 가능한 회원 번호입니다.', type: 'success' });
+            }
+        } catch (error: any) {
+            setMemNoCheckStatus('idle');
+            setMemNoMessage({ text: '중복 확인 오류: ' + error.message, type: 'error' });
+        }
+    };
+
     const handleComplete = (data: any) => {
         let fullAddress = data.address;
         let extraAddress = '';
@@ -116,6 +143,16 @@ export const MemberAddForm: React.FC<MemberAddFormProps> = ({ onClose, onSave })
             setAlertMessage("중복된 아이디는 사용할 수 없습니다.");
             return;
         }
+        if (isManualMemNo) {
+            if (!formData.mem_no) {
+                setAlertMessage("수동 입력 모드에서는\n회원 번호를 반드시 입력해주세요.");
+                return;
+            }
+            if (memNoCheckStatus !== 'available') {
+                setAlertMessage("회원 번호 중복 확인이 완료되어야\n저장이 가능합니다.");
+                return;
+            }
+        }
         onSave(formData);
     };
 
@@ -130,7 +167,66 @@ export const MemberAddForm: React.FC<MemberAddFormProps> = ({ onClose, onSave })
                         <div className="flex border-b border-gray-200">
                             <div className="w-[180px] bg-white py-4 px-6 text-sm font-medium text-gray-500 flex items-center">회원번호</div>
                             <div className="flex-1 py-3 px-4">
-                                <input type="text" value={formData.mem_no || ''} onChange={e => handleChange('mem_no', e.target.value)} className="w-full max-w-[500px] border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+                                <div className="flex items-center gap-3">
+                                    {isManualMemNo ? (
+                                        <div className="flex flex-col gap-1.5 w-full max-w-[500px]">
+                                            <div className="flex items-center gap-2">
+                                                <input 
+                                                    type="text" 
+                                                    value={formData.mem_no || ''} 
+                                                    onChange={e => {
+                                                        handleChange('mem_no', e.target.value);
+                                                        setMemNoCheckStatus('idle');
+                                                        setMemNoMessage(null);
+                                                    }} 
+                                                    placeholder="부여할 회원 번호를 입력하세요"
+                                                    className={`flex-1 border rounded px-3 py-2 text-sm focus:outline-none transition-all ${memNoCheckStatus === 'duplicate' ? 'border-red-500 bg-red-50' : memNoCheckStatus === 'available' ? 'border-green-500 bg-green-50' : 'border-gray-300 focus:border-blue-500'}`} 
+                                                />
+                                                <button 
+                                                    type="button"
+                                                    onClick={checkMemNoDuplicate}
+                                                    className="bg-gray-800 text-white px-4 py-2 rounded text-xs font-bold hover:bg-black transition-colors"
+                                                >
+                                                    중복 확인
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsManualMemNo(false);
+                                                        handleChange('mem_no', '');
+                                                        setMemNoCheckStatus('idle');
+                                                        setMemNoMessage(null);
+                                                    }}
+                                                    className="text-gray-400 hover:text-gray-600 px-2 py-1 text-xs underline"
+                                                >
+                                                    자동 생성으로 전환
+                                                </button>
+                                            </div>
+                                            {memNoMessage && (
+                                                <div className={`text-xs font-bold flex items-center gap-1.5 ${memNoMessage.type === 'error' ? 'text-red-500' : memNoMessage.type === 'success' ? 'text-green-600' : 'text-blue-500'}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${memNoMessage.type === 'error' ? 'bg-red-500' : memNoMessage.type === 'success' ? 'bg-green-600' : 'bg-blue-500'}`}></span>
+                                                    {memNoMessage.text}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-3">
+                                            <input 
+                                                type="text" 
+                                                value="시스템 자동 생성 (저장 시 부여)" 
+                                                readOnly 
+                                                className="w-[300px] bg-gray-50 border border-gray-200 text-gray-400 rounded px-3 py-2 text-sm cursor-not-allowed" 
+                                            />
+                                            <button 
+                                                type="button"
+                                                onClick={() => setIsManualMemNo(true)}
+                                                className="bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded text-xs font-bold hover:bg-blue-100 transition-colors"
+                                            >
+                                                수동 입력 모드
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

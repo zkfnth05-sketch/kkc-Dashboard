@@ -62,7 +62,7 @@ export const FormShell: React.FC<FormShellProps> = ({
                     <button
                         onClick={onSave}
                         disabled={isSubmitting}
-                        className="flex-[2] py-5 bg-teal-500 text-white rounded-3xl text-sm font-black uppercase tracking-widest shadow-xl shadow-teal-500/20 hover:bg-teal-600 transition-all active:scale-95 flex items-center justify-center gap-3"
+                        className="flex-[2] py-5 bg-teal-500 !text-white rounded-3xl text-sm font-black uppercase tracking-widest shadow-xl shadow-teal-500/20 hover:bg-teal-600 transition-all active:scale-95 flex items-center justify-center gap-3"
                     >
                         {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <Check size={20} />}
                         {isSubmitting ? '처리 중...' : '최종 신청 완료'}

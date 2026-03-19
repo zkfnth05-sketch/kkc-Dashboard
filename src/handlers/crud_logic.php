@@ -33,14 +33,32 @@ function kkc_handle_general_list($input) {
         $q_hex = bin2hex(kkc_convert($input['search'], $enc, false));
         $fields = (!empty($input['field']) && $input['field'] !== 'all') ? [$input['field']] : ($conf['search_fields'] ?? [$conf['pk']]);
         
+        if ($table === 'point' && ($input['field'] === 'all' || empty($input['field']))) {
+            $fields = array_unique(array_merge($fields, ['reg_no', 'pt_title', 'dogShowName', 'pt_regdate']));
+        }
+
         if (!empty($fields)) {
             $sub = [];
-            foreach ($fields as $f) { $sub[] = "`$f` LIKE CONCAT('%', UNHEX('$q_hex'), '%')"; }
+            foreach ($fields as $f) {
+                if ($f === 'dogShowName') {
+                    $sub[] = "d.ds_name LIKE CONCAT('%', UNHEX('$q_hex'), '%')";
+                } else if ($table === 'point' && $f === 'pt_regdate') {
+                    // 🚀 [DATE SEARCH FIX] pt_regdate는 타임스탬프(숫자)이므로 문자열로 변환하여 검색
+                    // '%Y.%c.%e.' 형식은 '2026. 3. 14.' 패턴과 매칭됩니다.
+                    $q_clean = str_replace(['.', ' '], '', $input['search']);
+                    $q_hex_clean = bin2hex(kkc_convert($q_clean, $enc, false));
+                    
+                    $sub[] = "REPLACE(REPLACE(FROM_UNIXTIME(p.pt_regdate, '%Y.%m.%d'), '.', ''), ' ', '') LIKE CONCAT('%', UNHEX('$q_hex_clean'), '%')";
+                    $sub[] = "FROM_UNIXTIME(p.pt_regdate, '%Y-%m-%d') LIKE CONCAT('%', UNHEX('$q_hex'), '%')";
+                } else {
+                    $prefix = ($table === 'point') ? "p." : "";
+                    $sub[] = "{$prefix}`$f` LIKE CONCAT('%', UNHEX('$q_hex'), '%')";
+                }
+            }
             $where .= " AND (" . implode(" OR ", $sub) . ")";
         }
     }
 
-    // 🚀 [JOIN FIX] 포인트 테이블 조회 시 도그쇼 명칭을 함께 가져옵니다.
     if ($table === 'point') {
         $sql = "SELECT p.*, d.ds_name as dogShowName 
                 FROM `point` p 
@@ -49,11 +67,12 @@ function kkc_handle_general_list($input) {
                 ORDER BY p.pt_pid DESC 
                 LIMIT $limit OFFSET $offset";
         $data = $wpdb->get_results($sql, ARRAY_A);
+        // 🚀 [COUNT FIX] 조인이 포함된 WHERE 절에 대응하도록 COUNT 쿼리도 조인 추가
+        $total = $wpdb->get_var("SELECT COUNT(*) FROM `point` p LEFT JOIN `dogshow` d ON p.ds_pid = d.ds_pid WHERE $where");
     } else {
         $data = $wpdb->get_results("SELECT * FROM `$table` WHERE $where ORDER BY 1 DESC LIMIT $limit OFFSET $offset", ARRAY_A);
+        $total = $wpdb->get_var("SELECT COUNT(*) FROM `$table` WHERE $where");
     }
-
-    $total = $wpdb->get_var("SELECT COUNT(*) FROM `$table` WHERE $where");
     
     $wpdb->query("SET NAMES 'utf8mb4'");
     
@@ -64,6 +83,19 @@ function kkc_handle_general_list($input) {
  * 🚀 이미지 업로드 고도화 (바이너리 파일 지원)
  */
 function kkc_handle_upload_image($input) {
+    // 🛡️ [UPLOAD SECURITY BYPASS] 허용할 파일 확장자 강제 추가 (HWP, PDF, DOCX 등)
+    add_filter('upload_mimes', function($mimes) {
+        $mimes['hwp'] = 'application/haansofthwp';
+        $mimes['hwpx'] = 'application/haansofthwp-xml';
+        $mimes['pdf'] = 'application/pdf';
+        $mimes['docx'] = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        $mimes['doc'] = 'application/msword';
+        $mimes['xls'] = 'application/vnd.ms-excel';
+        $mimes['xlsx'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        $mimes['zip'] = 'application/zip';
+        return $mimes;
+    }, 999);
+
     $filename = sanitize_file_name($input['filename'] ?? 'kkc_upload_' . time() . '.jpg');
     $decoded_data = null;
 
@@ -220,6 +252,90 @@ function kkc_handle_get_dogshows() {
     return [
         'success' => true,
         'data' => $results ?: []
+    ];
+}
+
+/**
+ * 🚀 DB 테이블 배치 내보내기 (SQL DUMP 스트리밍 방식)
+ * mode=export_table_batch
+ * params: table, offset, batch_size, include_header (첫 배치에만 CREATE TABLE 포함)
+ */
+function kkc_handle_export_table_batch($input) {
+    global $wpdb;
+
+    $table      = preg_replace('/[^a-zA-Z0-9_]/', '', $input['table'] ?? '');
+    $offset     = max(0, intval($input['offset'] ?? 0));
+    $batch_size = min(2000, max(1, intval($input['batch_size'] ?? 500)));
+    $include_header = !empty($input['include_header']);
+
+    if (!$table) {
+        return ['success' => false, 'error' => '테이블명이 없습니다.'];
+    }
+
+    // 테이블 존재 여부 확인
+    $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
+    if (!$exists) {
+        return ['success' => false, 'error' => "테이블 '$table' 이(가) 존재하지 않습니다."];
+    }
+
+    $wpdb->query("SET NAMES 'binary'");
+
+    // 전체 행 수
+    $total = (int)$wpdb->get_var("SELECT COUNT(*) FROM `$table`");
+
+    // CREATE TABLE 구문 (첫 배치에만)
+    $sql_output = '';
+    if ($include_header) {
+        $create_row = $wpdb->get_row("SHOW CREATE TABLE `$table`", ARRAY_N);
+        if ($create_row) {
+            $create_sql = $create_row[1];
+            $sql_output .= "-- KKC DB Export: $table\n";
+            $sql_output .= "-- Total rows: $total\n";
+            $sql_output .= "-- Generated: " . date('Y-m-d H:i:s') . "\n\n";
+            $sql_output .= "DROP TABLE IF EXISTS `$table`;\n";
+            $sql_output .= $create_sql . ";\n\n";
+        }
+    }
+
+    // 데이터 SELECT
+    $rows = $wpdb->get_results("SELECT * FROM `$table` LIMIT $batch_size OFFSET $offset", ARRAY_A);
+
+    $wpdb->query("SET NAMES 'utf8mb4'");
+
+    if (!empty($rows)) {
+        // 컬럼명 추출
+        $columns = array_keys($rows[0]);
+        $col_list = '`' . implode('`, `', $columns) . '`';
+
+        $insert_lines = [];
+        foreach ($rows as $row) {
+            $values = array_map(function($v) use ($wpdb) {
+                if ($v === null) return 'NULL';
+                // 바이너리 안전 hex 인코딩
+                return "0x" . bin2hex($v);
+            }, $row);
+            $insert_lines[] = '(' . implode(', ', $values) . ')';
+        }
+
+        // 50행씩 묶어서 INSERT (가독성 + 안정성)
+        $chunks = array_chunk($insert_lines, 50);
+        foreach ($chunks as $chunk) {
+            $sql_output .= "INSERT INTO `$table` ($col_list) VALUES\n";
+            $sql_output .= implode(",\n", $chunk) . ";\n";
+        }
+    }
+
+    $fetched_count = count($rows ?? []);
+    $is_done = ($offset + $fetched_count) >= $total;
+
+    return [
+        'success'       => true,
+        'sql'           => $sql_output,
+        'fetched'       => $fetched_count,
+        'offset'        => $offset,
+        'total'         => $total,
+        'is_done'       => $is_done,
+        'next_offset'   => $offset + $fetched_count,
     ];
 }
 

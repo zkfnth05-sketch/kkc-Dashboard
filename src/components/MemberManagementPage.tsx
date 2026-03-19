@@ -52,10 +52,14 @@ export const MemberManagementPage: React.FC<MemberManagementPageProps> = ({
     setIsLoading(true);
     setCurrentPage(page);
     try {
-      // 🎯 fetchMembers 호출 시 모든 검색 조건을 서버로 실어 보냄
+      // 1. 회원 목록 로드
       const res = await fetchMembers(tableName, page, q, f, 50, ds, de, 'all', region);
       setMembers(res.data);
       setTotalMembers(res.total);
+
+      // 🎯 [STATS SYNC] 검색 조건이 포함된 실시간 통계 산출
+      const stats = await fetchMemberStats(tableName, q, f, ds, de, region);
+      setMemberStats(stats);
 
       if (isJump && res.data && res.data.length === 1) {
         const m = res.data[0];
@@ -74,10 +78,11 @@ export const MemberManagementPage: React.FC<MemberManagementPageProps> = ({
   };
 
   useEffect(() => {
-    fetchMemberStats(tableName).then(setMemberStats);
+    // 🎯 fetchMemberStats는 이제 loadData 내부에서 필터값과 함께 통합 처리됩니다.
     if (initialSearch) {
       const newFilters = { ...filters, query: initialSearch.query, field: initialSearch.field };
       setFilters(newFilters);
+      // initialSearch 시에는 날짜/지역 필터를 초기화하여 ID 검색 결과만 명확히 노출
       loadData(1, newFilters.query, newFilters.field, '', '', '', true);
       if (onSearchHandled) onSearchHandled();
     } else {
@@ -205,6 +210,10 @@ export const MemberManagementPage: React.FC<MemberManagementPageProps> = ({
           member={editingMember}
           onSave={handleSaveMember}
           onCancel={() => setEditingMember(null)}
+          onDelete={(id) => {
+            setEditingMember(null);
+            handleDeleteSelected([id]);
+          }}
         />
       )}
     </div>

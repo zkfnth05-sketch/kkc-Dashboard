@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Calendar, MapPin, ArrowRight, User, Trophy, Search, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, MapPin, ArrowRight, User, Trophy, Search, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { fetchDogShows } from '../../../services/eventService';
 
 export interface Competition {
@@ -30,10 +30,11 @@ interface BaseTabProps {
     onSelectComp: (c: Competition) => void;
     onApplyComp: (c: Competition, tabName: string) => void;
     customRenderHeader?: (activeSubTab: string, setActiveSubTab: (t: string) => void) => React.ReactNode;
+    initialSubTab?: string;
 }
 
-export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApplyComp, customRenderHeader }) => {
-    const [activeSubTab, setActiveSubTab] = useState(subTabs[0]);
+export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApplyComp, customRenderHeader, initialSubTab }) => {
+    const [activeSubTab, setActiveSubTab] = useState(initialSubTab && subTabs.includes(initialSubTab) ? initialSubTab : subTabs[0]);
     const [data, setData] = useState<Competition[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
@@ -113,7 +114,7 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
 
     return (
         <div className="space-y-12">
-            <header className="flex flex-col items-center justify-center gap-10">
+            <header className="flex flex-col items-center justify-center gap-10 w-full overflow-hidden">
                 {customRenderHeader ? (
                     customRenderHeader(activeSubTab, (t) => { setActiveSubTab(t); setCurrentPage(1); })
                 ) : (
@@ -135,7 +136,7 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
             </header>
 
             <div className="flex-1 relative">
-                <div className="bg-white rounded-[40px] shadow-[0_20px_80px_rgb(0,0,0,0.04)] border border-slate-100/50 overflow-hidden flex flex-col relative transition-all min-h-[400px]">
+                <div className="bg-white rounded-[40px] shadow-[0_20px_80px_rgb(0,0,0,0.04)] border border-slate-100/50 overflow-hidden flex flex-col relative transition-all min-h-[400px] w-full max-w-full" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
                     {/* 🚀 [NEW: LOADING OVERLAY] */}
                     {isLoading && (
                         <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-4 transition-all duration-300">
@@ -146,8 +147,9 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                         </div>
                     )}
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left min-w-[1100px] border-separate border-spacing-0">
+                    {/* 🖥️ 1. DESKTOP TABLE VIEW (Visible on lg and above) */}
+                    <div className="overflow-x-auto w-full max-w-full desktop-only" style={{ WebkitOverflowScrolling: 'touch' }}>
+                        <table className="w-full text-left min-w-[1100px] border-separate border-spacing-0" style={{ maxWidth: '100%' }}>
                             <thead>
                                 <tr className="bg-slate-50/50">
                                     <th className="py-8 px-10 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">대회 리스트</th>
@@ -265,8 +267,9 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                                                             disabled={status.text === '접수 종료'}
                                                             className={`px-8 py-3.5 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95 whitespace-nowrap ${status.text === '접수 종료'
                                                                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed grayscale'
-                                                                : 'bg-slate-900 text-white hover:bg-teal-600 hover:shadow-xl hover:shadow-teal-500/30'
+                                                                : 'bg-slate-900 !text-white hover:bg-teal-600 hover:shadow-xl hover:shadow-teal-500/30'
                                                                 }`}
+                                                            style={status.text !== '접수 종료' ? { color: 'white' } : {}}
                                                         >
                                                             신청하기
                                                         </button>
@@ -280,41 +283,193 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                         </table>
                     </div>
 
-                    {/* 🏁 Pagination Styling */}
-                    {!isLoading && total > 20 && (
-                        <div className="p-10 bg-slate-50/30 flex justify-center items-center border-t border-slate-100 w-full overflow-hidden">
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                    disabled={currentPage === 1}
-                                    className="w-10 h-10 flex items-center justify-center bg-white border border-slate-100 text-slate-400 rounded-xl hover:text-teal-500 hover:border-teal-200 hover:shadow-lg disabled:opacity-20 transition-all font-bold"
-                                >
-                                    <ChevronLeft size={18} />
-                                </button>
-                                <div className="flex gap-2">
-                                    {Array.from({ length: Math.ceil(total / 20) }).map((_, i) => (
-                                        <button
-                                            key={i}
-                                            onClick={() => setCurrentPage(i + 1)}
-                                            className={`w-10 h-10 rounded-xl text-[13px] font-black transition-all ${currentPage === i + 1
-                                                ? 'bg-teal-500 text-white shadow-xl shadow-teal-500/20 scale-110'
-                                                : 'bg-white text-slate-400 hover:text-slate-800 border border-slate-100'
-                                                }`}
-                                        >
-                                            {i + 1}
-                                        </button>
-                                    ))}
+                    {/* 📱 2. MOBILE CARD VIEW (Visible below lg) */}
+                    <div className="flex flex-col gap-5 p-5 bg-slate-50/30 mobile-only">
+                        {isLoading ? (
+                            [...Array(5)].map((_, i) => (
+                                <div key={`mobile-skeleton-${i}`} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col gap-4 animate-pulse">
+                                    <div className="h-14 bg-slate-50 rounded-2xl w-full" />
+                                    <div className="h-20 bg-slate-50 rounded-2xl w-full" />
+                                    <div className="h-12 bg-slate-50 rounded-2xl w-full mt-2" />
                                 </div>
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.min(Math.ceil(total / 20), prev + 1))}
-                                    disabled={currentPage >= Math.ceil(total / 20)}
-                                    className="w-10 h-10 flex items-center justify-center bg-white border border-slate-100 text-slate-400 rounded-xl hover:text-teal-500 hover:border-teal-200 hover:shadow-lg disabled:opacity-20 transition-all font-bold"
-                                >
-                                    <ChevronRight size={18} />
-                                </button>
+                            ))
+                        ) : data.length === 0 ? (
+                            <div className="py-20 flex flex-col items-center justify-center text-center bg-white rounded-3xl border border-slate-100">
+                                <Search size={40} className="text-slate-200 mb-4" />
+                                <p className="font-black text-xs uppercase tracking-widest text-slate-400">데이터가 없습니다.</p>
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            data.map((item) => {
+                                const status = getStatus(item);
+                                return (
+                                    <div key={`mobile-${item.id}`} className="bg-white rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col gap-5 relative overflow-hidden">
+                                        {/* Status Badge Positioned at Top Right */}
+                                        <div className="absolute top-6 right-6 flex items-center gap-2">
+                                            <div className={`px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest shadow-sm ${status.color}`}>
+                                                {status.text}
+                                            </div>
+                                        </div>
+
+                                        {/* 1. Header & Title */}
+                                        <div className="flex gap-4 pr-20">
+                                            <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden shrink-0 mt-1 shadow-inner">
+                                                {item.thumbnail_url ? (
+                                                    <img src={item.thumbnail_url} className="w-full h-full object-cover" loading="lazy" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-slate-300"><Calendar size={20} /></div>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col justify-center">
+                                                <div className="flex items-center gap-1.5 mb-1.5">
+                                                    <span className="text-[9px] font-black text-teal-500 uppercase tracking-widest px-1.5 py-0.5 bg-teal-50 rounded">Event</span>
+                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">#{extractNumericId(item.id)}</span>
+                                                </div>
+                                                <h3 
+                                                    className="font-[900] text-slate-800 tracking-tighter line-clamp-2"
+                                                    style={{ 
+                                                        fontSize: 'clamp(12px, 1.25vw, 15px)',
+                                                        lineHeight: '1.2'
+                                                    }}
+                                                >
+                                                    {item.title}
+                                                </h3>
+                                                <p className="text-[11px] font-bold text-slate-400 mt-1 line-clamp-1">{item.organizer}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* 2. Key Info (Venue & Judges) */}
+                                        <div className="flex flex-col gap-2.5 bg-slate-50/50 p-4 rounded-2xl border border-slate-50">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-1.5 rounded-md bg-white text-teal-600 shadow-sm"><MapPin size={12} strokeWidth={2.5} /></div>
+                                                <span className="text-xs font-bold text-slate-600 truncate">{item.venue || '장소 미정'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-1.5 rounded-md bg-white text-slate-400 shadow-sm"><Trophy size={12} strokeWidth={2.5} /></div>
+                                                <span className="text-xs font-bold text-slate-500 truncate">{item.judges || '심사위원 추후 공지'}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* 3. Dates (Registration & Event) */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">접수기간</p>
+                                                <div className="flex flex-col gap-1">
+                                                    <p className="text-[11px] font-[900] text-slate-700 tracking-tight">
+                                                        <span className="text-teal-500 mr-1">시</span> {item.reg_start_date ? `${item.reg_start_date} ${item.reg_start_h || '00'}:${item.reg_start_m || '00'}` : '미정'}
+                                                    </p>
+                                                    <p className="text-[11px] font-[900] text-slate-700 tracking-tight">
+                                                        <span className="text-rose-500 mr-1">종</span> {item.reg_end_date ? `${item.reg_end_date} ${item.reg_end_h || '23'}:${item.reg_end_m || '59'}` : '미정'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">대회일정</p>
+                                                <div className="flex flex-col gap-1">
+                                                    <p className="text-[11px] font-[900] text-slate-700 tracking-tight">
+                                                        <span className="text-indigo-500 mr-1">시</span> {item.startDate} {item.startTime}
+                                                    </p>
+                                                    <p className="text-[11px] font-[900] text-slate-700 tracking-tight">
+                                                        <span className="text-indigo-500 mr-1">종</span> {item.endDate} {item.endTime}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* 4. Action Buttons */}
+                                        <div className="flex items-center gap-3 w-full mt-2">
+                                            <button
+                                                onClick={() => onSelectComp(item)}
+                                                className="flex-1 py-3.5 border border-slate-200 bg-white text-slate-600 rounded-2xl text-[12px] font-black hover:bg-slate-50 transition-all uppercase tracking-widest"
+                                            >
+                                                상세보기
+                                            </button>
+                                            <button
+                                                onClick={() => onApplyComp(item, activeSubTab)}
+                                                disabled={status.text === '접수 종료'}
+                                                className={`flex-[1.5] py-3.5 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${status.text === '접수 종료'
+                                                    ? 'bg-slate-100 text-slate-400'
+                                                    : 'bg-slate-900 !text-white hover:bg-teal-600 shadow-lg shadow-teal-500/20'
+                                                    }`}
+                                                style={status.text !== '접수 종료' ? { color: 'white' } : {}}
+                                            >
+                                                신청하기
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+
+                    {/* 🏁 Pagination Styling (Grouped by 10) */}
+                    {!isLoading && total > 20 && (() => {
+                        const totalPages = Math.ceil(total / 20);
+                        const pageGroupSize = 10;
+                        const currentGroup = Math.ceil(currentPage / pageGroupSize);
+                        const startPage = (currentGroup - 1) * pageGroupSize + 1;
+                        const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
+
+                        return (
+                            <div className="p-10 bg-slate-50/30 flex justify-center items-center border-t border-slate-100 w-full" style={{ position: 'relative', zIndex: 50 }}>
+                                <div className="flex flex-wrap items-center justify-center gap-3 w-full max-w-4xl mx-auto">
+                                    <button
+                                        onClick={() => setCurrentPage(Math.max(1, startPage - 1))}
+                                        disabled={currentGroup === 1}
+                                        className="w-10 h-10 flex items-center justify-center bg-white border border-slate-100 rounded-xl disabled:opacity-20 transition-all font-bold"
+                                        style={{ color: '#94a3b8' }}
+                                    >
+                                        <ChevronsLeft size={18} />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                        className="w-10 h-10 flex items-center justify-center bg-white border border-slate-100 rounded-xl disabled:opacity-20 transition-all font-bold"
+                                        style={{ color: '#94a3b8' }}
+                                    >
+                                        <ChevronLeft size={18} />
+                                    </button>
+
+                                    <div className="flex flex-wrap items-center justify-center gap-2">
+                                        {Array.from({ length: endPage - startPage + 1 }).map((_, i) => {
+                                            const pageNum = startPage + i;
+                                            return (
+                                                <button
+                                                    key={pageNum}
+                                                    onClick={() => setCurrentPage(pageNum)}
+                                                    className={`w-10 h-10 rounded-xl text-[13px] font-black transition-all ${currentPage === pageNum
+                                                        ? 'bg-teal-500 shadow-xl shadow-teal-500/20 scale-110 z-10'
+                                                        : 'bg-white border border-slate-100 hover:bg-slate-50'
+                                                        }`}
+                                                    style={currentPage === pageNum ? { color: '#ffffff', backgroundColor: '#14b8a6' } : { color: '#94a3b8', backgroundColor: '#ffffff' }}
+                                                >
+                                                    {pageNum}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                        disabled={currentPage >= totalPages}
+                                        className="w-10 h-10 flex items-center justify-center bg-white border border-slate-100 rounded-xl disabled:opacity-20 transition-all font-bold"
+                                        style={{ color: '#94a3b8' }}
+                                    >
+                                        <ChevronRight size={18} />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setCurrentPage(Math.min(totalPages, endPage + 1))}
+                                        disabled={endPage >= totalPages}
+                                        className="w-10 h-10 flex items-center justify-center bg-white border border-slate-100 rounded-xl disabled:opacity-20 transition-all font-bold text-[13px]"
+                                        style={{ color: '#94a3b8' }}
+                                    >
+                                        <ChevronsRight size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </div>
             </div>
         </div>

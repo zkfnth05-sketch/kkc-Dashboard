@@ -37,7 +37,7 @@ export const SportsForm: React.FC<{ competition: any, onClose: () => void, showA
                             type="button"
                             onClick={handleSearchMember}
                             disabled={isSearching}
-                            className="px-4 bg-slate-800 text-white rounded-xl font-bold text-xs hover:bg-slate-700 transition-all flex items-center gap-2"
+                            className="px-4 bg-slate-800 !text-white rounded-xl font-bold text-xs hover:bg-slate-700 transition-all flex items-center gap-2"
                         >
                             {isSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} 조회
                         </button>

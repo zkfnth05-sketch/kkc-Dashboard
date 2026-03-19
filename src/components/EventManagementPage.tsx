@@ -39,13 +39,19 @@ export const CustomEditor = ({ value, onChange, onImageUpload }: {
     const handleInsertImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const compressed = await compressImage(file);
-            const result = await onImageUpload(compressed);
-            const url = typeof result === 'string' ? result : result?.url;
-            const id = typeof result === 'string' ? '' : result?.id;
-            if (url) {
-                const imgHtml = `<img src="${url}" ${id ? `data-attachment-id="${id}"` : ''} />`;
-                execCmd('insertHTML', imgHtml);
+            try {
+                const compressed = await compressImage(file);
+                const result = await onImageUpload(compressed);
+                const url = typeof result === 'string' ? result : result?.url;
+                const id = typeof result === 'string' ? '' : result?.id;
+                
+                if (url) {
+                    if (contentRef.current) contentRef.current.focus();
+                    const imgHtml = `<img src="${url}" ${id ? `data-attachment-id="${id}"` : ''} style="max-width:100%; height:auto;" />`;
+                    execCmd('insertHTML', imgHtml);
+                }
+            } catch (err) {
+                console.error("Upload error:", err);
             }
         }
         if (fileInputRef.current) fileInputRef.current.value = '';

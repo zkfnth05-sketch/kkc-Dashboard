@@ -19,6 +19,7 @@ export const NAV_ITEMS = [
   '행사 관리',
   '상력 관리',
   '포인트 관리',
+  '서식 자료실',
   '협회소식/공지',
   '데이터 통합'
 ];
@@ -33,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({ onLogout, activeTab, onTabChange
             <span className="text-white font-bold text-xs">KKC</span>
           </div>
           <h1 className="text-lg font-bold text-gray-800 tracking-tight">
-            애견협회 관리자포털
+            KKC 애견협회 관리자포털 (보안적용)
           </h1>
         </div>
 

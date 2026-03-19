@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
     ],
     build: {
-      outDir: 'dist_final',
+      outDir: 'dist',
       emptyOutDir: true
     },
     base: './', // 🚀 [WAF / WP FIX] 모든 에셋을 상대 경로로 호출합니다.

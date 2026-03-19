@@ -10,6 +10,7 @@ import { PrizeManagementPage } from './components/PrizeManagementPage';
 import { EventManagementPage } from './components/EventManagementPage';
 import { CompetitionManagementPage } from './components/CompetitionManagementPage';
 import { PublicCompetitionPage } from './components/PublicCompetitionPage';
+import { DownloadManagementPage } from './components/DownloadManagementPage';
 import { SkillManagementPage } from './components/SkillManagementPage';
 import { DataIntegrationPage } from './components/DataIntegrationPage';
 import { MemberExportPage } from './components/MemberExportPage';
@@ -43,7 +44,7 @@ const GlobalModal = ({ isOpen, type, title, message, onConfirm, onCancel }: any)
 };
 
 const App: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState(NAV_ITEMS[0]);
   const [bridgeUrl, setBridgeUrl] = useState(DEFAULT_URL);
   const [isConnected, setIsConnected] = useState(false);
@@ -59,7 +60,7 @@ const App: React.FC = () => {
     '회원 관리': 'memTab', '회원 대량추출': 'memTab', '혈통서 관리': 'dogTab',
     '직능관리': 'skillTab', '협회소식/공지': 'wp_posts', '상력 관리': 'prize_dogTab',
     '행사 관리': 'wp_posts', '포인트 관리': 'point',
-    '대회 관리': 'dogshow'
+    '대회 관리': 'dogshow', '서식 자료실': 'wpdmpro'
   });
 
   const [pointSearch, setPointSearch] = useState<{ query: string, field: string } | null>(null);
@@ -171,17 +172,20 @@ const App: React.FC = () => {
           }}
         />
       );
+      case '서식 자료실': return <DownloadManagementPage showAlert={showAlert} showConfirm={showConfirm} />;
       default: return <div className="p-20 text-center text-gray-400 font-bold uppercase tracking-widest">준비 중인 모듈입니다.</div>;
     }
   };
 
   // 🚀 [WP INTEGRATION] Detect public view mode for Shortcode usage
-  const isPublicEventView = window.location.search.includes('view=public_event');
-  const isPublicCompView = window.location.search.includes('view=public_competition');
+  // window.KKF_VIEW가 설정되어 있으면 해당 뷰를 우선 적용합니다.
+  const forcedView = (window as any).KKF_VIEW;
+  const isPublicEventView = forcedView === 'public_event' || window.location.search.includes('view=public_event');
+  const isPublicCompView = forcedView === 'public_competition' || window.location.search.includes('view=public_competition');
 
   if (isPublicCompView) {
     return (
-      <div className="bg-white min-h-screen">
+      <div className="bg-white min-h-screen flex flex-col">
         <PublicCompetitionPage />
       </div>
     );
@@ -189,7 +193,7 @@ const App: React.FC = () => {
 
   if (isPublicEventView) {
     return (
-      <div className="bg-white min-h-screen p-0 md:p-4 overflow-auto">
+      <div className="bg-white min-h-screen flex flex-col">
         <EventManagementPage
           isAdmin={false}
           showAlert={(t: string, m: string) => alert(`${t}: ${m}`)}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Member, formatMemberRank } from '../types';
+import { fetchProClasses } from '../services/memberService';
+import { Member, ProClass, formatMemberRank } from '../types';
 import { X, Loader2, Plus, Search, MapPin, Calendar, User, Check } from 'lucide-react';
-import { formatSkillNames, SKILL_CONFIG, getAllSkills } from './SkillManagementPage';
+import { formatSkillNames } from './SkillManagementPage';
 
 interface MemberEditFormProps {
   member: Member;
@@ -13,11 +14,12 @@ interface MemberEditFormProps {
 /**
  * 🎯 직능 선택 모달 컴포넌트
  */
-const SkillSelectorModal = ({ isOpen, onClose, selectedCodes, onSave }: {
+const SkillSelectorModal = ({ isOpen, onClose, selectedCodes, onSave, availableSkills }: {
   isOpen: boolean,
   onClose: () => void,
   selectedCodes: string[],
-  onSave: (codes: string[]) => void
+  onSave: (codes: string[]) => void,
+  availableSkills: ProClass[]
 }) => {
   const [currentCodes, setCurrentCodes] = useState<string[]>([]);
 
@@ -42,19 +44,19 @@ const SkillSelectorModal = ({ isOpen, onClose, selectedCodes, onSave }: {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-2 bg-gray-50/30">
-          {Object.entries(getAllSkills()).map(([name, code]) => {
-            const isSelected = currentCodes.includes(code);
+          {availableSkills.map((pc) => {
+            const isSelected = currentCodes.includes(pc.keyy);
             return (
               <button
-                key={code}
+                key={pc.uid}
                 type="button"
-                onClick={() => toggleSkill(code)}
+                onClick={() => toggleSkill(pc.keyy)}
                 className={`flex items-center justify-between px-4 py-2.5 rounded border text-[12px] font-bold transition-all text-left group
                   ${isSelected
                     ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-sm'
                     : 'bg-white border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-500 hover:bg-blue-50/10'}`}
               >
-                <span className="truncate mr-2">{name}</span>
+                <span className="truncate mr-2">{pc.name}</span>
                 {isSelected && <Check size={14} className="shrink-0 text-blue-500 animate-in zoom-in-50 duration-200" />}
               </button>
             );
@@ -102,6 +104,11 @@ export const MemberEditForm: React.FC<MemberEditFormProps> = ({ member, onSave, 
   const [formData, setFormData] = useState<Member>({ ...member });
   const [isSaving, setIsSaving] = useState(false);
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
+  const [proClasses, setProClasses] = useState<ProClass[]>([]);
+
+  useEffect(() => {
+    fetchProClasses().then(setProClasses).catch(console.error);
+  }, []);
 
   useEffect(() => { setFormData({ ...member }); }, [member]);
 
@@ -233,7 +240,10 @@ export const MemberEditForm: React.FC<MemberEditFormProps> = ({ member, onSave, 
               <div className="flex flex-wrap gap-2 items-center min-h-[40px] mb-5">
                 {(() => {
                   const currentCodes = (formData.proClass || '').split(/[- ,]+/).filter(c => c.trim() !== '');
-                  const skillNames = formatSkillNames(formData.proClass);
+                  const skillMap: Record<string, string> = {};
+                  proClasses.forEach(p => { skillMap[p.keyy] = p.name; });
+
+                  const skillNames = formatSkillNames(formData.proClass, skillMap);
 
                   return currentCodes.map((code, idx) => (
                     <div key={idx} className="flex items-center gap-1.5 bg-blue-50/50 text-[#5c5fef] px-4 py-1.5 rounded-full border border-blue-100 text-[12px] font-bold shadow-sm group">
@@ -295,6 +305,7 @@ export const MemberEditForm: React.FC<MemberEditFormProps> = ({ member, onSave, 
         onClose={() => setIsSkillModalOpen(false)}
         selectedCodes={(formData.proClass || '').split('-').filter(c => c.trim() !== '')}
         onSave={handleUpdateSkills}
+        availableSkills={proClasses}
       />
     </div>
   );

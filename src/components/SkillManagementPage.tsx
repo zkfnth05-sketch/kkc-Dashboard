@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { fetchMembers } from '../services/memberService';
+import { fetchMembers, fetchProClasses, createProClass, deleteProClass } from '../services/memberService';
 import { fetchExportMembers } from '../services/exportService';
-import { Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Download, Activity, FileSpreadsheet, Plus, Trash2, X } from 'lucide-react';
+import { ProClass } from '../types';
+import { Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Download, Activity, FileSpreadsheet, Plus, Trash2, X, RefreshCw } from 'lucide-react';
 
 interface SkillMember {
   id: string;
@@ -22,182 +23,13 @@ interface SkillManagementPageProps {
   onGoToMember?: (loginId: string) => void;
 }
 
-export const SKILL_CONFIG: Record<string, string> = {
-  '업체-사료,용품': 'com',
-  '가정견심사위원': 'CD',
-  '경연심사위원': 'GJU',
-  '공인자격반려견스타일리스트1급': 'PS1',
-  '공인자격반려견스타일리스트2급': 'PS2',
-  '공인자격반려견스타일리스트3급': 'PS3',
-  '관공서': 'dkf',
-  '광주/전남 동물병원/샵': 'ALJ',
-  '구조견이사': 'RDD',
-  '구조견훈련사': 'RED',
-  '국제심사위원': 'txl',
-  '기타견보조심사위원': 'OJO',
-  '기타견부심사위원': 'OJS',
-  '기타견정심사위원': 'OJJ',
-  '노비스도그쇼': 'ND1',
-  '대구 애견샵 (449406)': 'TEA',
-  '대구/경북 동물병원/샵': 'ale',
-  '대기업_마케팅팀': 'BMA',
-  '대사관,위촉(자문위원,홍보대사)': 'eot',
-  '대의원': 'AC000',
-  '대전/충남 동물병원/샵 (449406)': 'dae',
-  '도그피트니스': 'DPS',
-  '도서관': 'SSS',
-  '동물매개치료교육이수자': 'DDD',
-  '동물매개활동관리사': 'ANG',
-  '동반견심사위원': 'BH',
-  '디스크독심사위원': 'DISC',
-  '리트리버심사위원': 'RJJ',
-  '미용강사': 'jmj',
-  '미용경연': 'gro',
-  '미용교사': 'kjk',
-  '미용사1급': 'GR1',
-  '미용사2급': 'GR2',
-  '미용사3급': 'GR3',
-  '미용사범': 'GRM',
-  '미용심사위원': 'GRJ',
-  '미용학원': 'GSC',
-  '박람회': 'DOG',
-  '반려견심사위원': 'KJA',
-  '반려견아카데미수강생': 'KAD',
-  '반려견행동상담사1급': 'CBC',
-  '반려견행동상담사2급': 'CBB',
-  '반려견행동상담사3급': 'CBA',
-  '반려동물관리사': 'LPM',
-  '반려동물관리사1급': 'DSS',
-  '반려동물목욕관리사': 'LPB',
-  '방송국': 'qkd',
-  '번식장': 'sbd',
-  '보조심사위원': 'bbo',
-  '부산/경남 동물병원/샵 (449406)': 'ALF',
-  '부산경남_유초중고': 'SAB',
-  '부심심사위원': 'aab',
-  '부장심사위원': 'BBA',
-  '분과위원장': 'CMM',
-  '사체탐지견훈련사': 'KSCD',
-  '서울/경기 동물병원/샵 (449406)': 'hoa',
-  '서울경기_유초중고': 'SAA',
-  '서울동물병원': 'sph',
-  '세퍼드 도그쇼': 'DS2',
-  '셰퍼드보조심사위원': 'SJO',
-  '셰퍼드부심사위원': 'SJS',
-  '셰퍼드소유자': 'III',
-  '셰퍼드정심사위원': 'SJJ',
-  '시체탐지견핸들러자격증': 'RDH',
-  '시체탐지견훈련사자격증': 'RDT',
-  '심사위원': 'aaa',
-  '아로마스페셜리스트': 'ARS',
-  '아로마스페셜리스트 강사': 'ARM',
-  '아로마스페셜리스트 심사위원': 'ARJ',
-  '어질리티심사위원': 'AGI',
-  '애견_관련_교수': 'uni',
-  '애견관련학과장': 'as3',
-  '애견관련학교학장님': 'RTY',
-  '애견동반펜션': 'PEN',
-  '애견브리더': 'PB',
-  '애견용품디자이너': 'DES',
-  '애견종합관리사': 'BBB',
-  '애완동물학과': 'ALM',
-  '연구보조': 'JSO',
-  '연구부심': 'JSS',
-  '연구정심': 'JSJ',
-  '외국단체': 'dhl',
-  '외국심사위원': 'LIM',
-  '이사': 'DRT',
-  '인명구조견심사위원자격증(A.B)': 'RDJ',
-  '일반': 'MEM',
-  '자원봉사,체험': 'JJ',
-  '전견종 도그쇼': 'DS1',
-  '전람회 책자발송': 'SDFW',
-  '전주/전북 동물병원/샵 (449406)': 'ALI',
-  '정심심사위원': 'aae',
-  '제주 동물병원/샵': 'ALK',
-  '지방동물병원': 'eph',
-  '지정미용학원': 'TTT',
-  '지정번식장': 'AMN',
-  '지회장': 'BRN',
-  '진도 도그쇼': 'DS3',
-  '챔피언견소유자': 'QQQ',
-  '청주/충북 동물병원/샵 (449406)': 'ALH',
-  '축견': 'KDU',
-  '춘천/강원 동물병원/샵 (449406)': 'ALG',
-  '치료견': 'THD',
-  '치와와스페셜티문자': 'CI',
-  '클럽회장': 'CLB',
-  '클리커심사위원': 'CLK',
-  '클리커전문가자격증': 'LKJ',
-  '킨더독튜터': 'KT',
-  '타미용학원': 'TSS',
-  '타협회': 'xkg',
-  '토이견보조심사위원': 'TJO',
-  '토이견부심사위원': 'TJS',
-  '토이견정심사위원': 'TJJ',
-  '펫그루머': 'PGM',
-  '펫그루머A급': 'PGMA',
-  '펫그루머B급': 'PGMB',
-  '펫그루머C급': 'PGMC',
-  '펫베이킹전문가1급': 'PBK',
-  '펫베이킹전문가2급': 'PBK2',
-  '펫살롱프로페셔널': 'PSP',
-  '펫시터': 'PS',
-  '펫시터 강사': 'PSI',
-  '펫케이크': 'PK',
-  '펫푸드스타일리스트1급': 'PFS1',
-  '펫푸드스타일리스트2급': 'PFS',
-  '포스터 발송': 'PST',
-  '하나은행 DB': 'KEB',
-  '한국견보조심사위원': 'JJO',
-  '한국견부심사위원': 'JJS',
-  '한국견정심사위원': 'JJJ',
-  '할인혜택': 'DCD',
-  '핸들러 심사위원': 'HS',
-  '핸들러1급': '33B',
-  '핸들러2급': '33A',
-  '핸들러3급': 'ABA',
-  '핸들러강사': '33D',
-  '핸들러교사': '33C',
-  '핸들러사범': '33E',
-  '헬퍼1등': 'HP1',
-  '헬퍼2등': 'HP2',
-  '헬퍼3등': 'HP3',
-  '협력기관': 'AS4',
-  '훈련': 'MS',
-  '훈련교사': 'ALL',
-  '훈련사사범': 'TMS',
-  '훈련사1등': 'TR1',
-  '훈련사2등': 'TR2',
-  '훈련사3등': 'TR3',
-  '훈련소': 'TR5',
-  '훈련심사위원': 'aad',
-  'FCI 소속': 'oiop'
-};
-
-/**
- * 🚀 모든 직능 목록(기본 + 커스텀)을 반환하는 헬퍼
- */
-export const getAllSkills = (): Record<string, string> => {
-  const saved = localStorage.getItem('CUSTOM_SKILL_CONFIG');
-  if (saved) {
-    try {
-      return { ...SKILL_CONFIG, ...JSON.parse(saved) };
-    } catch (e) {
-      return SKILL_CONFIG;
-    }
-  }
-  return SKILL_CONFIG;
-};
-
 /**
  * 🎯 pro_class 코드를 한글 직능명으로 변환하는 헬퍼 함수
  * @param proClassStr "com-TR5" 형태의 하이픈 구분 문자열
+ * @param allSkills DB에서 불러온 직능 목록 { [code]: name }
  */
-export const formatSkillNames = (proClassStr: string | undefined): string[] => {
+export const formatSkillNames = (proClassStr: string | undefined, allSkillsMap: Record<string, string> = {}): string[] => {
   if (!proClassStr || proClassStr.trim() === '') return [];
-
-  const reverseMap: Record<string, string> = {};
 
   // 구버전 코드 호환성 매핑
   const legacyMap: Record<string, string> = {
@@ -205,14 +37,9 @@ export const formatSkillNames = (proClassStr: string | undefined): string[] => {
     'JEM': '제주 동물병원/샵', 'TTB': '지정번식장', 'CTD': '축견', 'HBD': '하나은행 DB'
   };
 
-  const all = getAllSkills();
-  Object.entries(all).forEach(([name, code]) => {
-    reverseMap[code] = name;
-  });
-
   return proClassStr.split('-')
     .filter(code => code.trim() !== '')
-    .map(code => reverseMap[code] || legacyMap[code] || code);
+    .map(code => allSkillsMap[code] || legacyMap[code] || code);
 };
 
 export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableName, showAlert, showConfirm, onGoToMember }) => {
@@ -225,22 +52,16 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
   const [processedCount, setProcessedCount] = useState(0);
   const [readyFile, setReadyFile] = useState<{ url: string, name: string } | null>(null);
 
-  // 🚀 직능 목록 가변 상태 관리 (기본값은 SKILL_CONFIG)
-  const [activeSkills, setActiveSkills] = useState<Record<string, string>>(() => {
-    const saved = localStorage.getItem('CUSTOM_SKILL_CONFIG');
-    if (saved) {
-      try { return { ...SKILL_CONFIG, ...JSON.parse(saved) }; } catch (e) { return SKILL_CONFIG; }
-    }
-    return SKILL_CONFIG;
-  });
-
+  // 🚀 DB에서 불러온 직능 목록
+  const [proClasses, setProClasses] = useState<ProClass[]>([]);
+  
   // Filters State
-  const [selectedSkill, setSelectedSkill] = useState('가정견심사위원');
+  const [selectedSkill, setSelectedSkill] = useState('');
   const [searchField, setSearchField] = useState('name');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Active Filters (Applied after pressing search)
-  const [activeSkill, setActiveSkill] = useState('가정견심사위원');
+  const [activeSkill, setActiveSkill] = useState('');
   const [activeSearchField, setActiveSearchField] = useState('name');
   const [activeSearchQuery, setActiveSearchQuery] = useState('');
 
@@ -248,21 +69,55 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
   const [isAddingNewSkill, setIsAddingNewSkill] = useState(false);
   const [newSkillName, setNewSkillName] = useState('');
   const [newSkillCode, setNewSkillCode] = useState('');
+  const [codeCheckResult, setCodeCheckResult] = useState<{ checked: boolean, available: boolean, message: string }>({
+    checked: false,
+    available: false,
+    message: ''
+  });
 
   const limit = 10;
 
   /* 🛡️ [SYSTEM LOCK: PAGE UI & LOGIC PRESERVATION] */
   /* 이 구간의 모든 로직과 디자인은 사용자가 최종 확정한 상태입니다. 인가 없이 수정하지 마세요. */
-  const loadData = async (page: number = 1, skill: string = activeSkill, query: string = activeSearchQuery, field: string = activeSearchField) => {
+  const loadProClasses = async () => {
+    try {
+      const classes = await fetchProClasses();
+      setProClasses(classes);
+      // 초기 선택값 설정 (목록이 있을 경우 첫 번째꺼)
+      if (classes.length > 0 && !selectedSkill) {
+        const first = classes[0];
+        setSelectedSkill(first.name);
+        setActiveSkill(first.name);
+        loadData(1, first.name, '', 'name', first.keyy);
+      }
+    } catch (e: any) {
+      showAlert('직능 목록 로드 실패', e.message);
+    }
+  };
+
+  useEffect(() => {
+    loadProClasses();
+    loadData(1);
+  }, [tableName]);
+
+  const loadData = async (
+    page: number = 1, 
+    skill: string = activeSkill, 
+    query: string = activeSearchQuery, 
+    field: string = activeSearchField,
+    forceProClassCode?: string
+  ) => {
     setIsLoading(true);
     setCurrentPage(page);
     try {
       const targetTable = 'memTab';
-      const proClassFilter = SKILL_CONFIG[skill] || '';
-      const finalQuery = query || '';
-      const finalField = field || 'name';
-
-      const res = await fetchMembers(targetTable, page, finalQuery, finalField, limit, '', '', 'all', '', '', '', proClassFilter);
+      
+      // keyy 값을 찾아서 필터링 (전달받은 코드가 있으면 그것을 쓰고, 없으면 상태값에서 찾음)
+      const proClassFilter = forceProClassCode !== undefined 
+        ? forceProClassCode 
+        : (proClasses.find(p => p.name === skill)?.keyy || '');
+      
+      const res = await fetchMembers(targetTable, page, query, field, limit, '', '', 'all', '', '', '', proClassFilter);
 
       setData(res.data || []);
       setTotal(res.total || 0);
@@ -273,8 +128,6 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
     }
   };
 
-  useEffect(() => { loadData(1); }, [tableName]);
-
   const handleSearch = () => {
     setActiveSkill(selectedSkill);
     setActiveSearchField(searchField);
@@ -282,54 +135,84 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
     loadData(1, selectedSkill, searchQuery, searchField);
   };
 
+  const checkCodeDuplicate = () => {
+    const code = newSkillCode.trim();
+    if (!code) {
+      setCodeCheckResult({ checked: true, available: false, message: '코드를 입력해주세요.' });
+      return;
+    }
+    
+    const isDuplicate = proClasses.some(p => p.keyy === code);
+    if (isDuplicate) {
+      setCodeCheckResult({ checked: true, available: false, message: '이미 사용 중인 코드입니다.' });
+    } else {
+      setCodeCheckResult({ checked: true, available: true, message: '사용 가능한 코드입니다.' });
+    }
+  };
+
   /**
    * 🎯 직능 추가 로직
    */
-  const handleAddNewSkill = () => {
+  /**
+   * 🎯 직능 추가 로직 (DB 연동)
+   */
+  const handleAddNewSkill = async () => {
     if (!newSkillName.trim() || !newSkillCode.trim()) {
       showAlert('오류', '직능명과 코드를 모두 입력해주세요.');
       return;
     }
 
-    // 🚀 코드 중복 체크 추가
-    const existingCodes = Object.values(activeSkills);
+    const existingCodes = proClasses.map(p => p.keyy);
     if (existingCodes.includes(newSkillCode.trim())) {
-      showAlert('오류', '이 직능코드는 현재 있는 코드입니다.');
+      setCodeCheckResult({ checked: true, available: false, message: '이미 사용 중인 코드입니다.' });
+      showAlert('오류', '이 직능코드는 현재 사용 중인 코드입니다.');
       return;
     }
 
-    const updated = { ...activeSkills, [newSkillName]: newSkillCode.trim() };
-    setActiveSkills(updated);
-    // 로컬 스토리지에 커스텀 직능만 별도 저장 (영구 저장은 추후 DB 권장)
-    const customOnly = { ...updated };
-    Object.keys(SKILL_CONFIG).forEach(k => delete (customOnly as any)[k]);
-    localStorage.setItem('CUSTOM_SKILL_CONFIG', JSON.stringify(customOnly));
+    if (!codeCheckResult.available || !codeCheckResult.checked) {
+      showAlert('오류', '직능 코드 중복 확인이 필요합니다.');
+      return;
+    }
 
-    setIsAddingNewSkill(false);
-    setNewSkillName('');
-    setNewSkillCode('');
-    showAlert('알림', '신규 직능이 추가되었습니다.');
+    setIsLoading(true);
+    try {
+      await createProClass({ keyy: newSkillCode.trim(), name: newSkillName.trim() });
+      await loadProClasses(); // 목롭 업데이트
+      setIsAddingNewSkill(false);
+      setNewSkillName('');
+      setNewSkillCode('');
+      setCodeCheckResult({ checked: false, available: false, message: '' });
+      showAlert('알림', '신규 직능이 DB에 추가되었습니다.');
+    } catch (e: any) {
+      showAlert('추가 실패', e.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   /**
-   * 🎯 직능 삭제 로직
+   * 🎯 직능 삭제 로직 (DB 연동)
    */
   const handleDeleteSkill = () => {
     if (!selectedSkill) return;
-    showConfirm('직능 삭제', `"${selectedSkill}" 직능을 목록에서 삭제하시겠습니까?\n(실제 회원 데이터가 삭제되지는 않지만, 목록에서 사라집니다.)`, () => {
-      const updated = { ...activeSkills };
-      delete updated[selectedSkill];
-      setActiveSkills(updated);
+    const found = proClasses.find(p => p.name === selectedSkill);
+    if (!found) return;
 
-      const customOnly = { ...updated };
-      Object.keys(SKILL_CONFIG).forEach(k => delete (customOnly as any)[k]);
-      localStorage.setItem('CUSTOM_SKILL_CONFIG', JSON.stringify(customOnly));
-
-      setSelectedSkill('');
-      setActiveSkill('');
-      setData([]);
-      setTotal(0);
-      showAlert('알림', '삭제되었습니다.');
+    showConfirm('직능 삭제', `"${selectedSkill}" 직능을 DB에서 영구 삭제하시겠습니까?`, async () => {
+      setIsLoading(true);
+      try {
+        await deleteProClass(found.uid);
+        await loadProClasses();
+        setSelectedSkill('');
+        setActiveSkill('');
+        setData([]);
+        setTotal(0);
+        showAlert('알림', 'DB에서 삭제되었습니다.');
+      } catch (e: any) {
+        showAlert('삭제 실패', e.message);
+      } finally {
+        setIsLoading(false);
+      }
     });
   };
 
@@ -364,7 +247,8 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
     const headers = ['아이디', '번호', '성명', '연락처', '휴대폰', '이메일', '메모']; // 🎯 아이디를 맨 앞으로 이동
 
     try {
-      const skillFilter = SKILL_CONFIG[activeSkill] || '';
+      const found = proClasses.find(p => p.name === activeSkill);
+      const skillFilter = found ? found.keyy : '';
       const finalQuery = isAll ? '' : activeSearchQuery;
       const finalField = isAll ? 'all' : activeSearchField;
 
@@ -544,15 +428,23 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
               className="border border-gray-300 rounded-sm px-3 py-2 w-48 outline-none focus:border-blue-500 text-gray-700 bg-white"
               value={selectedSkill}
               onChange={(e) => {
-                const newSkill = e.target.value;
-                setSelectedSkill(newSkill);
-                setActiveSkill(newSkill);
-                loadData(1, newSkill, searchQuery, searchField);
+                const newSkillName = e.target.value;
+                const found = proClasses.find(p => p.name === newSkillName);
+                
+                setSelectedSkill(newSkillName);
+                setActiveSkill(newSkillName);
+                
+                // 🚀 직능 선택 시 기존 검색어 초기화 (사용자 편의성)
+                setSearchQuery('');
+                setActiveSearchQuery('');
+                
+                // 즉시 로드
+                loadData(1, newSkillName, '', searchField, found?.keyy);
               }}
             >
               <option value="">직능을 선택하세요</option>
-              {Object.keys(activeSkills).map((skillName) => (
-                <option key={skillName} value={skillName}>{skillName}</option>
+              {proClasses.map((pc) => (
+                <option key={pc.uid} value={pc.name}>{pc.name}</option>
               ))}
             </select>
           </div>
@@ -566,7 +458,7 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
             <option value="phone">연락처</option>
             <option value="hp">휴대폰</option>
             <option value="email">이메일</option>
-            <option value="loginId">아이디</option>
+            <option value="id">아이디</option>
           </select>
 
           <input
@@ -580,9 +472,18 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
 
           <button
             onClick={handleSearch}
-            className="bg-[#4a89dc] hover:bg-[#3b75c3] text-white px-6 py-2 rounded-sm font-bold text-sm transition-colors active:scale-95 ml-1"
+            className="bg-[#4a89dc] hover:bg-[#3b75c3] text-white px-6 py-2 rounded-sm font-bold text-sm transition-colors active:scale-95 ml-1 flex items-center gap-2"
           >
             검색
+          </button>
+          
+          <button
+            onClick={() => loadData(1)}
+            type="button"
+            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all"
+            title="새로고침"
+          >
+            <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
           </button>
         </div>
 
@@ -735,13 +636,33 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase">직능 코드</label>
-                <input
-                  type="text"
-                  placeholder="예: SPEC-1"
-                  className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:border-blue-500 font-mono"
-                  value={newSkillCode}
-                  onChange={(e) => setNewSkillCode(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="예: SPEC-1"
+                    className={`flex-1 border rounded px-3 py-2 outline-none transition-all font-mono ${
+                      codeCheckResult.checked 
+                        ? (codeCheckResult.available ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50') 
+                        : 'border-gray-300 focus:border-blue-500'
+                    }`}
+                    value={newSkillCode}
+                    onChange={(e) => {
+                      setNewSkillCode(e.target.value);
+                      setCodeCheckResult({ checked: false, available: false, message: '' });
+                    }}
+                  />
+                  <button 
+                    onClick={checkCodeDuplicate}
+                    className="bg-gray-800 text-white px-4 py-2 rounded text-xs font-bold hover:bg-black transition-colors whitespace-nowrap"
+                  >
+                    중복 확인
+                  </button>
+                </div>
+                {codeCheckResult.checked && (
+                  <p className={`text-[11px] font-bold ${codeCheckResult.available ? 'text-green-600' : 'text-red-500'}`}>
+                    {codeCheckResult.message}
+                  </p>
+                )}
               </div>
               <div className="p-3 bg-blue-50 rounded text-[11px] text-blue-600 leading-relaxed">
                 ※ 추가된 직능은 회원 상세 정보의 '직능 선택' 목록에도 나타납니다. 코드는 중복되지 않도록 주의하세요.

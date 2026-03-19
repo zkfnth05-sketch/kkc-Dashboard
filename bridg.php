@@ -5,12 +5,38 @@
  */
 
 // 🚀 1. CORS 및 기본 헤더
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
-header("Access-Control-Allow-Origin: $origin");
+$allowed_origins = [
+    'https://kkc-admin-dashboard.vercel.app',
+    'https://kkf-admin-dashboard.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://kkc3349.mycafe24.com'
+];
+
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowed_origins)) {
+    header("Access-Control-Allow-Origin: $origin");
+} else {
+    // 보안을 위해 기본적으로는 Vercel 메인 주소만 허용 응답을 보냅니다.
+    header("Access-Control-Allow-Origin: https://kkc-admin-dashboard.vercel.app");
+}
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, X-Auth-Token, Origin, Accept");
 header("Access-Control-Allow-Credentials: true");
 header("Content-Type: application/json; charset=utf-8");
+
+// 🚀 [DEBUG] 긴급 추적용 로깅 함수
+function kkc_debug_log($msg, $data = null) {
+    $log_file = dirname(__FILE__) . '/kkc_bridge_debug.log';
+    $time = date('[Y-m-d H:i:s]');
+    $content = $time . " " . $msg;
+    if ($data !== null) {
+        $content .= "\nDATA: " . print_r($data, true);
+    }
+    file_put_contents($log_file, $content . "\n-------------------\n", FILE_APPEND);
+}
+
+kkc_debug_log(">>> Request Start: " . $_SERVER['REQUEST_METHOD'] . " from " . ($_SERVER['HTTP_ORIGIN'] ?? 'N/A') . " to " . $_SERVER['REQUEST_URI']);
 
 // 🚀 JSON 응답을 위한 헬퍼 함수
 function kkc_output_json($data) {
@@ -96,6 +122,9 @@ try {
                     safe_req('post_logic.php', $handler_root); $output = kkc_handle_get_notices($input); 
                 }
             }
+            else if ($table === 'wpdmpro') {
+                safe_req('download_logic.php', $handler_root); $output = kkc_handle_download_list($input);
+            }
             else { safe_req('crud_logic.php', $handler_root); $output = kkc_handle_general_list($input); }
             break;
         case 'get_notices':
@@ -132,7 +161,11 @@ try {
         case 'get_dogshows': safe_req('crud_logic.php', $handler_root); $output = kkc_handle_get_dogshows(); break;
         case 'execute_sql': safe_req('crud_logic.php', $handler_root); $output = kkc_handle_sql_batch($input); break;
         case 'get_all_tables': safe_req('crud_logic.php', $handler_root); $output = kkc_handle_show_tables(); break;
+        case 'save_download': safe_req('download_logic.php', $handler_root); $output = kkc_handle_save_download($input); break;
+        case 'update_download': safe_req('download_logic.php', $handler_root); $output = kkc_handle_update_download($input); break;
+        case 'pin_download': safe_req('download_logic.php', $handler_root); $output = kkc_handle_pin_download($input); break;
         case 'export_members': safe_req('member_logic.php', $handler_root); $output = kkc_handle_member_export($input); break;
+        case 'export_table_batch': safe_req('crud_logic.php', $handler_root); $output = kkc_handle_export_table_batch($input); break;
     }
 } catch (Exception $e) { 
     $output = ['success' => false, 'error' => $e->getMessage()]; 

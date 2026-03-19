@@ -26,15 +26,15 @@ export const DogShowForm: React.FC<{ competition: any, onClose: () => void, show
                         <label className="text-sm font-bold text-slate-600">혈통서 등록번호</label>
                         <div className="flex gap-2">
                             <input name="pedigree_number" value={formData.pedigree_number} onChange={handleInputChange} className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-teal-500 outline-none transition-all shadow-inner uppercase font-mono" placeholder="KCC-CC-000000" />
-                            <button
-                                type="button"
-                                onClick={handleSearchMember}
-                                disabled={isSearching}
-                                className="px-6 bg-slate-900 text-white rounded-2xl font-bold text-xs hover:bg-black transition-all flex items-center gap-2"
-                            >
-                                {isSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-                                조회
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSearchMember}
+                                    disabled={isSearching}
+                                    className="px-6 bg-slate-900 !text-white rounded-2xl font-bold text-xs hover:bg-black transition-all flex items-center gap-2"
+                                >
+                                    {isSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+                                    조회
+                                </button>
                         </div>
                     </div>
                 </div>

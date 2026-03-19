@@ -519,5 +519,221 @@ EOD;
 
 file_put_contents($handlers_dir . 'event_logic.php', $event_logic_code);
 
-echo "✅ event_logic.php 배포 완료";
+// 🚀 최신 download_logic.php 데이터 배포 (Antigravity 추가)
+$download_logic_code = <<<'EOD'
+<?php
+/**
+ * 파일명: handlers/download_logic.php
+ * 기능: WordPress Download Manager (WPDM) 연동 핸들러
+ */
+
+if (!defined('ABSPATH')) exit;
+
+function kkc_handle_download_list($input) {
+    global $wpdb;
+    $page = isset($input['page']) ? max(1, intval($input['page'])) : 1;
+    $limit = isset($input['limit']) ? intval($input['limit']) : 20;
+    $offset = ($page - 1) * $limit;
+    $search = $input['search'] ?? '';
+    $where = "post_type = 'wpdmpro' AND post_status = 'publish'";
+    if (!empty($search)) $where .= $wpdb->prepare(" AND post_title LIKE %s", '%' . $search . '%');
+    $total = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE $where");
+    $sql = "SELECT p.ID, p.post_title, p.post_date, p.menu_order, u.display_name as post_author_name
+            FROM {$wpdb->posts} p
+            LEFT JOIN {$wpdb->users} u ON p.post_author = u.ID
+            WHERE $where ORDER BY p.menu_order DESC, p.post_date DESC LIMIT $limit OFFSET $offset";
+    $posts = $wpdb->get_results($sql, ARRAY_A);
+    foreach ($posts as &$post) {
+        $post['is_pinned'] = intval($post['menu_order']) > 0 || get_post_meta($post['ID'], '__wpdm_featured', true) == '1';
+        $post['download_count'] = get_post_meta($post['ID'], '__wpdm_download_count', true) ?: 0;
+        $files = get_post_meta($post['ID'], '__wpdm_files', true);
+        $post['file_url'] = is_array($files) ? reset($files) : $files;
+    }
+    return ['success' => true, 'data' => $posts, 'total' => intval($total)];
+}
+
+function kkc_handle_save_download($input) {
+    global $wpdb; $data = $input['data'] ?? $input;
+    $title = $data['title'] ?? '새 다운로드';
+    $file_url = $data['file_url'] ?? ''; 
+    $filename = basename($file_url);
+    $post_id = wp_insert_post([
+        'post_title' => $title,
+        'post_type' => 'wpdmpro',
+        'post_status' => 'publish',
+        'post_author' => get_current_user_id() ?: 1,
+    ]);
+    if (is_wp_error($post_id)) return ['success' => false, 'error' => $post_id->get_error_message()];
+    $cat_name = '서식 자료실';
+    $term = get_term_by('name', $cat_name, 'wpdmcategory');
+    if (!$term) {
+        $term = wp_insert_term($cat_name, 'wpdmcategory');
+        $cat_id = is_array($term) ? $term['term_id'] : $term;
+    } else { $cat_id = $term->term_id; }
+    if (!is_wp_error($cat_id)) { wp_set_post_terms($post_id, [$cat_id], 'wpdmcategory'); }
+    update_post_meta($post_id, '__wpdm_files', [$file_url]);
+    $fileinfo = [$file_url => ['title' => $filename, 'file' => $file_url, 'size' => '', 'icon' => 'image/png']];
+    update_post_meta($post_id, '__wpdm_fileinfo', $fileinfo);
+    update_post_meta($post_id, '__wpdm_download_count', 0);
+    update_post_meta($post_id, '__wpdm_masterkey', uniqid());
+    update_post_meta($post_id, '__wpdm_access', array('guest', 'member', 'administrator')); 
+    update_post_meta($post_id, '__wpdm_view_count', 0);
+    update_post_meta($post_id, '__wpdm_quota', -1);
+    update_post_meta($post_id, '__wpdm_package_size', '');
+    update_post_meta($post_id, '__wpdm_template', 'link-template-panel.php');
+    update_post_meta($post_id, '__wpdm_page_template', 'page-template-default.php');
+    return ['success' => true, 'id' => $post_id, 'category' => $cat_name];
+}
+
+function kkc_handle_update_download($input) {
+    global $wpdb; $data = $input['data'] ?? $input;
+    $post_id = intval($data['id']);
+    if (!$post_id) return ['success' => false, 'error' => 'ID가 없습니다.'];
+    $update_data = [];
+    if (isset($data['title'])) $update_data['post_title'] = $data['title'];
+    if (!empty($update_data)) { wp_update_post(array_merge(['ID' => $post_id], $update_data)); }
+    if (!empty($data['file_url'])) {
+        update_post_meta($post_id, '__wpdm_files', [$data['file_url']]);
+        $filename = basename($data['file_url']);
+        $fileinfo = [$data['file_url'] => ['title' => $filename, 'file' => $data['file_url'], 'size' => '', 'icon' => 'image/png']];
+        update_post_meta($post_id, '__wpdm_fileinfo', $fileinfo);
+    }
+    return ['success' => true];
+}
+
+function kkc_handle_pin_download($input) {
+    global $wpdb; $data = $input['data'] ?? $input;
+    $id = intval($data['id']); $pin = isset($data['pin']) ? (bool)$data['pin'] : true;
+    if (!$id) return ['success' => false, 'error' => 'ID가 없습니다.'];
+    wp_update_post(['ID' => $id, 'menu_order' => $pin ? 1 : 0]);
+    update_post_meta($id, '__wpdm_featured', $pin ? '1' : '0');
+    return ['success' => true];
+}
+
+
+
+
+
+
+EOD;
+
+file_put_contents($handlers_dir . 'download_logic.php', $download_logic_code);
+
+// 🚀 최신 crud_logic.php 데이터 배포 (파일 업로드 허용 확장자 수정 버전)
+$crud_logic_code = <<<'EOD'
+<?php
+/**
+ * 파일명: handlers/crud_logic.php
+ */
+if (!defined('ABSPATH')) exit;
+
+function kkc_handle_general_list($input) {
+    global $wpdb, $KKC_TABLE_MAP;
+    $table = $input['table'];
+    $conf = $KKC_TABLE_MAP[$table] ?? ['pk' => 'uid', 'encoding' => 'UTF-8', 'search_fields' => []];
+    $enc = $conf['encoding'];
+    $page = max(1, intval($input['page'] ?? 1));
+    $limit = intval($input['limit'] ?? 50);
+    $offset = ($page - 1) * $limit;
+    $wpdb->query("SET NAMES 'binary'");
+    $where = "1=1";
+    if (!empty($input['post_type'])) {
+        $pt = $wpdb->prepare("%s", $input['post_type']);
+        $where .= " AND `post_type` = $pt";
+    }
+    if (!empty($input['ds_pid'])) {
+        $pid = (int)$input['ds_pid'];
+        $where .= " AND `ds_pid` = $pid";
+    }
+    if (!empty($input['search'])) {
+        $q_hex = bin2hex(kkc_convert($input['search'], $enc, false));
+        $fields = (!empty($input['field']) && $input['field'] !== 'all') ? [$input['field']] : ($conf['search_fields'] ?? [$conf['pk']]);
+        if (!empty($fields)) {
+            $sub = [];
+            foreach ($fields as $f) { $sub[] = "`$f` LIKE CONCAT('%', UNHEX('$q_hex'), '%')"; }
+            $where .= " AND (" . implode(" OR ", $sub) . ")";
+        }
+    }
+    $data = $wpdb->get_results("SELECT * FROM `$table` WHERE $where ORDER BY 1 DESC LIMIT $limit OFFSET $offset", ARRAY_A);
+    $total = $wpdb->get_var("SELECT COUNT(*) FROM `$table` WHERE $where");
+    $wpdb->query("SET NAMES 'utf8mb4'");
+    return ['success' => true, 'data' => kkc_convert($data ?: [], $enc, true), 'total' => (int)$total];
+}
+
+function kkc_handle_upload_image($input) {
+    add_filter('upload_mimes', function($mimes) {
+        $mimes['hwp'] = 'application/haansofthwp';
+        $mimes['hwpx'] = 'application/haansofthwp-xml';
+        $mimes['pdf'] = 'application/pdf';
+        $mimes['docx'] = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        $mimes['doc'] = 'application/msword';
+        $mimes['xls'] = 'application/vnd.ms-excel';
+        $mimes['xlsx'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        $mimes['zip'] = 'application/zip';
+        return $mimes;
+    }, 999);
+    $filename = sanitize_file_name($input['filename'] ?? 'kkc_upload_' . time() . '.jpg');
+    $decoded_data = null;
+    if (!empty($_FILES['image_file']['tmp_name'])) {
+        $decoded_data = file_get_contents($_FILES['image_file']['tmp_name']);
+        $filename = sanitize_file_name($_FILES['image_file']['name']);
+    } else if (!empty($input['base64'])) {
+        $data = $input['base64'];
+        if (preg_match('/^data:image\/(\w+);base64,/', $data, $type)) { $data = substr($data, strpos($data, ',') + 1); }
+        $decoded_data = base64_decode($data);
+    }
+    if (!$decoded_data) throw new Exception("데이터 수신 실패");
+    $upload = wp_upload_bits($filename, null, $decoded_data);
+    if ($upload['error']) throw new Exception($upload['error']);
+    $file_path = $upload['file'];
+    $file_type = wp_check_filetype(basename($file_path), null);
+    $attachment = ['post_mime_type' => $file_type['type'], 'post_title' => preg_replace('/\.[^.]+$/', '', basename($file_path)), 'post_content' => '', 'post_status' => 'inherit'];
+    $attach_id = wp_insert_attachment($attachment, $file_path);
+    require_once(ABSPATH . 'wp-admin/includes/image.php');
+    $attach_data = wp_generate_attachment_metadata($attach_id, $file_path);
+    wp_update_attachment_metadata($attach_id, $attach_data);
+    return ['success' => true, 'url' => set_url_scheme($upload['url'], 'https'), 'id' => $attach_id];
+}
+
+function kkc_handle_create($input) {
+    global $wpdb; $table = $input['table']; $data = $input['data'];
+    $res = $wpdb->insert($table, $data);
+    if ($res === false) return ['success' => false, 'error' => "DB 삽입 실패: " . $wpdb->last_error];
+    return ['success' => true, 'id' => $wpdb->insert_id];
+}
+
+function kkc_handle_update($input) {
+    global $wpdb, $KKC_TABLE_MAP; $table = $input['table']; $data = $input['data'];
+    $conf = $KKC_TABLE_MAP[$table] ?? ['pk' => 'uid'];
+    $pk = $conf['pk']; $pk_val = $data[$pk]; unset($data[$pk]);
+    $res = $wpdb->update($table, $data, [$pk => $pk_val]);
+    return ($res === false) ? ['success' => false, 'error' => "DB 업데이트 실패"] : ['success' => true];
+}
+
+function kkc_handle_delete($input) {
+    global $wpdb, $KKC_TABLE_MAP; $table = $input['table']; $id = (int)$input['id'];
+    $pk = $KKC_TABLE_MAP[$table]['pk'] ?? 'uid';
+    return ($wpdb->delete($table, [$pk => $id]) === false) ? ['success' => false] : ['success' => true];
+}
+
+function kkc_handle_show_tables() {
+    global $wpdb; return ['success' => true, 'data' => $wpdb->get_col("SHOW TABLES")];
+}
+
+function kkc_handle_sql_batch($input) {
+    global $wpdb; $queries = $input['queries'] ?? []; $count = 0;
+    foreach ($queries as $sql) { if (trim($sql)) { $wpdb->query($sql); $count++; } }
+    return ['success' => true, 'count' => $count];
+}
+
+function kkc_handle_get_dogshows() {
+    global $wpdb;
+    $results = $wpdb->get_results("SELECT ds_pid as id, ds_name as name FROM dogshow ORDER BY ds_pid DESC LIMIT 300", ARRAY_A);
+    return ['success' => true, 'data' => $results ?: []];
+}
+EOD;
+
+file_put_contents($handlers_dir . 'crud_logic.php', $crud_logic_code);
+
+echo "✅ 모든 핸들러(event, download, crud) 배포 완료";
 exit;

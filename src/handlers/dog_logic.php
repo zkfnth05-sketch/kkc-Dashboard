@@ -105,8 +105,21 @@ function kkc_handle_get_dongtae($input) {
 
 function kkc_handle_next_dongtae_no($input) {
     global $wpdb;
+    // 가장 최근의 동태 번호를 가져옵니다.
     $last = $wpdb->get_var("SELECT dongtae_no FROM `dongtaeTab` ORDER BY uid DESC LIMIT 1");
-    return ['success' => true, 'data' => (string)(intval($last) + 1)];
+    
+    // {FFFFF66452 와 같은 형식에서 숫자 부분만 추출하여 1을 더합니다.
+    if (preg_match('/^(.*?)(\d+)$/', $last, $matches)) {
+        $prefix = $matches[1];    // 예: {FFFFF
+        $numPart = intval($matches[2]); // 예: 66452
+        $nextNum = $numPart + 1;
+        $newData = $prefix . $nextNum;
+    } else {
+        // 숫자 형식이 아닐 경우에 대한 안전한 폴백
+        $newData = (string)(intval($last) + 1);
+    }
+    
+    return ['success' => true, 'data' => $newData];
 }
 
 function kkc_handle_owner_history($input) {

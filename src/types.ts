@@ -17,6 +17,7 @@ export interface PostCategory {
 
 export interface Dog { id: string; regNo: string; name: string; birthDate: string; }
 export interface Skill { id: string; name: string; dateAcquired: string; }
+export interface ProClass { uid: string; keyy: string; name: string; }
 export interface Member {
   id: string;
   mid: string;
@@ -49,7 +50,7 @@ export interface Member {
   dogs: Dog[];
 }
 
-export interface Pedigree { id: string; regNo: string; regType: string; name: string; fullName: string; group: string; breed: string; gender: string; birthDate: string; color: string; coatType: string; kennel: string; kennelNameEng: string; ownerId: string; owner: string; ownerPhone: string; ownerAddr: string; breederId: string; breeder: string; breederPhone: string; breederAddr: string; sireUid: string; sireRegNo: string; sireName: string; damUid: string; damRegNo: string; damName: string; microchip: string; specBone: string; specDna: string; specTrain: string; specWin: string; specWin2?: string; specRelate: string; domesticNo: string; foreignNo: string; foreignNo2: string; memo: string; okDate: string; okStat: string; dongtaeNo: string; type: string; joinDate?: string; }
+export interface Pedigree { id: string; regNo: string; regType: string; name: string; fullName: string; group: string; breed: string; gender: string; birthDate: string; color: string; coatType: string; kennel: string; kennelNameEng: string; ownerId: string; owner: string; ownerPhone: string; ownerAddr: string; breederId: string; breeder: string; breederPhone: string; breederAddr: string; sireUid: string; sireRegNo: string; sireName: string; damUid: string; damRegNo: string; damName: string; microchip: string; hairIndex: string; specBone: string; specDna: string; specTrain: string; specWin: string; specWin2?: string; specRelate: string; domesticNo: string; foreignNo: string; foreignNo2: string; memo: string; okDate: string; okStat: string; dongtaeNo: string; type: string; joinDate?: string; editDate?: string; }
 
 export interface Point {
   id: string;
@@ -133,7 +134,7 @@ export interface DongtaeInfo {
 
 export interface ParentDogInfo { uid: string; name: string; fullname: string; reg_no: string; birth: string; dog_class: string; hair: string; saho_eng: string; foreign100: string; foreign_no: string; foreign_no2: string; }
 export interface PersonSearchResult { id: string; name: string; source: string; context: string; data: { id: string; name: string; nameEng: string; phone: string; address: string; }; }
-export interface OwnerHistory { uid: string; dog_uid: string; ok_date: string; poss_id: string; poss_name: string; poss_name_eng: string; poss_addr: string; }
+export interface OwnerHistory { uid: string; dog_uid: string; reg_no: string; change_date: string; poss_id: string; poss_name: string; poss_name_eng: string; poss_addr: string; poss_phone: string; }
 
 export const MEMBER_RANK_MAP: Record<string, string> = {
   'B0': '준회원',

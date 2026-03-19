@@ -32,6 +32,8 @@ export const NoticeForm: React.FC<NoticeFormProps> = ({ initialData, categories,
   }, [initialData]);
 
   const internalImageUpload = async (file: File) => {
+    setIsUploading(true);
+    setError('');
     try {
       const res = await uploadFile(file);
       if (res && res.success) {
@@ -39,9 +41,11 @@ export const NoticeForm: React.FC<NoticeFormProps> = ({ initialData, categories,
         return { url: res.url, id: res.id };
       }
       return '';
-    } catch (err) {
-      console.error("Upload failed:", err);
+    } catch (err: any) {
+      setError('업로드 중 오류 발생');
       return '';
+    } finally {
+      setIsUploading(false);
     }
   };
 

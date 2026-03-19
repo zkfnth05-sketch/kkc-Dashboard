@@ -29,10 +29,18 @@ export const deleteAssociationNotice = async (id: number) => {
     return fetchBridge({ mode: 'delete_record', table: 'wp_posts', id });
 };
 
+const encodeContent = (data: any) => {
+    if (data && data.content) {
+        // UTF-8 문자열을 안전하게 Base64로 변환
+        return { ...data, content: btoa(encodeURIComponent(data.content)), _is_encoded: true };
+    }
+    return data;
+};
+
 export const createAssociationNotice = async (data: any) => {
-    return fetchBridge({ mode: 'save_notice', data });
+    return fetchBridge({ mode: 'save_notice', data: encodeContent(data) });
 };
 
 export const updateAssociationNotice = async (data: any) => {
-    return fetchBridge({ mode: 'save_notice', data });
+    return fetchBridge({ mode: 'save_notice', data: encodeContent(data) });
 };

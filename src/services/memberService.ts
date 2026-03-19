@@ -159,51 +159,52 @@ export const compressImage = (file: File, maxWidth = 2560, quality = 0.9): Promi
  * 🚀 [MULTIPART UPLOAD] File 객체를 직접 업로드하는 엔진 (자동 압축 포함)
  */
 export const uploadFile = async (file: File) => {
-    // 🛡️ [AUTO COMPRESSION] 업로드 전 자동 압축 실행 (워드프레스 용량 최적화)
     let fileToUpload: File | Blob = file;
-    if (file.type.startsWith('image/')) {
-        fileToUpload = await compressImage(file, 2048, 0.85); // 최대 2048px, 85% 품질로 압축
+    if (file.size >= 0.9 * 1024 * 1024 && file.type.startsWith('image/')) {
+        fileToUpload = await compressImage(file, 1600, 0.8);
     }
 
     const formData = new FormData();
     formData.append('mode', 'upload_image');
-    formData.append('image_file', fileToUpload);
+    formData.append('image_file', fileToUpload, file.name);
+    formData.append('filename', file.name);
+
+    // WAF Bypass: Add mode to URL as well
+    const uploadUrl = `${BRIDGE_URL}${BRIDGE_URL.includes('?') ? '&' : '?'}mode=upload_image`;
 
     try {
-        const response = await fetch(BRIDGE_URL, {
+        const response = await fetch(uploadUrl, {
             method: 'POST',
-            headers: {
-                'X-Auth-Token': SECRET_KEY
-            },
+            headers: { 'X-Auth-Token': SECRET_KEY },
             body: formData
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`서버 응답 오류 (HTTP ${response.status}): ${errorText.substring(0, 100)}`);
-        }
-
         const rawText = await response.text();
         try {
-            const data = JSON.parse(rawText);
-            return data;
-        } catch (parseError) {
-            console.error("Upload JSON Parse Error. Raw response:", rawText);
-            throw new Error("서버 응답이 올바른 형식이 아닙니다. (JSON 파싱 실패)");
+            // PHP 경고 메시지가 섞여 나올 경우를 대비해 JSON 부분만 추출
+            const jsonStart = rawText.indexOf('{');
+            const jsonEnd = rawText.lastIndexOf('}');
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+                return JSON.parse(rawText.substring(jsonStart, jsonEnd + 1));
+            }
+            return JSON.parse(rawText);
+        } catch (e) {
+            console.error("Upload parse error:", rawText);
+            throw new Error("서버 응답 처리 중 오류가 발생했습니다.");
         }
     } catch (e: any) {
-        console.error("Upload Error:", e);
-        throw new Error(e.message || "이미지 업로드 중 네트워크 오류가 발생했습니다.");
+        throw new Error(e.message || "업로드 실패");
     }
 };
 
 /**
  * 🛡️ [DATA MAPPING CONSTITUTION - SECTION: CORE LISTS]
  */
-export const fetchMemberStats = async (tableName: string) => {
+export const fetchMemberStats = async (tableName: string, q: string = '', f: string = 'all', ds: string = '', de: string = '', region: string = '') => {
     try {
         const ranks = ['C0', 'A3', 'A2', 'A1', 'B0'];
-        const promises = ranks.map(rank => fetchMembers(tableName, 1, '', 'all', 1, '', '', rank));
+        // 🎯 모든 등급별 쿼리에 현재 검색 조건(날짜, 지역 등)을 포함시켜 리얼타임 통계 산출
+        const promises = ranks.map(rank => fetchMembers(tableName, 1, q, f, 1, ds, de, rank, region));
         const res = await Promise.all(promises);
         return {
             C0: res[0].total,
@@ -361,6 +362,7 @@ export const updateMember = async (table: string, data: any) => {
 export const createMember = async (table: string, data: any) => {
     const dbData: any = {};
     if (table === 'memTab') {
+        if (data.mem_no) dbData.mid = parseInt(data.mem_no, 10); // 🚀 [FIX] 수동 입력된 회원번호(mid) 처리
         dbData.id = data.loginId || '';
         dbData.name = data.name || '';
         dbData.name_eng = data.name_eng || '';
@@ -415,6 +417,34 @@ export const createPost = async (table: string, data: any) => fetchBridge({ mode
 export const updatePost = async (table: string, data: any) => fetchBridge({ mode: 'update_record', table, data });
 export const runSqlBatch = async (queries: string[]) => fetchBridge({ mode: 'execute_sql', queries });
 
+/**
+ * 🚀 DB 테이블 배치 내보내기 (SQL DUMP 스트리밍)
+ * offset=0, include_header=true 부터 시작해서 is_done=true 까지 반복 호출
+ */
+export const fetchTableBatch = async (
+    table: string,
+    offset: number,
+    batchSize: number,
+    includeHeader: boolean = false
+): Promise<{
+    success: boolean;
+    sql: string;
+    fetched: number;
+    offset: number;
+    total: number;
+    is_done: boolean;
+    next_offset: number;
+}> => {
+    return fetchBridge({
+        mode: 'export_table_batch',
+        table,
+        offset,
+        batch_size: batchSize,
+        include_header: includeHeader,
+    });
+};
+
+
 export const fetchDogShows = async () => {
     const res = await fetchBridge({ mode: 'get_dogshows' });
     return Array.isArray(res.data) ? res.data : [];
@@ -426,7 +456,13 @@ export const fetchPrizes = async (t: string, p: number, q: string, f: string) =>
 };
 
 export const fetchPoints = async (t: string, p: number, q: string, f: string) => {
-    const res = await fetchBridge({ mode: 'list', table: t, page: p, search: q, field: f === 'regNo' ? 'reg_no' : 'all', limit: 50 });
+    let searchField = f;
+    if (f === 'regNo') searchField = 'reg_no';
+    else if (f === 'dogShow') searchField = 'dogShowName';
+    else if (f === 'regDate') searchField = 'pt_regdate';
+    else if (f === 'all') searchField = 'all';
+    
+    const res = await fetchBridge({ mode: 'list', table: t, page: p, search: (q || '').trim(), field: searchField, limit: 50 });
     return { data: (res.data || []).map((pt: any) => ({ id: pt.pt_pid, regNo: pt.reg_no, dogShow: pt.ds_pid, dogShowName: pt.dogShowName || pt.ds_pid, title: pt.pt_title, className: pt.pt_class, points: pt.pt_point, award: pt.pt_prize, regDate: pt.pt_regdate, other: pt.pt_etc })), total: parseInt(res.total || '0') };
 };
 
@@ -450,6 +486,29 @@ export const fetchPointsByRegNo = async (regNo: string) => {
     const res = await fetchBridge({ list: 'point', mode: 'list', table: 'point', search: (regNo || '').trim(), field: 'reg_no', limit: 100 });
     return (res.data || []).map((p: any) => ({ id: p.pt_pid, regNo: p.reg_no, dogShow: p.ds_pid, dogShowName: p.dogShowName || p.ds_pid, title: p.pt_title, className: p.pt_class, points: p.pt_point, award: p.pt_prize, regDate: p.pt_regdate, other: p.pt_etc }));
 };
+
+/**
+ * 🎯 pro_classTab (직능 목록) 관리
+ */
+export const fetchProClasses = async () => {
+    const res = await fetchBridge({ mode: 'list', table: 'pro_classTab', limit: 300 });
+    const list = (res.data || []).map((row: any) => ({
+        uid: row.uid.toString(),
+        keyy: row.keyy,
+        name: row.name
+    }));
+    // ㄱ, ㄴ, ㄷ... 순으로 정렬
+    return list.sort((a: any, b: any) => a.name.localeCompare(b.name, 'ko'));
+};
+
+export const createProClass = async (data: { keyy: string, name: string }) => {
+    return fetchBridge({ mode: 'create_record', table: 'pro_classTab', data });
+};
+
+export const deleteProClass = async (id: string) => {
+    return fetchBridge({ mode: 'delete_record', table: 'pro_classTab', id: id });
+};
+
 export const updatePedigree = async (table: string, data: any) => fetchBridge({ mode: 'update_record', table, data });
 export const addOwnerChange = async (data: any, table: string) => fetchBridge({ mode: 'create_record', table: 'poss_changeTab', data });
 export const deleteOwnerHistory = async (id: string) => fetchBridge({ id, mode: 'delete_record', table: 'poss_changeTab' });

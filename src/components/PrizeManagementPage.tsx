@@ -67,12 +67,45 @@ const PrizeAddModal: React.FC<PrizeAddModalProps> = ({ onClose, onSave }) => {
         regNo: '', dogShowName: '', date: '', location: '', judge: '', points: '', detail: ''
     });
     const [isSaving, setIsSaving] = useState(false);
+
+    // 등록번호 조회 상태
+    const [isLookingUp, setIsLookingUp] = useState(false);
+    const [dogInfo, setDogInfo] = useState<{ name?: string; breed?: string; owner?: string; regNo?: string } | null>(null);
+    const [lookupError, setLookupError] = useState<string | null>(null);
+
+    const handleLookup = async () => {
+        const regNo = (formData.regNo || '').trim();
+        if (!regNo) { setLookupError('등록번호를 입력해주세요.'); return; }
+        setIsLookingUp(true);
+        setDogInfo(null);
+        setLookupError(null);
+        try {
+            const dogs = await fetchDogsByRegNos([regNo]);
+            const dog = dogs[regNo] as any;
+            if (dog) {
+                setDogInfo({
+                    name: dog.dog_name || dog.name || '-',
+                    breed: dog.dog_class || dog.breed || '-',
+                    owner: dog.owner_name || dog.mem_name || dog.name || '-',
+                    regNo: dog.reg_no || regNo,
+                });
+            } else {
+                setLookupError('해당 등록번호의 애견 정보를 찾을 수 없습니다.');
+            }
+        } catch (e: any) {
+            setLookupError('조회 실패: ' + e.message);
+        } finally {
+            setIsLookingUp(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.regNo) return alert('등록번호를 입력해주세요.');
         setIsSaving(true);
         try { await onSave(formData); } finally { setIsSaving(false); }
     };
+
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-[500px] overflow-hidden animate-in zoom-in-95">
@@ -81,10 +114,66 @@ const PrizeAddModal: React.FC<PrizeAddModalProps> = ({ onClose, onSave }) => {
                     <button onClick={onClose} className="text-slate-400 hover:text-black transition-colors"><X size={24} /></button>
                 </div>
                 <form onSubmit={handleSubmit} className="p-8 space-y-6">
+
+                    {/* 등록번호 + 조회 버튼 */}
                     <div>
                         <label className="block text-sm font-bold text-slate-600 mb-1.5">등록번호 *</label>
-                        <input type="text" className="w-full border border-slate-200 rounded-md px-4 h-11 outline-none focus:border-blue-500 transition-all font-medium" value={formData.regNo} onChange={e => setFormData({ ...formData, regNo: e.target.value })} required />
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                className="flex-1 border border-slate-200 rounded-md px-4 h-11 outline-none focus:border-blue-500 transition-all font-medium"
+                                value={formData.regNo}
+                                onChange={e => {
+                                    setFormData({ ...formData, regNo: e.target.value });
+                                    setDogInfo(null);
+                                    setLookupError(null);
+                                }}
+                                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleLookup(); } }}
+                                placeholder="등록번호 입력 후 조회"
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={handleLookup}
+                                disabled={isLookingUp}
+                                className="flex items-center gap-1.5 px-5 h-11 bg-slate-700 hover:bg-slate-800 text-white text-sm font-bold rounded-md transition-all active:scale-95 disabled:opacity-60 shrink-0"
+                            >
+                                {isLookingUp
+                                    ? <Loader2 size={15} className="animate-spin" />
+                                    : <Search size={15} />}
+                                조회
+                            </button>
+                        </div>
+
+                        {/* 조회 결과 */}
+                        {dogInfo && (
+                            <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+                                <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 text-sm font-black">🐶</div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[13px] font-black text-blue-900">{dogInfo.name}</p>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
+                                        {dogInfo.breed && dogInfo.breed !== '-' && (
+                                            <span className="text-[11px] text-blue-700 font-bold">견종: {dogInfo.breed}</span>
+                                        )}
+                                        {dogInfo.owner && dogInfo.owner !== '-' && (
+                                            <span className="text-[11px] text-blue-700 font-bold">소유자: {dogInfo.owner}</span>
+                                        )}
+                                        <span className="text-[11px] text-blue-500 font-mono">#{dogInfo.regNo}</span>
+                                    </div>
+                                </div>
+                                <span className="text-[10px] font-black text-blue-400 bg-blue-100 px-2 py-0.5 rounded-full shrink-0">확인됨</span>
+                            </div>
+                        )}
+
+                        {/* 조회 실패 메시지 */}
+                        {lookupError && (
+                            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+                                <AlertCircle size={15} className="text-red-500 shrink-0" />
+                                <p className="text-[12px] text-red-600 font-bold">{lookupError}</p>
+                            </div>
+                        )}
                     </div>
+
                     <div>
                         <label className="block text-sm font-bold text-slate-600 mb-1.5">대회명</label>
                         <input type="text" className="w-full border border-slate-200 rounded-md px-4 h-11 outline-none focus:border-blue-500 transition-all font-medium" value={formData.dogShowName} onChange={e => setFormData({ ...formData, dogShowName: e.target.value })} />
@@ -124,6 +213,7 @@ const PrizeAddModal: React.FC<PrizeAddModalProps> = ({ onClose, onSave }) => {
         </div>
     );
 };
+
 
 
 export const PrizeManagementPage: React.FC = () => {

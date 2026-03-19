@@ -40,7 +40,7 @@ $KKC_TABLE_MAP = [
     ],
     'point' => [
         'pk' => 'pt_pid',
-        'encoding' => 'EUC-KR', // 🎯 HeidiSQL 확인 결과 EUC-KR임
+        'encoding' => 'UTF-8', // 🎯 UTF-8로 전환 완료
         'search_fields' => ['reg_no', 'pt_title', 'pt_etc']
     ],
     'dogshow' => [
@@ -74,7 +74,7 @@ $KKC_TABLE_MAP = [
         'search_fields' => ['dongtae_no', 'fa_reg_no', 'mo_reg_no', 'dongtae_name']
     ],
     'dogshow_applicant' => [
-        'pk' => 'id',
+        'pk' => 'uid',
         'encoding' => 'UTF-8',
         'search_fields' => ['name', 'contact']
     ],
@@ -112,6 +112,26 @@ $KKC_TABLE_MAP = [
         'pk' => 'id',
         'encoding' => 'UTF-8',
         'search_fields' => ['handler_id', 'name', 'contact', 'email', 'affiliation', 'birthdate']
+    ],
+    'stylist_intl_applicant' => [
+        'pk' => 'id',
+        'encoding' => 'UTF-8',
+        'search_fields' => ['name', 'contact', 'email', 'address', 'affiliation', 'dog_breed']
+    ],
+    'breed_exam' => [
+        'pk' => 'ds_pid',
+        'encoding' => 'UTF-8',
+        'search_fields' => ['ds_name', 'ds_place', 'ds_etc']
+    ],
+    'breed_exam_applicant' => [
+        'pk' => 'uid',
+        'encoding' => 'UTF-8',
+        'search_fields' => ['name', 'contact']
+    ],
+    'poss_changeTab' => [
+        'pk' => 'uid',
+        'encoding' => 'EUC-KR',
+        'search_fields' => ['reg_no', 'poss_name', 'poss_id']
     ]
 ];
 

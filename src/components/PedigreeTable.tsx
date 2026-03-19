@@ -11,6 +11,8 @@ interface PedigreeTableProps {
     onSearch: (field: string, query: string) => void;
     onPageChange: (page: number) => void;
     onRowClick: (pedigree: Pedigree) => void;
+    onNewRegistration?: () => void;
+    dogClasses: any[];
 }
 
 const SEARCH_OPTIONS = [
@@ -39,7 +41,9 @@ export const PedigreeTable: React.FC<PedigreeTableProps> = ({
     isLoading,
     onSearch,
     onPageChange,
-    onRowClick
+    onRowClick,
+    onNewRegistration,
+    dogClasses
 }) => {
   const [searchField, setSearchField] = useState('all'); 
   const [searchQuery, setSearchQuery] = useState('');
@@ -132,7 +136,10 @@ export const PedigreeTable: React.FC<PedigreeTableProps> = ({
                 >
                     조회하기
                 </button>
-                <button className="bg-white border border-gray-300 text-gray-700 px-5 h-10 text-sm rounded-md hover:bg-gray-50 font-bold transition-colors">
+                <button 
+                  onClick={onNewRegistration}
+                  className="bg-white border border-gray-300 text-gray-700 px-5 h-10 text-sm rounded-md hover:bg-gray-50 font-bold transition-colors active:scale-95 shadow-sm"
+                >
                     신규 등록
                 </button>
             </div>
@@ -175,7 +182,21 @@ export const PedigreeTable: React.FC<PedigreeTableProps> = ({
                             >
                                 <td className="p-3 border-x border-gray-200" onClick={(e) => e.stopPropagation()}><input type="checkbox" /></td>
                                 <td className="p-3 border-x border-gray-200 text-gray-500 font-bold">{formatRegType(row.regType)}</td>
-                                <td className="p-3 border-x border-gray-200 text-left pl-4 truncate text-gray-600">{row.breed}</td>
+                                <td className="p-3 border-x border-gray-200 text-left pl-4 truncate text-gray-600">
+                                    {(() => {
+                                        const found = dogClasses.find(c => c.breed === row.breed);
+                                        if (found) {
+                                            return (
+                                                <div className="flex flex-col">
+                                                    <span className="text-blue-600 font-bold text-[11px]">{found.keyy}</span>
+                                                    <span className="font-medium text-slate-700">{row.breed}</span>
+                                                    <span className="text-[10px] text-gray-400">({found.group})</span>
+                                                </div>
+                                            );
+                                        }
+                                        return row.breed;
+                                    })()}
+                                </td>
                                 <td className="p-3 border-x border-gray-200 font-bold text-slate-800">{row.regNo}</td>
                                 <td className="p-3 border-x border-gray-200 font-black uppercase text-left pl-4 truncate text-blue-900">{row.name}</td>
                                 <td className="p-3 border-x border-gray-200 uppercase truncate text-gray-500 italic">{row.kennelNameEng || row.kennel}</td>
