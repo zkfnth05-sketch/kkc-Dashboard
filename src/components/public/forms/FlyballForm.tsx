@@ -7,12 +7,25 @@ import { FormShell } from './FormShell';
 export const FlyballForm: React.FC<{ competition: any, onClose: () => void, showAlert: (t: string, m: string) => void }> = ({
     competition, onClose, showAlert
 }) => {
-    const { formData, setFormData, isSubmitting, isSearching, handleInputChange, handleSearchMember, handleSave } = usePublicForm(
+    const { 
+        formData, setFormData, isSubmitting, isSearching, handleInputChange, handleSearchMember, handleSave,
+        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle
+    } = usePublicForm(
         competition, 'flyball_applicant', onClose, showAlert
     );
 
     return (
-        <FormShell title={competition.title} category="플라이볼" onClose={onClose} onSave={handleSave} isSubmitting={isSubmitting}>
+        <FormShell 
+            title={competition.title} 
+            category="플라이볼" 
+            onClose={onClose} 
+            onSave={handleSave} 
+            isSubmitting={isSubmitting}
+            options={eventOptions}
+            selectedOptionIds={selectedOptionIds}
+            onOptionToggle={handleOptionToggle}
+            totalAmount={totalAmount}
+        >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-600">아이디 (ID) 및 정보 조회</label>

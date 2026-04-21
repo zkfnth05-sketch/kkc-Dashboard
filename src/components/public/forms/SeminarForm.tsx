@@ -5,12 +5,25 @@ import { FormShell } from './FormShell';
 export const SeminarForm: React.FC<{ competition: any, onClose: () => void, showAlert: (t: string, m: string) => void }> = ({
     competition, onClose, showAlert
 }) => {
-    const { formData, isSubmitting, handleInputChange, handleSearchMember, handleSave } = usePublicForm(
+    const { 
+        formData, isSubmitting, handleInputChange, handleSearchMember, handleSave,
+        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle
+    } = usePublicForm(
         competition, 'seminar_applicant', onClose, showAlert
     );
 
     return (
-        <FormShell title={competition.title} category={competition.category} onClose={onClose} onSave={handleSave} isSubmitting={isSubmitting}>
+        <FormShell 
+            title={competition.title} 
+            category={competition.category} 
+            onClose={onClose} 
+            onSave={handleSave} 
+            isSubmitting={isSubmitting}
+            options={eventOptions}
+            selectedOptionIds={selectedOptionIds}
+            onOptionToggle={handleOptionToggle}
+            totalAmount={totalAmount}
+        >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-600">회원 ID 조회</label>

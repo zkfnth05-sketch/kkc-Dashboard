@@ -16,7 +16,16 @@ export default defineConfig(({ mode }) => {
     ],
     build: {
       outDir: 'dist',
-      emptyOutDir: true
+      emptyOutDir: false,
+      rollupOptions: {
+        output: {
+          manualChunks: undefined,
+          inlineDynamicImports: true,
+          entryFileNames: `assets/index.js`,
+          chunkFileNames: `assets/[name].js`,
+          assetFileNames: `assets/index.[ext]`,
+        }
+      }
     },
     base: './', // 🚀 [WAF / WP FIX] 모든 에셋을 상대 경로로 호출합니다.
     define: {

@@ -31,13 +31,15 @@ const SkillSelectionModal = ({
   onClose,
   initialSelectedCodes,
   onSave,
-  availableSkills
+  availableSkills,
+  typeFilter
 }: {
   isOpen: boolean;
   onClose: () => void;
   initialSelectedCodes: string[];
   onSave: (selectedCodes: string[]) => void;
   availableSkills: ProClass[];
+  typeFilter?: number;
 }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set(initialSelectedCodes));
 
@@ -69,7 +71,9 @@ const SkillSelectionModal = ({
       <div className="bg-white rounded-md shadow-2xl w-full max-w-4xl flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-white">
-          <h2 className="text-[20px] font-bold text-gray-900 leading-none">직능 선택</h2>
+          <h2 className="text-[20px] font-bold text-gray-900 leading-none">
+            {typeFilter === 0 ? '자격증 선택' : '직능 선택'}
+          </h2>
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
             <X size={24} />
           </button>
@@ -78,8 +82,10 @@ const SkillSelectionModal = ({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
           <div className="grid grid-cols-2 gap-3">
-            {availableSkills.map((pc) => {
-              const isSelected = selected.has(pc.keyy);
+            {availableSkills
+              .filter(pc => typeFilter === undefined ? true : pc.type === typeFilter)
+              .map((pc) => {
+                const isSelected = selected.has(pc.keyy);
               return (
                 <button
                   key={pc.uid}
@@ -120,6 +126,7 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
   const [formData, setFormData] = useState<Member | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isAddingSkill, setIsAddingSkill] = useState(false);
+  const [skillModalType, setSkillModalType] = useState<number>(1);
   const [proClasses, setProClasses] = useState<ProClass[]>([]);
 
   useEffect(() => {
@@ -323,43 +330,92 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
           </button>
         </div>
 
-        {/* Skill Section */}
-        <div className="mb-10">
-          <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">보유 직능</h4>
-          <div className="bg-gray-50 border border-gray-100 p-4 rounded-md flex flex-wrap gap-2 items-center">
-            {(() => {
-              const currentCodes = (formData.proClass || '').split('-').filter(c => c.trim() !== '');
+        {/* Skill & License Section */}
+        <div className="space-y-6 mb-10">
+          {/* 1. 보유 직능 (Skills, type=1) */}
+          <div>
+            <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">보유 직능</h4>
+            <div className="bg-gray-50 border border-gray-100 p-4 rounded-md flex flex-wrap gap-2 items-center">
+              {(() => {
+                const currentCodes = (formData.proClass || '').split(/[- ,]+/).filter(c => c.trim() !== '');
 
-              const handleRemoveSkill = (codeToRemove: string) => {
-                const newCodes = currentCodes.filter(c => c !== codeToRemove);
-                handleChange('proClass', newCodes.join('-'));
-              };
+                const handleRemoveSkill = (codeToRemove: string) => {
+                  const newCodes = currentCodes.filter(c => c !== codeToRemove);
+                  handleChange('proClass', newCodes.join('-'));
+                };
 
-              // 🎯 DB에서 실시간으로 불러온 직무 맵 생성
-              const skillMap: Record<string, string> = {};
-              proClasses.forEach(p => { skillMap[p.keyy] = p.name; });
+                // 🎯 DB에서 실시간으로 불러온 직무 맵 생성
+                const skillMap: Record<string, string> = {};
+                proClasses.forEach(p => { skillMap[p.keyy] = p.name; });
 
-              // 🎯 SkillManagementPage에서 제공하는 강력한 이름 변환 함수 활용
-              const skillNames = formatSkillNames(formData.proClass, skillMap);
+                // 🎯 직능(type=1)만 필터링
+                const skillCodes = currentCodes.filter(code => {
+                  const pc = proClasses.find(p => p.keyy === code);
+                  return pc ? pc.type === 1 : true; // 기본값은 직능
+                });
 
-              return currentCodes.length > 0 ? (
-                currentCodes.map((code, idx) => (
-                  <span key={idx} className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold border border-blue-200 flex items-center gap-1">
-                    {skillNames[idx]} <X size={12} className="cursor-pointer hover:text-red-500" onClick={() => handleRemoveSkill(code)} />
-                  </span>
-                ))
-              ) : (
-                <span className="text-xs text-gray-400 italic">보유한 직능이 없습니다.</span>
-              );
-            })()}
+                return skillCodes.length > 0 ? (
+                  skillCodes.map((code, idx) => (
+                    <span key={idx} className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold border border-blue-200 flex items-center gap-1">
+                      {skillMap[code] || code} <X size={12} className="cursor-pointer hover:text-red-500" onClick={() => handleRemoveSkill(code)} />
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-gray-400 italic">보유한 직능이 없습니다.</span>
+                );
+              })()}
 
-            <button
-              type="button"
-              className="text-xs text-gray-400 hover:text-blue-600 flex items-center gap-1 font-medium ml-2 border border-gray-200 px-3 py-1.5 rounded bg-white transition-colors"
-              onClick={() => setIsAddingSkill(true)}
-            >
-              + 직능 추가
-            </button>
+              <button
+                type="button"
+                className="text-xs text-gray-400 hover:text-blue-600 flex items-center gap-1 font-medium ml-2 border border-gray-200 px-3 py-1.5 rounded bg-white transition-colors"
+                onClick={() => { setSkillModalType(1); setIsAddingSkill(true); }}
+              >
+                + 직능 추가
+              </button>
+            </div>
+          </div>
+
+          {/* 2. 보유 자격증 (Licenses, type=0) */}
+          <div>
+            <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">보유 자격증</h4>
+            <div className="bg-orange-50/30 border border-orange-100 p-4 rounded-md flex flex-wrap gap-2 items-center">
+              {(() => {
+                const currentCodes = (formData.proClass || '').split(/[- ,]+/).filter(c => c.trim() !== '');
+
+                const handleRemoveLicense = (codeToRemove: string) => {
+                  const newCodes = currentCodes.filter(c => c !== codeToRemove);
+                  handleChange('proClass', newCodes.join('-'));
+                };
+
+                // 🎯 DB에서 실시간으로 불러온 직무 맵 생성
+                const skillMap: Record<string, string> = {};
+                proClasses.forEach(p => { skillMap[p.keyy] = p.name; });
+
+                // 🎯 자격증(type=0)만 필터링
+                const licenseCodes = currentCodes.filter(code => {
+                  const pc = proClasses.find(p => p.keyy === code);
+                  return pc && pc.type === 0;
+                });
+
+                return licenseCodes.length > 0 ? (
+                  licenseCodes.map((code, idx) => (
+                    <span key={idx} className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-xs font-bold border border-orange-200 flex items-center gap-1">
+                      {skillMap[code] || code} <X size={12} className="cursor-pointer hover:text-red-500" onClick={() => handleRemoveLicense(code)} />
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-gray-400 italic">보유한 자격증이 없습니다.</span>
+                );
+              })()}
+
+              <button
+                type="button"
+                className="text-xs text-gray-400 hover:text-orange-600 flex items-center gap-1 font-medium ml-2 border border-gray-200 px-3 py-1.5 rounded bg-white transition-colors"
+                onClick={() => { setSkillModalType(0); setIsAddingSkill(true); }}
+              >
+                + 자격증 추가
+              </button>
+            </div>
           </div>
         </div>
 
@@ -367,11 +423,12 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
         <SkillSelectionModal
           isOpen={isAddingSkill}
           onClose={() => setIsAddingSkill(false)}
-          initialSelectedCodes={(formData.proClass || '').split('-').filter(c => c.trim() !== '')}
+          initialSelectedCodes={(formData.proClass || '').split(/[- ,]+/).filter(c => c.trim() !== '')}
           onSave={(selectedCodes) => {
             handleChange('proClass', selectedCodes.join('-'));
           }}
           availableSkills={proClasses}
+          typeFilter={skillModalType}
         />
 
         {/* Owned Dogs Table */}

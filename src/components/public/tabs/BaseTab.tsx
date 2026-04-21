@@ -147,8 +147,8 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                         </div>
                     )}
 
-                    {/* 🖥️ 1. DESKTOP TABLE VIEW (Visible on lg and above) */}
-                    <div className="overflow-x-auto w-full max-w-full desktop-only" style={{ WebkitOverflowScrolling: 'touch' }}>
+                    {/* 🖥️ 1. DESKTOP TABLE VIEW */}
+                    <div className="overflow-x-auto w-full max-w-full kkc-show-pc" style={{ WebkitOverflowScrolling: 'touch' }}>
                         <table className="w-full text-left min-w-[1100px] border-separate border-spacing-0" style={{ maxWidth: '100%' }}>
                             <thead>
                                 <tr className="bg-slate-50/50">
@@ -283,8 +283,8 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                         </table>
                     </div>
 
-                    {/* 📱 2. MOBILE CARD VIEW (Visible below lg) */}
-                    <div className="flex flex-col gap-5 p-5 bg-slate-50/30 mobile-only">
+                    {/* 📱 2. MOBILE CARD VIEW */}
+                    <div className="flex flex-col gap-5 p-5 bg-slate-50/30 kkc-show-mobile">
                         {isLoading ? (
                             [...Array(5)].map((_, i) => (
                                 <div key={`mobile-skeleton-${i}`} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col gap-4 animate-pulse">

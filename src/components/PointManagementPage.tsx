@@ -82,7 +82,9 @@ const PointAddModal: React.FC<{
 }> = ({ dogShows, onClose, onSave }) => {
   const [formData, setFormData] = useState<Partial<Point>>({
     regNo: '', dogShow: '', title: '', className: '', points: 0, award: '', other: '',
-    regDate: Math.floor(new Date().getTime() / 1000).toString()
+    regDate: Math.floor(new Date().getTime() / 1000).toString(),
+    eventDate: new Date().toISOString().split('T')[0],
+    judge: ''
   });
   const [dateValue, setDateValue] = useState(new Date().toISOString().split('T')[0]);
   const [isSaving, setIsSaving] = useState(false);
@@ -246,9 +248,15 @@ const PointAddModal: React.FC<{
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
             </div>
           </div>
-          <div>
-            <label className={labelStyle}>등록일 *</label>
-            <input type="date" className={inputStyle} value={dateValue} onChange={e => { setDateValue(e.target.value); setFormData({ ...formData, regDate: Math.floor(new Date(e.target.value).getTime() / 1000).toString() }); }} required />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelStyle}>행사일 *</label>
+              <input type="date" className={inputStyle} value={formData.eventDate} onChange={e => setFormData({ ...formData, eventDate: e.target.value })} required />
+            </div>
+            <div>
+              <label className={labelStyle}>심사위원</label>
+              <input type="text" className={inputStyle} value={formData.judge} onChange={e => setFormData({ ...formData, judge: e.target.value })} placeholder="심사위원 성함" />
+            </div>
           </div>
           <div>
             <label className={labelStyle}>기타</label>
@@ -365,9 +373,15 @@ const PointEditModal: React.FC<PointEditModalProps> = ({ point, dogShows, onClos
               </div>
             </div>
           </div>
-          <div>
-            <label className={labelStyle}>등록일 *</label>
-            <input type="date" className={inputStyle} value={dateValue} onChange={(e) => handleDateChange(e.target.value)} required />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelStyle}>행사일 *</label>
+              <input type="date" className={inputStyle} value={formData.eventDate} onChange={(e) => handleChange('eventDate', e.target.value)} required />
+            </div>
+            <div>
+              <label className={labelStyle}>심사위원</label>
+              <input type="text" className={inputStyle} value={formData.judge} onChange={(e) => handleChange('judge', e.target.value)} placeholder="심사위원 성함" />
+            </div>
           </div>
           <div>
             <label className={labelStyle}>기타 내용</label>
@@ -565,7 +579,8 @@ export const PointManagementPage: React.FC<PointManagementPageProps> = ({ initia
               <th className="py-4 px-4 font-bold">기타 정보</th>
               <th className="py-4 px-4 font-bold w-20 text-center">포인트</th>
               <th className="py-4 px-4 font-bold w-24 text-center">입상</th>
-              <th className="py-4 px-4 font-bold w-32">등록일자</th>
+              <th className="py-4 px-4 font-bold w-32">행사일</th>
+              <th className="py-4 px-4 font-bold w-32">심사위원</th>
               <th className="py-4 px-4 font-bold w-32 text-center">관리</th>
             </tr>
           </thead>
@@ -585,7 +600,8 @@ export const PointManagementPage: React.FC<PointManagementPageProps> = ({ initia
                           'bg-white text-gray-300 border-gray-100'
                     }`}>{getAwardLabel(item.award)}</span>
                 </td>
-                <td className="py-4 px-4 text-gray-400 font-mono text-[11px]">{formatTimestamp(item.regDate)}</td>
+                <td className="py-4 px-4 text-gray-700 font-bold">{item.eventDate || '-'}</td>
+                <td className="py-4 px-4 text-gray-600">{item.judge || '-'}</td>
                 <td className="py-4 px-4 text-center">
                   <div className="flex justify-center gap-1">
                     <button onClick={() => handleEditClick(item)} className="px-3 py-1.5 rounded bg-blue-50 text-blue-600 border border-blue-200 text-[11px] font-bold hover:bg-blue-100 transition-colors">수정</button>

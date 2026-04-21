@@ -10,6 +10,7 @@ interface PersonSearchModalProps {
   title: string;
   initialQuery?: string;
   tableName?: string; // 검색 대상 테이블 추가
+  onlyWithSaho?: boolean; // 견사호 보유자 전용 검색 여부 추가
 }
 
 export const PersonSearchModal: React.FC<PersonSearchModalProps> = ({ 
@@ -18,9 +19,11 @@ export const PersonSearchModal: React.FC<PersonSearchModalProps> = ({
   onSelectPerson, 
   title,
   initialQuery = '',
-  tableName = 'memTab'
+  tableName = 'memTab',
+  onlyWithSaho = false
 }) => {
   const [query, setQuery] = useState(initialQuery);
+  const [selectedRank, setSelectedRank] = useState('');
   const [results, setResults] = useState<PersonSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
@@ -30,10 +33,11 @@ export const PersonSearchModal: React.FC<PersonSearchModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setQuery(initialQuery);
+      setSelectedRank('');
       setDebugInfo(null);
       setShowDebug(false);
       if (initialQuery.trim()) {
-        executeSearch(initialQuery);
+        executeSearch(initialQuery, '');
       } else {
         setResults([]);
         setMessage('이름, 아이디, 또는 회원번호를 입력하여 검색하세요.');
@@ -41,19 +45,19 @@ export const PersonSearchModal: React.FC<PersonSearchModalProps> = ({
     }
   }, [isOpen, initialQuery]);
 
-  const executeSearch = async (searchTerm: string) => {
+  const executeSearch = async (searchTerm: string, rank: string = selectedRank) => {
     setIsLoading(true);
     setMessage('');
     setResults([]);
     setDebugInfo(null);
 
     try {
-      const response = await searchAllPersons(searchTerm, tableName);
+      const response = await searchAllPersons(searchTerm, tableName, rank, onlyWithSaho);
       setResults(response.data);
       setDebugInfo(response.debug);
       
       if (response.data.length === 0) {
-        setMessage(`검색 결과가 없습니다. (테이블: ${tableName}) 아이디, 성명, 회원번호를 다시 확인해 주세요.`);
+        setMessage(`검색 결과가 없습니다. (테이블: ${tableName}${rank ? `, 등급: ${rank}` : ''}) 아이디, 성명, 회원번호를 다시 확인해 주세요.`);
       }
     } catch (error: any) {
       console.error(error);
@@ -65,13 +69,13 @@ export const PersonSearchModal: React.FC<PersonSearchModalProps> = ({
 
   const handleSearch = () => {
     if (!query.trim()) return;
-    executeSearch(query);
+    executeSearch(query, selectedRank);
   };
   
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
         e.preventDefault();
-        handleSearch();
+        executeSearch(query, selectedRank);
     }
   };
 
@@ -97,6 +101,18 @@ export const PersonSearchModal: React.FC<PersonSearchModalProps> = ({
 
         <div className="p-4 bg-white border-b border-gray-100">
           <div className="flex gap-2">
+            <select
+              value={selectedRank}
+              onChange={(e) => setSelectedRank(e.target.value)}
+              className="border border-gray-300 rounded px-3 py-2 text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-28 cursor-pointer font-bold text-gray-700"
+            >
+              <option value="">전체회원</option>
+              <option value="C0">특별회원</option>
+              <option value="A3">정회원3년</option>
+              <option value="A2">정회원2년</option>
+              <option value="A1">정회원1년</option>
+              <option value="B0">준회원</option>
+            </select>
             <input
               type="text"
               value={query}
@@ -138,6 +154,8 @@ export const PersonSearchModal: React.FC<PersonSearchModalProps> = ({
                         </span>
                       </div>
                       <div className="text-xs text-gray-500 mt-1 truncate">
+                        <span className="font-medium text-orange-600 font-bold">{person.data.saho ? `🏠 ${person.data.saho}` : ''}</span>
+                        {person.data.saho && <span className="mx-2 text-gray-300">|</span>}
                         <span className="font-medium">📞 {person.data.phone || '연락처 없음'}</span>
                         <span className="mx-2 text-gray-300">|</span>
                         <span className="font-medium">📍 {person.data.address || '주소 정보 없음'}</span>

@@ -293,9 +293,38 @@ export const fetchDogsByRegNos = async (regNos: string[], table: string = 'dogTa
     return result;
 };
 
-export const searchAllPersons = async (query: string, table: string = 'memTab'): Promise<{ data: PersonSearchResult[], debug: any }> => {
-    const res = await fetchBridge({ mode: 'list', table, search: query, field: 'all', limit: 50 });
-    return { data: (res.data || []).map((m: any) => ({ id: m.mid?.toString() || m.uid?.toString() || m.id, name: m.name || m.mb_name, source: table, context: table === 'memTab' ? '회원' : '관련인', data: { id: m.id || m.mb_id || m.mid?.toString(), name: m.name || m.mb_name, nameEng: m.name_eng || m.mb_name_eng || '', phone: m.hp || m.mb_hp || m.phone || '', address: (m.addr || m.mb_addr1 || '') + ' ' + (m.addr_1 || m.mb_addr2 || '') } })), debug: res };
+export const searchAllPersons = async (query: string, table: string = 'memTab', rank: string = '', onlyWithSaho: boolean = false): Promise<{ data: PersonSearchResult[], debug: any }> => {
+    const res = await fetchBridge({ mode: 'list', table, search: query, rank: rank, field: 'all', limit: 100, only_saho: onlyWithSaho });
+    
+    let rawData = res.data || [];
+    
+    // 🎯 [HOTFIX] 프론트엔드가 실제 원격 서버(Cafe24)와 통신 중이므로,
+    // PHP 백엔드 수정 사항이 FTP로 배포되기 전까지 프론트엔드에서 한 번 더 강력하게 필터링합니다.
+    if (onlyWithSaho && table === 'memTab') {
+        rawData = rawData.filter((m: any) => {
+            const saho = (m.saho || '').toString().trim().toLowerCase();
+            return saho !== '' && saho !== 'null';
+        });
+    }
+
+    return { 
+        data: rawData.map((m: any) => ({ 
+            id: m.mid?.toString() || m.uid?.toString() || m.id, 
+            name: m.name || m.mb_name, 
+            source: table, 
+            context: table === 'memTab' ? (m.mem_degree || '회원') : '관련인', 
+            data: { 
+                id: m.id || m.mb_id || m.mid?.toString(), 
+                name: m.name || m.mb_name, 
+                nameEng: m.name_eng || m.mb_name_eng || '', 
+                phone: m.hp || m.mb_hp || m.phone || '', 
+                address: (m.addr || m.mb_addr1 || '') + ' ' + (m.addr_1 || m.mb_addr2 || ''),
+                saho: m.saho || '',
+                sahoEng: m.saho_eng || ''
+            } 
+        })), 
+        debug: res 
+    };
 };
 
 export const fetchOwnerHistory = async (dogId: string): Promise<OwnerHistory[]> => {
@@ -463,11 +492,24 @@ export const fetchPoints = async (t: string, p: number, q: string, f: string) =>
     else if (f === 'all') searchField = 'all';
     
     const res = await fetchBridge({ mode: 'list', table: t, page: p, search: (q || '').trim(), field: searchField, limit: 50 });
-    return { data: (res.data || []).map((pt: any) => ({ id: pt.pt_pid, regNo: pt.reg_no, dogShow: pt.ds_pid, dogShowName: pt.dogShowName || pt.ds_pid, title: pt.pt_title, className: pt.pt_class, points: pt.pt_point, award: pt.pt_prize, regDate: pt.pt_regdate, other: pt.pt_etc })), total: parseInt(res.total || '0') };
+    return { data: (res.data || []).map((pt: any) => ({ 
+        id: pt.pt_pid, 
+        regNo: pt.reg_no, 
+        dogShow: pt.ds_pid, 
+        dogShowName: pt.dogShowName || pt.ds_pid, 
+        title: pt.pt_title, 
+        className: pt.pt_class, 
+        points: pt.pt_point, 
+        award: pt.pt_prize, 
+        regDate: pt.pt_regdate, 
+        eventDate: pt.pt_event_date || '',   // 🚀 추가
+        judge: pt.pt_judge || '',            // 🚀 추가
+        other: pt.pt_etc 
+    })), total: parseInt(res.total || '0') };
 };
 
-export const createPoint = async (data: any) => fetchBridge({ mode: 'create_record', table: 'point', data: { reg_no: data.regNo, ds_pid: data.dogShow, pt_title: data.title, pt_class: data.className, pt_point: data.points, pt_prize: data.award, pt_regdate: data.regDate, pt_etc: data.other } });
-export const updatePoint = async (table: string, data: any) => fetchBridge({ mode: 'update_record', table, data: { pt_pid: data.id, reg_no: data.regNo, ds_pid: data.dogShow, pt_title: data.title, pt_class: data.className, pt_point: data.points, pt_prize: data.award, pt_regdate: data.regDate, pt_etc: data.other } });
+export const createPoint = async (data: any) => fetchBridge({ mode: 'create_record', table: 'point', data: { reg_no: data.regNo, ds_pid: data.dogShow, pt_title: data.title, pt_class: data.className, pt_point: data.points, pt_prize: data.award, pt_regdate: data.regDate, pt_event_date: data.eventDate, pt_judge: data.judge, pt_etc: data.other } });
+export const updatePoint = async (table: string, data: any) => fetchBridge({ mode: 'update_record', table, data: { pt_pid: data.id, reg_no: data.regNo, ds_pid: data.dogShow, pt_title: data.title, pt_class: data.className, pt_point: data.points, pt_prize: data.award, pt_regdate: data.regDate, pt_event_date: data.eventDate, pt_judge: data.judge, pt_etc: data.other } });
 export const deletePoint = async (table: string, id: string) => fetchBridge({ mode: 'delete_record', table, id });
 
 export const createPrize = async (data: Partial<Prize>) => fetchBridge({ mode: 'create_record', table: 'prize_dogTab', data: { reg_no: (data.regNo || '').trim(), event_name: data.dogShowName, event_date: data.date, event_place: data.location, referee: data.judge, jum: data.points, comment: data.detail, signdate: 0, serial_no: 0 } });
@@ -495,14 +537,19 @@ export const fetchProClasses = async () => {
     const list = (res.data || []).map((row: any) => ({
         uid: row.uid.toString(),
         keyy: row.keyy,
-        name: row.name
+        name: row.name,
+        type: (row.type !== null && row.type !== undefined && row.type !== '') ? parseInt(row.type) : 1
     }));
     // ㄱ, ㄴ, ㄷ... 순으로 정렬
     return list.sort((a: any, b: any) => a.name.localeCompare(b.name, 'ko'));
 };
 
-export const createProClass = async (data: { keyy: string, name: string }) => {
+export const createProClass = async (data: { keyy: string, name: string, type?: number }) => {
     return fetchBridge({ mode: 'create_record', table: 'pro_classTab', data });
+};
+
+export const updateProClass = async (data: { uid: string, keyy: string, name: string, type?: number }) => {
+    return fetchBridge({ mode: 'update_record', table: 'pro_classTab', data });
 };
 
 export const deleteProClass = async (id: string) => {
@@ -594,4 +641,25 @@ export const bulkUpdateProClass = async (membersToUpdate: any[], selectedSkill: 
         }
     }
     return { successCount, failCount };
+};
+
+/**
+ * 🏅 [ADMIN] 회원 등급 신청 관리 API
+ */
+export const fetchMembershipApplications = async (page: number = 1, search: string = '', status: string = 'all') => {
+    return await fetchBridge({ 
+        mode: 'membership_applications_list', 
+        page, 
+        search, 
+        status 
+    });
+};
+
+export const approveMembershipApplication = async (uid: number, action: 'approve' | 'reject', memo: string = '') => {
+    return await fetchBridge({ 
+        mode: 'membership_application_action', 
+        uid, 
+        action,
+        memo
+    });
 };

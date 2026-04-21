@@ -1,10 +1,10 @@
 import { Pedigree, ParentDogInfo, OwnerHistory } from '../types';
 import { fetchDogsByRegNos, fetchDogsByUids, fetchOwnerHistory, addOwnerChange, deleteOwnerHistory, fetchPointsByRegNo, fetchPrizesByRegNo } from '../services/memberService';
-import { fetchHairs } from '../services/pedigreeService';
+import { fetchHairs, addDogClass, addHairColor, fetchDogClasses, deleteDogClass, deleteHairColor } from '../services/pedigreeService';
 import { PersonSearchModal } from './MemberSearchModal';
 import { OwnerChangeModal } from './OwnerChangeModal';
 import { CheckpointBar } from './CheckpointBar';
-import { Loader2, Save, Edit, Trash2, AlertCircle, X, RotateCcw, Trophy, Settings } from 'lucide-react';
+import { Loader2, Save, Edit, Trash2, AlertCircle, X, RotateCcw, Trophy, Settings, Calendar } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
 interface PedigreeEditFormProps {
@@ -60,28 +60,52 @@ const Label = ({ children }: { children?: React.ReactNode }) => (
   </label>
 );
 
-const InputField = ({ label, value, onChange, placeholder, readOnly, type = "text", button, className = "", maxLength }: any) => (
-  <div className={`flex items-center mb-1 ${className}`}>
-    <Label>{label}</Label>
-    <div className="flex-1 flex gap-1 relative group">
-      <input 
-        type={type} 
-        className={`flex-1 border border-gray-300 rounded-sm px-2 py-1 text-[12px] h-7 outline-none focus:border-blue-500 ${readOnly ? 'bg-gray-50 text-gray-400' : 'bg-white text-gray-800'}`}
-        value={value || ''}
-        onChange={e => onChange ? onChange(e.target.value) : null}
-        placeholder={placeholder}
-        readOnly={readOnly}
-        maxLength={maxLength}
-      />
-      {maxLength && !readOnly && value && String(value).length >= maxLength && (
-        <div className="absolute -top-6 right-0 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-          최대 {maxLength}자 입력 가능
-        </div>
-      )}
-      {button}
+const InputField = ({ label, value, onChange, placeholder, readOnly, type = "text", button, className = "", maxLength }: any) => {
+  const dateInputRef = React.useRef<HTMLInputElement>(null);
+
+  // 날짜 입력 필드일 경우 하이브리드 처리를 위해 내부 로직 추가
+  const isDate = type === "date";
+  
+  return (
+    <div className={`flex items-center mb-1 ${className}`}>
+      <Label>{label}</Label>
+      <div className="flex-1 flex gap-1 relative group">
+        <input 
+          type={isDate ? "text" : type} 
+          className={`flex-1 border border-gray-300 rounded-sm px-2 py-1 text-[12px] h-7 outline-none focus:border-blue-500 ${readOnly ? 'bg-gray-50 text-gray-400' : 'bg-white text-gray-800'}`}
+          value={value || ''}
+          onChange={e => onChange ? onChange(e.target.value) : null}
+          placeholder={isDate ? "예: 2024-04-20" : placeholder}
+          readOnly={readOnly}
+          maxLength={maxLength}
+        />
+        {isDate && !readOnly && (
+          <div className="relative">
+            <button 
+              type="button" 
+              onClick={() => dateInputRef.current?.showPicker()}
+              className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-blue-500 transition-colors"
+            >
+              <Calendar size={14} />
+            </button>
+            <input 
+              type="date" 
+              ref={dateInputRef}
+              className="absolute opacity-0 w-0 h-0 pointer-events-none"
+              onChange={e => onChange(e.target.value)}
+            />
+          </div>
+        )}
+        {maxLength && !readOnly && value && String(value).length >= maxLength && (
+          <div className="absolute -top-6 right-0 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+            최대 {maxLength}자 입력 가능
+          </div>
+        )}
+        {button}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const ParentDogBox = ({ type, dog, isSearching, regNo, onRegNoChange, onSearch, onClear, onEditRecord }: any) => {
   const displayRegNo = (regNo === '0') ? '미등록' : (regNo || '');
@@ -138,7 +162,8 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
   const [sireDetails, setSireDetails] = useState<ParentDogInfo | null>(null);
   const [damDetails, setDamDetails] = useState<ParentDogInfo | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [hairOptions, setHairOptions] = useState<string[]>([]);
+  const [hairOptions, setHairOptions] = useState<any[]>([]);
+  const [dogClassesState, setDogClassesState] = useState<any[]>(dogClasses || []);
   const [pointsList, setPointsList] = useState<any[]>([]);
   const [prizesList, setPrizesList] = useState<any[]>([]);
   const [sireSearchInput, setSireSearchInput] = useState('');
@@ -167,32 +192,55 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
   const loadHairOptions = async () => {
     try {
       const hairs = await fetchHairs();
-      setHairOptions(hairs.sort((a,b) => a.localeCompare(b)));
+      setHairOptions(hairs.sort((a,b) => a.name.localeCompare(b.name)));
     } catch (e) {
       console.error("Hair Load Error:", e);
     }
   };
 
   const loadInitialParentInfo = async () => {
-    const sireVal = pedigree.sireRegNo || pedigree.sireUid || '';
-    const damVal = pedigree.damRegNo || pedigree.damUid || '';
-    const searchKeys = [sireVal, damVal].filter(v => v && v.trim() !== '' && v !== '미등록' && v !== '0' && v !== '-');
+    const sireVal = (pedigree.sireRegNo || pedigree.sireUid || '').toString().trim();
+    const damVal = (pedigree.damRegNo || pedigree.damUid || '').toString().trim();
+    
+    const searchKeys = [sireVal, damVal].filter(v => v !== '' && v !== '미등록' && v !== '0' && v !== '-');
     if (searchKeys.length === 0) return;
+
     try {
       if (sireVal && sireVal !== '미등록' && sireVal !== '0') setIsSearchingSire(true);
       if (damVal && damVal !== '미등록' && damVal !== '0') setIsSearchingDam(true);
       
+      // 1단계: UID로 먼저 시도
       const byUid = await fetchDogsByUids(searchKeys, tableName);
-      if (sireVal && byUid[sireVal]) {
-        setSireDetails(byUid[sireVal]);
-        setSireSearchInput(byUid[sireVal].reg_no || '');
+      
+      // 2단계: 누락된 정보에 대해 등록번호로 추가 시도 (스마트 폴백)
+      const missingKeys = searchKeys.filter(k => !byUid[k]);
+      let byRegNo: Record<string, ParentDogInfo> = {};
+      if (missingKeys.length > 0) {
+        const fetchDogsByRegNos = (await import('../services/memberService')).fetchDogsByRegNos;
+        byRegNo = await fetchDogsByRegNos(missingKeys, tableName);
       }
-      if (damVal && byUid[damVal]) {
-        setDamDetails(byUid[damVal]);
-        setDamSearchInput(byUid[damVal].reg_no || '');
+
+      const getDog = (key: string) => byUid[key] || byRegNo[key];
+
+      if (sireVal) {
+        const dog = getDog(sireVal);
+        if (dog) {
+          setSireDetails(dog);
+          setSireSearchInput(dog.reg_no || '');
+        }
       }
-    } catch (e) { console.error("Parent Load Error:", e); } finally {
-      setIsSearchingSire(false); setIsSearchingDam(false);
+      if (damVal) {
+        const dog = getDog(damVal);
+        if (dog) {
+          setDamDetails(dog);
+          setDamSearchInput(dog.reg_no || '');
+        }
+      }
+    } catch (e) { 
+      console.error("Parent Load Error:", e); 
+    } finally {
+      setIsSearchingSire(false); 
+      setIsSearchingDam(false);
     }
   };
 
@@ -348,9 +396,11 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
                 </select>
               </div>
               <InputField label="소유자명" value={formData.owner} onChange={(v:any) => handleChange('owner', v)} button={<button type="button" onClick={() => { setSearchTarget('owner'); setSearchInitialQuery(formData.owner); setIsPersonSearchModalOpen(true); }} className="bg-white border border-gray-300 px-3 h-7 text-[11px] rounded-sm font-bold">검색</button>} />
+              <InputField label="소유자 아이디" value={formData.ownerId} onChange={(v:any) => handleChange('ownerId', v)} />
               <InputField label="소유자 주소" value={formData.ownerAddr} onChange={(v:any) => handleChange('ownerAddr', v)} />
               <InputField label="소유자 전화번호" value={formData.ownerPhone} onChange={(v:any) => handleChange('ownerPhone', v)} />
               <InputField label="번식자명" value={formData.breeder} onChange={(v:any) => handleChange('breeder', v)} button={<button type="button" onClick={() => { setSearchTarget('breeder'); setSearchInitialQuery(formData.breeder); setIsPersonSearchModalOpen(true); }} className="bg-white border border-gray-300 px-3 h-7 text-[11px] rounded-sm font-bold">검색</button>} />
+              <InputField label="번식자 아이디" value={formData.breederId} onChange={(v:any) => handleChange('breederId', v)} />
               <InputField label="번식자 주소" value={formData.breederAddr} onChange={(v:any) => handleChange('breederAddr', v)} />
               <InputField label="번식자 전화번호" value={formData.breederPhone} onChange={(v:any) => handleChange('breederPhone', v)} />
             </div>
@@ -396,36 +446,130 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
                   {formData.group && !dogClasses.some(d => d.group === formData.group) && <option value={formData.group}>{formData.group}</option>}
                 </select>
               </div>
-              <div className="flex items-center mb-1">
-                <Label>견종</Label>
+              <div className="flex flex-col mb-1 min-h-[50px]">
+                <div className="flex justify-between items-end mb-1">
+                   <Label>견종</Label>
+                   <div className="flex gap-2">
+                     <button 
+                       type="button"
+                       onClick={async () => {
+                         const selected = dogClassesState.find(d => d.breed === formData.breed);
+                         if (!selected || !selected.uid) { alert("삭제할 견종을 먼저 선택해주세요."); return; }
+                         if (!confirm(`'${selected.breed}' 견종을 마스터 데이터에서 정말 삭제하시겠습니까?`)) return;
+                         try {
+                           const res = await deleteDogClass(selected.uid);
+                           if (res.success) {
+                             alert("삭제되었습니다.");
+                             const updated = await fetchDogClasses();
+                             setDogClassesState(updated);
+                             setFormData({...formData, breed: ''}); 
+                           }
+                         } catch (e) { alert("삭제 실패: " + e); }
+                       }}
+                       className="text-[9px] text-red-500 hover:underline font-black mr-1"
+                     >
+                       삭제[-]
+                     </button>
+                     <button 
+                       type="button"
+                       onClick={async () => {
+                         const name = prompt("추가할 한글 견종명을 입력하세요:");
+                         if (!name) return;
+                         const eng = prompt("추가할 영문 견종명을 입력하세요 (또는 한글명 입력):") || name;
+                         const keyy = prompt("견종 코드(Prefix)를 입력하세요 (예: S, P, Y):");
+                         if (!keyy) return;
+                         const groupp = prompt("그룹 번호를 입력하세요 (예: 1, 2, 3...):") || "1";
+                         
+                         try {
+                           const res = await addDogClass({ keyy, kor_name: name, name: eng, groupp });
+                           if (res.success) {
+                             alert("견종이 추가되었습니다.");
+                             const updated = await fetchDogClasses();
+                             setDogClassesState(updated);
+                             setFormData({...formData, breed: name, group: groupp}); 
+                           }
+                         } catch (e) { alert("추가 실패: " + e); }
+                       }}
+                       className="text-[9px] text-blue-500 hover:underline font-black mr-1"
+                     >
+                       추가[+]
+                     </button>
+                   </div>
+                </div>
                 <select className="flex-1 border border-gray-300 rounded-sm px-2 py-1 text-[12px] h-7 outline-none cursor-pointer text-gray-800" value={formData.breed || ''} onChange={e => {
                   handleChange('breed', e.target.value);
-                  const foundDog = dogClasses.find(d => d.breed === e.target.value);
+                  const foundDog = dogClassesState.find(d => d.breed === e.target.value);
                   if (foundDog && (!formData.group || formData.group !== foundDog.group)) {
                     handleChange('group', foundDog.group);
                   }
                 }}>
                   <option value="">- 선택 -</option>
-                  {(dogClasses.filter(d => !formData.group || d.group === formData.group) as any[]).sort((a,b) => a.breed.localeCompare(b.breed)).map(d => (
+                  {(dogClassesState.filter(d => !formData.group || d.group === formData.group) as any[]).sort((a,b) => a.breed.localeCompare(b.breed)).map(d => (
                     <option key={d.breed} value={d.breed}>{d.breed}</option>
                   ))}
-                  {formData.breed && !dogClasses.some(d => d.breed === formData.breed) && <option value={formData.breed}>{formData.breed}</option>}
+                  {formData.breed && !dogClassesState.some(d => d.breed === formData.breed) && <option value={formData.breed}>{formData.breed}</option>}
                 </select>
               </div>
-              <div className="flex items-center mb-1">
-                <Label>모색</Label>
+              <div className="flex flex-col mb-1 min-h-[50px]">
+                <div className="flex justify-between items-end mb-1">
+                   <Label>모색</Label>
+                   <div className="flex gap-2">
+                     <button 
+                       type="button"
+                       onClick={async () => {
+                         const selected = hairOptions.find(h => h.name === formData.color);
+                         if (!selected || !selected.uid) { alert("삭제할 모색을 먼저 선택해주세요."); return; }
+                         if (!confirm(`'${selected.name}' 모색을 마스터 데이터에서 정말 삭제하시겠습니까?`)) return;
+                         try {
+                           const res = await deleteHairColor(selected.uid);
+                           if (res.success) {
+                             alert("삭제되었습니다.");
+                             const updated = await fetchHairs();
+                             setHairOptions(updated.sort((a,b) => a.name.localeCompare(b.name)));
+                             setFormData({...formData, color: ''});
+                           }
+                         } catch (e) { alert("삭제 실패: " + e); }
+                       }}
+                       className="text-[9px] text-red-500 hover:underline font-black mr-1"
+                     >
+                       삭제[-]
+                     </button>
+                     <button 
+                       type="button"
+                       onClick={async () => {
+                         const color = prompt("추가할 새로운 모색명을 입력하세요:");
+                         if (!color) return;
+                         try {
+                           const res = await addHairColor(color);
+                           if (res.success) {
+                             alert("모색이 추가되었습니다.");
+                             const updated = await fetchHairs();
+                             setHairOptions(updated.sort((a,b) => a.name.localeCompare(b.name)));
+                             setFormData({...formData, color: color});
+                           }
+                         } catch (e) { alert("추가 실패: " + e); }
+                       }}
+                       className="text-[9px] text-emerald-600 hover:underline font-black mr-1"
+                     >
+                       추가[+]
+                     </button>
+                   </div>
+                </div>
                 <select className="flex-1 border border-gray-300 rounded-sm px-2 py-1 text-[12px] h-7 outline-none cursor-pointer text-gray-800" value={formData.color || ''} onChange={e => handleChange('color', e.target.value)}>
                   <option value="">모색 선택...</option>
                   {hairOptions.map(h => (
-                    <option key={h} value={h}>{h}</option>
+                    <option key={h.uid || h.name} value={h.name}>{h.name}</option>
                   ))}
-                  {formData.color && !hairOptions.includes(formData.color) && <option value={formData.color}>{formData.color}</option>}
+                  {formData.color && !hairOptions.some(h => h.name === formData.color) && <option value={formData.color}>{formData.color}</option>}
                 </select>
               </div>
               <div className="flex items-center mb-1">
                 <Label>모종</Label>
                 <select className="flex-1 border border-gray-300 rounded-sm px-2 py-1 text-[12px] h-7 outline-none" value={formData.coatType} onChange={e => handleChange('coatType', e.target.value)}>
-                  <option value="">-선택-</option><option value="단모">단모</option><option value="장모">장모</option>
+                  <option value="">-선택-</option>
+                  <option value="stock hair">stock hair</option>
+                  <option value="Long Coat">Long Coat</option>
+                  {formData.coatType && formData.coatType !== 'stock hair' && formData.coatType !== 'Long Coat' && <option value={formData.coatType}>{formData.coatType}</option>}
                 </select>
               </div>
             </div>
@@ -453,6 +597,10 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
 
               <InputField label="외국타단체번호2" value={formData.foreignNo2} onChange={(v:any) => handleChange('foreignNo2', v)} />
               <InputField label="마이크로칩번호" value={formData.microchip} onChange={(v:any) => handleChange('microchip', v)} />
+              
+              <div className="col-span-2">
+                <InputField label="색인번호" value={formData.indexNo} onChange={(v:any) => handleChange('indexNo', v)} />
+              </div>
               
               <div className="flex flex-col mb-1 group col-span-2">
                 <div className="flex items-center mb-1">
@@ -505,7 +653,7 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
               </div>
               <div className="grid grid-cols-2 gap-4 col-span-2">
                 <InputField label="등록일" type="date" value={formData.joinDate} onChange={(v:any) => handleChange('joinDate', v)} />
-                <InputField label="수정일" type="date" value={formData.editDate} onChange={(v:any) => handleChange('editDate', v)} />
+                <InputField label="수정일" type="date" value={formData.editDate} readOnly placeholder="저장 시 자동 갱신됨" />
               </div>
             </div>
           </div>
@@ -621,7 +769,7 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
               setFormData(prev => ({ 
                 ...prev, 
                 owner: person.name, 
-                ownerId: person.id,
+                ownerId: person.data.id, // 👈 UID(숫자) 대신 로그인 ID(문자) 사용
                 ownerAddr: person.data.address,
                 ownerPhone: person.data.phone
               }));
@@ -629,14 +777,19 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
               setFormData(prev => ({ 
                 ...prev, 
                 breeder: person.name,
+                breederId: person.data.id, // 👈 UID(숫자) 대신 로그인 ID(문자) 사용
                 breederAddr: person.data.address,
-                breederPhone: person.data.phone
+                breederPhone: person.data.phone,
+                // 🎯 [KSAHO AUTO-PROPAGATION] 번식자 선택 시 견사호 정보 동시 주입
+                kennel: person.data.saho || prev.kennel,
+                kennelNameEng: person.data.sahoEng || prev.kennelNameEng
               }));
             }
             setIsPersonSearchModalOpen(false);
           }}
           onClose={() => setIsPersonSearchModalOpen(false)}
           tableName={memberTableName}
+          onlyWithSaho={searchTarget === 'breeder'}
         />
       )}
 

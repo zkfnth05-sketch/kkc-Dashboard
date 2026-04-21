@@ -14,10 +14,11 @@ $allowed_origins = [
 ];
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowed_origins)) {
+$is_vercel_preview = (strpos($origin, 'vercel.app') !== false);
+
+if (in_array($origin, $allowed_origins) || $is_vercel_preview) {
     header("Access-Control-Allow-Origin: $origin");
 } else {
-    // 보안을 위해 기본적으로는 Vercel 메인 주소만 허용 응답을 보냅니다.
     header("Access-Control-Allow-Origin: https://kkc-admin-dashboard.vercel.app");
 }
 header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -166,6 +167,13 @@ try {
         case 'pin_download': safe_req('download_logic.php', $handler_root); $output = kkc_handle_pin_download($input); break;
         case 'export_members': safe_req('member_logic.php', $handler_root); $output = kkc_handle_member_export($input); break;
         case 'export_table_batch': safe_req('crud_logic.php', $handler_root); $output = kkc_handle_export_table_batch($input); break;
+        
+        // 🏅 [MEMBERSHIP UPGRADE] 등급 신청 관리 모드 추가
+        case 'membership_applications_list':
+        case 'membership_application_action':
+            safe_req('member_logic.php', $handler_root); 
+            $output = ($mode === 'membership_applications_list') ? kkc_handle_membership_applications_list($input) : kkc_handle_membership_application_action($input);
+            break;
     }
 } catch (Exception $e) { 
     $output = ['success' => false, 'error' => $e->getMessage()]; 

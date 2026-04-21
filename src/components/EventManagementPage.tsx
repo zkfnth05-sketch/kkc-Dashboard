@@ -5,10 +5,13 @@ import {
     Image as ImageIcon, X, Save, Palette, Check,
     Upload, Type, Bold, Italic, Trophy,
     AlignLeft, AlignCenter, AlignRight,
-    ImageIcon as PhotoIcon, ChevronLeft, ChevronRight
+    ImageIcon as PhotoIcon, ChevronLeft, ChevronRight,
+    CheckCircle2
 } from 'lucide-react';
 import { fetchDogShows, createDogShow, updateDogShow, deleteDogShow } from '../services/eventService';
 import { fetchBridge, SECRET_KEY, BRIDGE_URL, uploadFile, compressImage } from '../services/memberService';
+import { applyToCompetition } from '../services/portalService';
+import ReactQuill from 'react-quill';
 
 
 
@@ -152,7 +155,31 @@ const DEFAULT_CATEGORIES: Category[] = [
     { id: '5', name: '종견인정검사', color: '#8b5cf6' }
 ];
 
-export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, showConfirm, onEditEvent }) => {
+// 🇰🇷 [DATABASE] 2026 South Korea Public Holidays
+const HOLIDAYS_2026: Record<string, string> = {
+    '2026-01-01': '신정',
+    '2026-02-16': '설날',
+    '2026-02-17': '설날',
+    '2026-02-18': '대체공휴일(설날)',
+    '2026-03-01': '삼일절',
+    '2026-03-02': '대체공휴일(삼일절)',
+    '2026-05-05': '어린이날',
+    '2026-05-24': '부처님오신날',
+    '2026-05-25': '대체공휴일(부처님오신날)',
+    '2026-06-06': '현충일',
+    '2026-08-15': '광복절',
+    '2026-08-17': '대체공휴일(광복절)',
+    '2026-09-24': '추석',
+    '2026-09-25': '추석',
+    '2026-09-26': '추석',
+    '2026-09-28': '대체공휴일(추석)',
+    '2026-10-03': '개천절',
+    '2026-10-05': '대체공휴일(개천절)',
+    '2026-10-09': '한글날',
+    '2026-12-25': '성탄절'
+};
+
+export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, showConfirm, onEditEvent, portalUser }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [events, setEvents] = useState<EventItem[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -585,6 +612,14 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
                         {daysInMonth.map((date, idx) => {
                             const isToday = date.toDateString() === new Date().toDateString();
                             const isCurrent = date.getMonth() === currentDate.getMonth();
+                            
+                            // 🇰🇷 [HOLIDAY CHECK]
+                            const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                            const holidayName = HOLIDAYS_2026[dateKey];
+                            const isSunday = date.getDay() === 0;
+                            const isSaturday = date.getDay() === 6;
+                            const isRedDay = isSunday || !!holidayName;
+
                             const dayEvs = filteredEvents.filter(e => {
                                 if (!e.startDate || !e.endDate) return false;
                                 const start = new Date(e.startDate);
@@ -595,10 +630,23 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
                                 current.setHours(0, 0, 0, 0);
                                 return current >= start && current <= end;
                             });
+                            
                             return (
-                                <div key={idx} className={`min-h-[60px] md:min-h-[120px] p-2 md:p-4 border-r border-b border-slate-100 transition-all ${!isCurrent ? 'bg-slate-50/30' : 'bg-white'}`}>
-                                    <div className={`text-[10px] md:text-xs font-bold mb-2 md:mb-4 ${isToday ? 'text-indigo-600' : idx % 7 === 6 ? 'text-rose-500' : isCurrent ? 'text-slate-800' : 'text-slate-300'}`}>
-                                        {date.getDate()}
+                                <div key={idx} className={`min-h-[60px] md:min-h-[120px] p-2 md:p-4 border-r border-b border-slate-100 transition-all ${!isCurrent ? 'bg-slate-50/30' : 'bg-white'} group/day`}>
+                                    <div className="flex justify-between items-start mb-2 md:mb-4">
+                                        <div className={`text-[10px] md:text-xs font-bold ${
+                                            isToday ? 'bg-indigo-600 text-white w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded-full shadow-lg shadow-indigo-100' : 
+                                            isRedDay ? 'text-rose-500' : 
+                                            isSaturday ? 'text-blue-500' :
+                                            isCurrent ? 'text-slate-800' : 'text-slate-300'
+                                        }`}>
+                                            {date.getDate()}
+                                        </div>
+                                        {holidayName && (
+                                            <span className="text-[7px] md:text-[8px] font-black text-rose-400 bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-100">
+                                                {holidayName}
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="space-y-1.5">
                                         {dayEvs.map(e => (
@@ -607,7 +655,6 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
                                                 className="text-[7px] md:text-[9px] font-black p-1 md:p-2 rounded-md md:rounded-lg bg-white border border-slate-100 shadow-sm flex items-center gap-1 md:gap-2 truncate hover:bg-slate-50 transition-colors"
                                                 title={e.title}
                                             >
-                                                {/* Calendar Dot: Specific sub-type color priority */}
                                                 <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full shrink-0" style={{ backgroundColor: getCatColor(e.category || '', e.type_names || '') }} />
                                                 <span className="truncate">{e.title}</span>
                                             </div>
@@ -1110,6 +1157,68 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
                                                 className="prose prose-indigo max-w-none text-slate-600 border-t border-slate-50 pt-8"
                                                 dangerouslySetInnerHTML={{ __html: viewEvent.content }}
                                             />
+
+                                            {/* 🎖️ [MEMBERSHIP CHECK] Application Logic */}
+                                            <div className="mt-12 p-8 bg-slate-50 rounded-[32px] border border-slate-100 flex flex-col items-center text-center gap-6">
+                                                {!portalUser ? (
+                                                    <>
+                                                        <div className="text-slate-900 font-bold">대회 신청을 위해 먼저 로그인해 주세요.</div>
+                                                        <button 
+                                                            onClick={() => {
+                                                            const url = new URL(window.location.href);
+                                                            url.searchParams.set("view", "portal_login");
+                                                            window.location.href = url.href;
+                                                        }}
+                                                            className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl"
+                                                        >
+                                                            KKC 회원 로그인하기
+                                                        </button>
+                                                    </>
+                                                ) : (() => {
+                                                    const degree = portalUser.mem_degree || '';
+                                                    const isRegular = degree === 'B0'; // B0를 정회원으로 가정
+                                                    const isInactive = degree === '무효' || degree === '만료';
+                                                    
+                                                    if (isRegular) {
+                                                        return (
+                                                            <>
+                                                                <div className="text-blue-600 font-black flex items-center gap-2">
+                                                                    <CheckCircle2 size={24} />
+                                                                    정회원 확인 완료 (대회 신청 가능)
+                                                                </div>
+                                                                <button 
+                                                                    onClick={async () => {
+                                                                        const confirmApply = window.confirm(`[${viewEvent.title}] 대회에 신청하시겠습니까?`);
+                                                                        if (confirmApply) {
+                                                                            const res = await applyToCompetition({
+                                                                                mid: portalUser.mid,
+                                                                                id: portalUser.id,
+                                                                                name: portalUser.name,
+                                                                                hp: portalUser.hp || portalUser.contact || '',
+                                                                                event_id: viewEvent.id,
+                                                                                event_title: viewEvent.title
+                                                                            });
+                                                                            if (res.success) {
+                                                                                alert('대회 신청이 성공적으로 완료되었습니다.');
+                                                                                setViewEvent(null);
+                                                                            } else {
+                                                                                alert(res.error || '신청에 실패했습니다.');
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                    className="px-16 py-5 bg-blue-600 text-white rounded-2xl font-black text-lg shadow-2xl hover:bg-blue-700 transition-all scale-105"
+                                                                >
+                                                                    지금 대회 신청하기
+                                                                </button>
+                                                            </>
+                                                        );
+                                                    } else if (isInactive) {
+                                                        return <div className="text-rose-600 font-black text-xl">“정회원 갱신을 완료하신 뒤 대회 신청이 가능합니다”</div>;
+                                                    } else {
+                                                        return <div className="text-slate-600 font-black text-xl">“정회원 가입 완료 후 대회 신청이 가능합니다.”</div>;
+                                                    }
+                                                })()}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

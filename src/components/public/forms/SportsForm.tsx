@@ -17,7 +17,10 @@ export const SportsForm: React.FC<{ competition: any, onClose: () => void, showA
     else if (isDiscDog) targetTable = 'discdog_applicant';
     else if (isFlyball) targetTable = 'flyball_applicant';
 
-    const { formData, setFormData, isSubmitting, isSearching, handleInputChange, handleImageUpload, handleSearchMember, handleSave } = usePublicForm(
+    const { 
+        formData, setFormData, isSubmitting, isSearching, handleInputChange, handleImageUpload, handleSearchMember, handleSave,
+        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle
+    } = usePublicForm(
         competition, targetTable, onClose, showAlert
     );
 
@@ -27,7 +30,17 @@ export const SportsForm: React.FC<{ competition: any, onClose: () => void, showA
     };
 
     return (
-        <FormShell title={competition.title} category={competition.category} onClose={onClose} onSave={handleSave} isSubmitting={isSubmitting}>
+        <FormShell 
+            title={competition.title} 
+            category={competition.category} 
+            onClose={onClose} 
+            onSave={handleSave} 
+            isSubmitting={isSubmitting}
+            options={eventOptions}
+            selectedOptionIds={selectedOptionIds}
+            onOptionToggle={handleOptionToggle}
+            totalAmount={totalAmount}
+        >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-600">아이디 (ID) 및 정보 조회</label>

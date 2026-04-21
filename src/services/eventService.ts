@@ -111,3 +111,38 @@ export const deleteApplicant = async (id: string | number, table: string = 'dogs
         id
     });
 };
+
+// 💰 [FEE OPTIONS MANAGEMENT]
+export const fetchEventOptions = async (eventType: string, eventId: number) => {
+    return fetchBridge({
+        mode: 'list',
+        table: 'competition_fee_options',
+        search: eventId.toString(),
+        field: 'event_id',
+        limit: 100,
+        // 🚀 [PRECISION FILTER] 유형까지 일치시켜야 섞이지 않습니다.
+        event_type: eventType 
+    });
+};
+
+export const saveEventOptions = async (eventType: string, eventId: number, options: any[]) => {
+    // 🚀 [WAF SAFE BATCH] DELETE & INSERT combined
+    const queries = [
+        `DELETE FROM competition_fee_options WHERE event_type = '${eventType}' AND event_id = ${eventId}`
+    ];
+
+    options.forEach(opt => {
+        if (!opt.label || opt.label.trim() === '') return;
+        const label = opt.label.replace(/'/g, "''");
+        const price = opt.price || 0;
+        const required = opt.is_required ? 1 : 0;
+        queries.push(
+            `INSERT INTO competition_fee_options (event_type, event_id, option_name, option_price, is_required) VALUES ('${eventType}', ${eventId}, '${label}', ${price}, ${required})`
+        );
+    });
+
+    return fetchBridge({
+        mode: 'execute_sql',
+        queries
+    });
+};

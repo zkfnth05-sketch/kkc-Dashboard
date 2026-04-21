@@ -19,6 +19,8 @@ interface SportsApplicant {
     dog_photo: string;      // 견사진
     student_id_photo: string; // 학생증 사진
     payment_status: '미입금' | '입금완료';
+    options_summary?: string; // 신청 옵션 요약
+    total_amount?: number | string; // 참가비
 }
 
 interface SportsCompetitionApplicantManagementProps {
@@ -40,6 +42,7 @@ export const TrainingApplicantManagement: React.FC<SportsCompetitionApplicantMan
     const [isLoading, setIsLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editTargetId, setEditTargetId] = useState<string | null>(null);
+    const [selectedOptionsApp, setSelectedOptionsApp] = useState<SportsApplicant | null>(null);
 
     const [formData, setFormData] = useState({
         handler_id: '',
@@ -311,6 +314,7 @@ export const TrainingApplicantManagement: React.FC<SportsCompetitionApplicantMan
                             <th className="py-4 px-2 w-[6%] font-black uppercase tracking-wider border-r border-gray-100">구분</th>
                             <th className="py-4 px-2 w-[8%] font-black uppercase tracking-wider border-r border-gray-100">견사진</th>
                             <th className="py-4 px-2 w-[8%] font-black uppercase tracking-wider border-r border-gray-100">학생증 사진</th>
+                            <th className="py-4 px-2 w-[6%] font-black uppercase tracking-wider border-r border-gray-100">신청옵션</th>
                             <th className="py-4 px-2 w-[8%] font-black uppercase tracking-wider border-r border-gray-100">입금 상태</th>
                             <th className="py-4 px-3 w-[8%] font-black uppercase tracking-wider">관리</th>
                         </tr>
@@ -353,6 +357,19 @@ export const TrainingApplicantManagement: React.FC<SportsCompetitionApplicantMan
                                     </div>
                                 </td>
                                 <td className="py-4 px-2 border-r border-gray-50">
+                                    {item.options_summary ? (
+                                        <button
+                                            onClick={() => setSelectedOptionsApp(item)}
+                                            className="inline-flex items-center px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-[8px] text-[11px] font-bold text-blue-600 hover:bg-blue-100 transition-colors"
+                                            title={item.options_summary}
+                                        >
+                                            옵션보기
+                                        </button>
+                                    ) : (
+                                        <span className="text-gray-300 text-[12px]">-</span>
+                                    )}
+                                </td>
+                                <td className="py-4 px-2 border-r border-gray-50">
                                     <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-md text-[11px] font-black uppercase tracking-tighter ${item.payment_status === '입금완료'
                                         ? 'bg-green-50 text-green-600 border border-green-200'
                                         : 'bg-gray-50 text-gray-400 border border-gray-200'}`}>
@@ -361,6 +378,12 @@ export const TrainingApplicantManagement: React.FC<SportsCompetitionApplicantMan
                                 </td>
                                 <td className="py-4 px-3">
                                     <div className="flex justify-center gap-1.5">
+                                        <button
+                                            onClick={() => setSelectedOptionsApp(item)}
+                                            className="px-3 py-1.5 bg-blue-50 border border-blue-100 rounded text-[11px] font-bold text-blue-600 hover:bg-blue-100 transition-all"
+                                        >
+                                            옵션보기
+                                        </button>
                                         <button
                                             onClick={() => handleOpenModal(item)}
                                             className="px-3 py-1.5 bg-white border border-gray-200 rounded text-[11px] font-bold text-gray-600 hover:bg-gray-50 hover:border-blue-300 transition-all"
@@ -391,6 +414,35 @@ export const TrainingApplicantManagement: React.FC<SportsCompetitionApplicantMan
                     </tbody>
                 </table>
             </div>
+
+            {/* 신청 옵션 상세 팝업 */}
+            {selectedOptionsApp && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedOptionsApp(null)}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100 bg-[#f8f9fa]">
+                            <div>
+                                <h3 className="text-[15px] font-black text-gray-800">신청 옵션 상세</h3>
+                                <p className="text-[12px] text-gray-500 mt-0.5">{selectedOptionsApp.name} 님의 신청 항목</p>
+                            </div>
+                            <button onClick={() => setSelectedOptionsApp(null)} className="text-gray-400 hover:text-gray-600 p-1"><X size={18} /></button>
+                        </div>
+                        <div className="p-5">
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                                <p className="text-[13px] font-bold text-blue-900 leading-relaxed whitespace-pre-wrap">
+                                    {selectedOptionsApp.options_summary || '옵션 정보 없음'}
+                                </p>
+                            </div>
+                            <div className="mt-3 flex justify-between text-[12px] text-gray-500">
+                                <span>참가비 합계</span>
+                                <span className="font-black text-teal-600">{selectedOptionsApp.total_amount ? Number(selectedOptionsApp.total_amount).toLocaleString() : 0}원</span>
+                            </div>
+                        </div>
+                        <div className="px-5 pb-5">
+                            <button onClick={() => setSelectedOptionsApp(null)} className="w-full py-2.5 bg-gray-800 text-white rounded-lg font-bold text-[13px] hover:bg-gray-700 transition-colors">닫기</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* MODAL */}
             {isModalOpen && (

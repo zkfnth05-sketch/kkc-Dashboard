@@ -17,6 +17,8 @@ interface Applicant {
     entry_type: string;
     dog_breed: string;
     entry_category: string;
+    options_summary?: string;
+    total_amount?: string | number;
     payment_status: '미입금' | '입금완료';
 }
 
@@ -38,6 +40,7 @@ export const StylistIntlApplicantManagement: React.FC<StylistIntlApplicantManage
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedOptionsApp, setSelectedOptionsApp] = useState<any>(null);
     const [editTargetId, setEditTargetId] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
@@ -238,8 +241,9 @@ export const StylistIntlApplicantManagement: React.FC<StylistIntlApplicantManage
                             <th className="py-4 px-2 w-[12%] border-r border-gray-100 font-black text-blue-600">반려견스타일리스트 자격증 번호</th>
                             <th className="py-4 px-2 w-[8%] border-r border-gray-100">소속</th>
                             <th className="py-4 px-2 w-[8%] border-r border-gray-100">참가유형</th>
-                            <th className="py-4 px-2 w-[8%] border-r border-gray-100">모종</th>
-                            <th className="py-4 px-2 w-[10%] border-r border-gray-100">종목</th>
+                            <th className="py-4 px-2 w-[12%] border-r border-gray-100">모종/종목</th>
+                            <th className="py-4 px-2 w-[10%] border-r border-gray-100 text-blue-600">신청 옵션</th>
+                            <th className="py-4 px-2 w-[8%] border-r border-gray-100 font-black">참가비</th>
                             <th className="py-4 px-2 w-[8%] border-r border-gray-100">입금 상태</th>
                             <th className="py-4 px-2 w-[10%]">관리</th>
                         </tr>
@@ -256,8 +260,23 @@ export const StylistIntlApplicantManagement: React.FC<StylistIntlApplicantManage
                                 <td className="py-4 px-2 border-r border-gray-50 font-black text-blue-600 uppercase">{item.license_number || '-'}</td>
                                 <td className="py-4 px-2 border-r border-gray-50">{item.affiliation || '-'}</td>
                                 <td className="py-4 px-2 border-r border-gray-50 font-bold">{item.entry_type || '-'}</td>
-                                <td className="py-4 px-2 border-r border-gray-50">{item.dog_breed || '-'}</td>
-                                <td className="py-4 px-2 border-r border-gray-50 font-medium">{item.entry_category || '-'}</td>
+                                <td className="py-4 px-2 border-r border-gray-50 font-medium">
+                                    <div className="flex flex-col text-[11px]">
+                                        <span className="font-bold text-gray-900">{item.dog_breed || '-'}</span>
+                                        <span className="text-gray-500">{item.entry_category || '-'}</span>
+                                    </div>
+                                </td>
+                                <td className="py-4 px-2 border-r border-gray-50">
+                                    <button 
+                                        onClick={() => setSelectedOptionsApp(item)}
+                                        className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[11px] font-bold hover:bg-blue-100 transition-all border border-blue-100"
+                                    >
+                                        옵션 보기
+                                    </button>
+                                </td>
+                                <td className="py-4 px-2 border-r border-gray-50 font-black text-slate-900">
+                                    {Number(item.total_amount || 0).toLocaleString()}원
+                                </td>
                                 <td className="py-4 px-2 border-r border-gray-50">
                                     <span className={`px-2 py-1 rounded text-[11px] font-black ${item.payment_status === '입금완료' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-gray-100 text-gray-400 border border-gray-200'}`}>
                                         {item.payment_status}
@@ -272,12 +291,38 @@ export const StylistIntlApplicantManagement: React.FC<StylistIntlApplicantManage
                             </tr>
                         )) : !isLoading && (
                             <tr>
-                                <td colSpan={13} className="py-32 text-center text-gray-400 font-bold">등록된 신청자가 없습니다.</td>
+                                <td colSpan={14} className="py-32 text-center text-gray-400 font-bold">등록된 신청자가 없습니다.</td>
                             </tr>
                         )}
                     </tbody>
                 </table>
             </div>
+
+            {selectedOptionsApp && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedOptionsApp(null)}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100 bg-[#f8f9fa]">
+                            <div>
+                                <h3 className="text-[15px] font-black text-gray-800">신청 옵션 상세</h3>
+                                <p className="text-[12px] text-gray-500 mt-0.5">{selectedOptionsApp.name} 님의 신청 항목</p>
+                            </div>
+                            <button onClick={() => setSelectedOptionsApp(null)} className="text-gray-400 hover:text-gray-600 p-1"><X size={18} /></button>
+                        </div>
+                        <div className="p-5">
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                                <p className="text-[13px] font-bold text-blue-900 leading-relaxed whitespace-pre-wrap">{selectedOptionsApp.options_summary || '옵션 정보 없음'}</p>
+                            </div>
+                            <div className="mt-3 flex justify-between text-[12px] text-gray-500">
+                                <span>참가비 합계</span>
+                                <span className="font-black text-teal-600">{selectedOptionsApp.total_amount ? Number(selectedOptionsApp.total_amount).toLocaleString() : 0}원</span>
+                            </div>
+                        </div>
+                        <div className="px-5 pb-5">
+                            <button onClick={() => setSelectedOptionsApp(null)} className="w-full py-2.5 bg-gray-800 text-white rounded-lg font-bold text-[13px] hover:bg-gray-700 transition-colors">닫기</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">

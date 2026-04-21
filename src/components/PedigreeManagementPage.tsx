@@ -45,7 +45,7 @@ export const PedigreeManagementPage: React.FC<PedigreeManagementPageProps> = ({
   const [targetDongtaeNo, setTargetDongtaeNo] = useState<string | null>(null);
   const [targetDogId, setTargetDogId] = useState<string | null>(null);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
-  const [filters, setFilters] = useState({ field: 'all', query: '' });
+  const [filters, setFilters] = useState({ field: 'all', query: '', rank: 'all' });
   const [isRegistrationMode, setIsRegistrationMode] = useState(false);
   const [registrationStep, setRegistrationStep] = useState(1);
   const [regInitialData, setRegInitialData] = useState<any>(null);
@@ -68,11 +68,11 @@ export const PedigreeManagementPage: React.FC<PedigreeManagementPageProps> = ({
     setCheckpoints(prev => [...prev, newCp]);
   };
 
-  const loadData = async (page: number = 1, q: string = '', f: string = 'all') => {
+  const loadData = async (page: number = 1, q: string = '', f: string = 'all', r: string = 'all') => {
     setIsLoading(true);
     setCurrentPage(page);
     try {
-      const res = await fetchPedigrees(tableName, page, q, f);
+      const res = await fetchPedigrees(tableName, page, q, f, r);
       setPedigrees(res.data);
       setTotalPedigrees(res.total);
     } catch (error: any) {
@@ -82,7 +82,7 @@ export const PedigreeManagementPage: React.FC<PedigreeManagementPageProps> = ({
     }
   };
 
-  useEffect(() => { loadData(1); }, [tableName]);
+  useEffect(() => { loadData(1, filters.query, filters.field, filters.rank); }, [tableName]);
 
   const handleSavePedigree = async (p: Pedigree) => {
     setIsLoading(true);
@@ -93,7 +93,7 @@ export const PedigreeManagementPage: React.FC<PedigreeManagementPageProps> = ({
         if (selectedPedigree?.id === p.id) setSelectedPedigree({ ...p });
         showAlert('저장 성공', '혈통서 정보가 수정되었습니다.');
         setEditingPedigree(null);
-        loadData(currentPage, filters.query, filters.field);
+        loadData(currentPage, filters.query, filters.field, filters.rank);
       }
     } catch (e: any) { showAlert('저장 실패', e.message); }
     finally { setIsLoading(false); }
@@ -110,7 +110,7 @@ export const PedigreeManagementPage: React.FC<PedigreeManagementPageProps> = ({
           if (res.success) {
             showAlert('삭제 성공', '혈통서 정보가 삭제되었습니다.');
             setSelectedPedigree(null);
-            loadData(currentPage, filters.query, filters.field);
+            loadData(currentPage, filters.query, filters.field, filters.rank);
           }
         } catch (e: any) {
           showAlert('삭제 실패', e.message);
@@ -149,7 +149,7 @@ export const PedigreeManagementPage: React.FC<PedigreeManagementPageProps> = ({
         setEditingEvaluation(null);
         showAlert('저장 성공', '종견 인정 평가 내역이 성공적으로 반영되었습니다.');
         if (selectedPedigree) setSelectedPedigree({ ...selectedPedigree, okStat: 'Y', okDate: updated.startDate });
-        loadData(currentPage, filters.query, filters.field);
+        loadData(currentPage, filters.query, filters.field, filters.rank);
       }
     } catch (e: any) { showAlert("저장 실패", e.message); }
     finally { setIsLoading(false); }
@@ -319,8 +319,8 @@ export const PedigreeManagementPage: React.FC<PedigreeManagementPageProps> = ({
           totalCount={totalPedigrees}
           currentPage={currentPage}
           isLoading={isLoading}
-          onSearch={(f, q) => { setFilters({ field: f, query: q }); loadData(1, q, f); }}
-          onPageChange={(p) => loadData(p, filters.query, filters.field)}
+          onSearch={(f, q, r) => { setFilters({ field: f, query: q, rank: r }); loadData(1, q, f, r); }}
+          onPageChange={(p) => loadData(p, filters.query, filters.field, filters.rank)}
           onRowClick={(p) => {
             const existing = checkpoints.find(cp => cp.targetId === p.id);
             if (!existing) addCheckpoint(p.id, p, 'Initial Load');
@@ -341,6 +341,21 @@ export const PedigreeManagementPage: React.FC<PedigreeManagementPageProps> = ({
           onEditEvaluation={setEditingEvaluation}
           onManagePoints={onGoToPoints}
           onDelete={handleDeletePedigree}
+          onViewPedigreeByUid={async (uid) => {
+            setIsLoading(true);
+            try {
+              const res = await fetchPedigrees(tableName, 1, uid, 'uid');
+              if (res.data && res.data.length > 0) { 
+                  setSelectedPedigree(res.data[0]); 
+              } else { 
+                  showAlert('조회 실패', '해당 UID의 애견 정보를 찾을 수 없습니다.'); 
+              }
+            } catch (e: any) { 
+              showAlert('오류', e.message); 
+            } finally { 
+              setIsLoading(false); 
+            }
+          }}
           tableName={tableName}
           dogClasses={dogClasses}
         />

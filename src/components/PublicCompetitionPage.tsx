@@ -2,7 +2,7 @@ import React, { useState, Suspense, lazy } from 'react';
 import {
     ChevronLeft, ChevronRight, MapPin, Calendar,
     ArrowRight, X, Dog, Building2, Clock, Trophy,
-    Info, Sparkles, LayoutGrid, List, Loader2, Globe, Check, Search
+    Info, Sparkles, LayoutGrid, List, Loader2, Globe, Check, Search, Home
 } from 'lucide-react';
 
 // 🚀 [SPEED OPTIMIZATION: MODULAR ARCHITECTURE]
@@ -63,10 +63,64 @@ export const PublicCompetitionPage: React.FC = () => {
     const [selectedComp, setSelectedComp] = useState<Competition | null>(null);
     const [applyingComp, setApplyingComp] = useState<Competition | null>(null);
     const [applyTabHint, setApplyTabHint] = useState<string>('');
-    const [alert, setAlert] = useState<{ title: string, message: string } | null>(null);
+    const [alert, setAlert] = useState<{ title: string, message: string, navigateTo?: string } | null>(null);
 
-    const showAlert = (title: string, message: string) => {
-        setAlert({ title, message });
+    const showAlert = (title: string, message: string, navigateTo?: string) => {
+        setAlert({ title, message, navigateTo });
+    };
+
+    const getPortalUrl = (params: string) => {
+        // 🚀 [WAF / PORTAL FIX] 워드프레스의 숏코드 오류를 방지하기 위해 
+        // 인증과 신청은 가장 안정적인 Vercel 독립 도메인에서 처리합니다.
+        const VERCEL_BASE = "https://kkc-admin-dashboard.vercel.app";
+        return `${VERCEL_BASE}/${params}`;
+    };
+
+    const handleMembershipValidation = (targetComp: Competition, targetTab: string) => {
+        try {
+            const rawUser = sessionStorage.getItem('kkf_portal_user');
+            const currentUser = rawUser ? JSON.parse(rawUser) : null;
+            
+            if (!currentUser) {
+                showAlert('신청 권한 안내', '정회원 가입 완료 후 대회 신청이 가능합니다.\n(로그인 페이지로 이동합니다)', getPortalUrl('?view=portal_login'));
+                return;
+            }
+            
+            const degree = currentUser.mem_degree;
+            // 혹시 DB 필드명이 다를 수 있으므로 여러 경우의 수를 fallback으로 받습니다.
+            const endDateStr = currentUser.end_date || currentUser.mem_end_date || currentUser.endDate || '0000-00-00';
+            
+            // 한국 기준 시스템 오늘 날짜 (YYYY-MM-DD) 추출
+            const today = new Date(new Date().getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
+            
+            // 1) 준회원(B0) 이거나 등급이 없는 경우
+            if (!degree || degree === 'B0') {
+                showAlert('정회원 전용', `대회 신청은 정회원만 가능합니다.\n마이 포털에서 [정회원 신청] 및 승인을 받아주세요.`, getPortalUrl('?view=portal_home'));
+                return;
+            }
+            
+            // 2) 정회원이지만 기간이 만료된 무효회원인 경우 (특별/평생회원 C0, S0 제외)
+            if (degree !== 'C0' && degree !== 'S0') {
+                const cleanEndDate = endDateStr.replace(/[^0-9]/g, '');
+                const cleanToday = today.replace(/[^0-9]/g, '');
+                
+                if (cleanEndDate !== '' && cleanEndDate < cleanToday) {
+                    showAlert(
+                        '갱신 필요 (데이터 진단)', 
+                        `회원님의 자격이 만료된 것으로 파악되었습니다.\n인식된 날짜: ${endDateStr}\n\n[디버깅 데이터]\n${JSON.stringify(currentUser).substring(0, 150)}...\n\n마이 포털에서 갱신을 진행해 주세요.`, 
+                        getPortalUrl('?view=portal_home')
+                    );
+                    return;
+                }
+            }
+        } catch(e) {
+            console.error("Auth check error", e);
+        }
+        
+        // 유효한 정회원인 경우 모달창 띄우기
+        setApplyingComp(targetComp); 
+        setApplyTabHint(targetTab); 
+        setSelectedComp(null); // 만약 모달에서 눌렀다면 닫히도록 null 처리
     };
 
     const TabLoading = (
@@ -115,7 +169,7 @@ export const PublicCompetitionPage: React.FC = () => {
                     ))}
                 </nav>
 
-                <div className="p-10 mt-10 opacity-30">
+                <div className="px-10 pb-10 opacity-30">
                     <p className="text-[11px] font-bold text-slate-500 tracking-widest uppercase">© KKC Dog Show Service</p>
                 </div>
             </div>
@@ -123,36 +177,77 @@ export const PublicCompetitionPage: React.FC = () => {
             {/* 🖼️ Main Content Area (Original Design Restored) */}
             <div className="flex-1 min-w-0 flex flex-col p-8 lg:p-16 max-w-full lg:max-w-[1600px] mx-auto w-full relative z-20 overflow-hidden bg-[#F8FAFB]">
                 <header className="mb-12 w-full">
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="h-[2px] w-8 bg-teal-500 rounded-full" />
-                        <span className="text-[11px] font-black text-teal-600 uppercase tracking-widest">{activeMainCat.name}</span>
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-4">
+                        <div className="flex items-center gap-2">
+                            <div className="h-[2px] w-8 bg-teal-500 rounded-full" />
+                            <span className="text-[11px] font-black text-teal-600 uppercase tracking-widest">{activeMainCat.name}</span>
+                        </div>
+                        
+                        {/* 💎 PREMIUM NAVIGATION BUTTONS */}
+                        <div className="flex items-center gap-4">
+                            {/* OFFICIAL WEBSITE BUTTON (PREMIUM) */}
+                            <button 
+                                onClick={() => window.location.href = "https://kkc3349.mycafe24.com"}
+                                className="group relative flex items-center gap-3 px-6 py-3 bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-teal-200/50 transition-all duration-500 hover:-translate-y-1 active:scale-95 overflow-hidden"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-br from-teal-600/0 via-emerald-400/0 to-green-400/0 group-hover:from-teal-600/5 group-hover:via-emerald-400/5 group-hover:to-green-400/5 transition-all duration-700" />
+                                <div className="relative w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-teal-400 group-hover:bg-teal-600 group-hover:text-white transition-all duration-500 shadow-inner">
+                                    <Home size={20} className="group-hover:rotate-12 transition-transform" />
+                                </div>
+                                <div className="relative flex flex-col items-start leading-none gap-1">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Association</span>
+                                    <span className="text-[15px] font-[900] text-slate-800 leading-none">홈페이지</span>
+                                </div>
+                                <div className="relative ml-2 w-7 h-7 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 group-hover:text-teal-600 group-hover:bg-white transition-all shadow-sm">
+                                    <ChevronRight size={16} />
+                                </div>
+                            </button>
+
+                            {/* MY PAGE BUTTON (PREMIUM) */}
+                            <button 
+                                onClick={() => window.location.href = getPortalUrl('?view=portal_home')}
+                                className="group relative flex items-center gap-3 px-6 py-3 bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-200/50 transition-all duration-500 hover:-translate-y-1 active:scale-95 overflow-hidden"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/0 via-indigo-400/0 to-purple-400/0 group-hover:from-blue-600/5 group-hover:via-indigo-400/5 group-hover:to-purple-400/5 transition-all duration-700" />
+                                <div className="relative w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-inner">
+                                    <Sparkles size={20} className="group-hover:rotate-12 transition-transform" />
+                                </div>
+                                <div className="relative flex flex-col items-start leading-none gap-1">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Member Center</span>
+                                    <span className="text-[15px] font-[900] text-slate-800 leading-none">마이페이지</span>
+                                </div>
+                                <div className="relative ml-2 w-7 h-7 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 group-hover:text-blue-600 group-hover:bg-white transition-all shadow-sm">
+                                    <ChevronRight size={16} />
+                                </div>
+                            </button>
+                        </div>
                     </div>
                     <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tighter mb-10">
                         {activeMainCat.name}
                     </h1>
-
-                    <div className="w-full">
-                        <Suspense fallback={TabLoading}>
-                            {activeMainCat.id === 'stylist' ? (
-                                <StylistTab
-                                    key={activeMainCat.id}
-                                    subTabs={activeMainCat.subTabs}
-                                    onSelectComp={setSelectedComp}
-                                    onApplyComp={(c, tab) => { setApplyingComp(c); setApplyTabHint(tab); }}
-                                    initialSubTab={subParam}
-                                />
-                            ) : (
-                                <BaseTab
-                                    key={activeMainCat.id}
-                                    subTabs={activeMainCat.subTabs}
-                                    onSelectComp={setSelectedComp}
-                                    onApplyComp={(c, tab) => { setApplyingComp(c); setApplyTabHint(tab); }}
-                                    initialSubTab={subParam}
-                                />
-                            )}
-                        </Suspense>
-                    </div>
                 </header>
+
+                <div className="w-full">
+                    <Suspense fallback={TabLoading}>
+                        {activeMainCat.id === 'stylist' ? (
+                            <StylistTab
+                                key={activeMainCat.id}
+                                subTabs={activeMainCat.subTabs}
+                                onSelectComp={setSelectedComp}
+                                onApplyComp={handleMembershipValidation}
+                                initialSubTab={subParam}
+                            />
+                        ) : (
+                            <BaseTab
+                                key={activeMainCat.id}
+                                subTabs={activeMainCat.subTabs}
+                                onSelectComp={setSelectedComp}
+                                onApplyComp={handleMembershipValidation}
+                                initialSubTab={subParam}
+                            />
+                        )}
+                    </Suspense>
+                </div>
             </div>
 
             {/* 📋 Competition Detail Modal (Original Style Restored) */}
@@ -255,7 +350,11 @@ export const PublicCompetitionPage: React.FC = () => {
                                                 <p className="text-[14px] font-[900] text-slate-900">{selectedComp.organizer}</p>
                                             </div>
                                             <button
-                                                onClick={() => { setApplyingComp(selectedComp); setApplyTabHint(selectedComp.category || ''); setSelectedComp(null); }}
+                                                onClick={() => {
+                                                    if (selectedComp) {
+                                                        handleMembershipValidation(selectedComp, selectedComp.category || '');
+                                                    }
+                                                }}
                                                 className="px-10 py-5 bg-teal-500 text-white rounded-[24px] text-[13px] font-[900] uppercase tracking-[0.2em] shadow-2xl shadow-teal-500/30 hover:bg-teal-600 transition-all flex items-center gap-4 group"
                                             >
                                                 신청하기
@@ -294,7 +393,15 @@ export const PublicCompetitionPage: React.FC = () => {
                             <h3 className="text-2xl font-[900] text-slate-900 tracking-tight mb-3">{alert.title}</h3>
                             <p className="text-[15px] font-bold text-slate-500 leading-relaxed">{alert.message}</p>
                         </div>
-                        <button onClick={() => setAlert(null)} className="w-full py-5 bg-slate-900 !text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] hover:bg-teal-600 transition-all shadow-xl shadow-slate-900/10">확인하였습니다</button>
+                        <button onClick={() => { 
+                            if (alert?.navigateTo) {
+                                window.location.href = alert.navigateTo;
+                            } else {
+                                setAlert(null);
+                            }
+                        }} className="w-full py-5 bg-slate-900 !text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] hover:bg-teal-600 transition-all shadow-xl shadow-slate-900/10">
+                            {alert?.navigateTo ? "이동하기" : "확인하였습니다"}
+                        </button>
                     </div>
                 </div>
             )}

@@ -6,7 +6,10 @@ import { FormShell } from './FormShell';
 export const DiscDogForm: React.FC<{ competition: any, onClose: () => void, showAlert: (t: string, m: string) => void }> = ({
     competition, onClose, showAlert
 }) => {
-    const { formData, setFormData, isSubmitting, isSearching, handleInputChange, handleImageUpload, handleSearchMember, handleSave } = usePublicForm(
+    const { 
+        formData, setFormData, isSubmitting, isSearching, handleInputChange, handleImageUpload, handleSearchMember, handleSave,
+        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle
+    } = usePublicForm(
         competition, 'discdog_applicant', onClose, showAlert
     );
 
@@ -16,7 +19,17 @@ export const DiscDogForm: React.FC<{ competition: any, onClose: () => void, show
     };
 
     return (
-        <FormShell title={competition.title} category="디스크독" onClose={onClose} onSave={handleSave} isSubmitting={isSubmitting}>
+        <FormShell 
+            title={competition.title} 
+            category="디스크독" 
+            onClose={onClose} 
+            onSave={handleSave} 
+            isSubmitting={isSubmitting}
+            options={eventOptions}
+            selectedOptionIds={selectedOptionIds}
+            onOptionToggle={handleOptionToggle}
+            totalAmount={totalAmount}
+        >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-600">아이디 (ID) 및 정보 조회</label>

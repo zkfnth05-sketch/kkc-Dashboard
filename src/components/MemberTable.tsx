@@ -239,6 +239,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
               <th className="p-2 border-y border-gray-200 font-medium w-20">회원번호</th>
               <th className="p-2 border-y border-gray-200 font-medium w-24">아이디</th>
               <th className="p-2 border-y border-gray-200 font-medium w-24">이름</th>
+              <th className="p-2 border-y border-gray-200 font-medium w-28">견사호</th>
               <th className="p-2 border-y border-gray-200 font-medium">가입일</th>
               <th className="p-2 border-y border-gray-200 font-medium w-24">유효일</th>
               <th className="p-2 border-y border-gray-200 font-medium w-20">등급</th>
@@ -247,7 +248,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={7} className="text-center py-20 text-gray-500">
+                <td colSpan={8} className="text-center py-20 text-gray-500">
                   <Loader2 className="animate-spin inline mr-2 text-blue-500" /> 데이터를 불러오는 중입니다...
                 </td>
               </tr>
@@ -270,6 +271,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                   <td className="p-2 border-b border-gray-100 text-gray-600 font-mono text-xs">{member.mem_no}</td>
                   <td className="p-2 border-b border-gray-100 text-gray-600 text-xs">{member.loginId}</td>
                   <td className={`p-2 border-b border-gray-100 font-bold ${selectedId === member.id ? 'text-blue-600' : 'text-gray-800'}`}>{member.name}</td>
+                  <td className="p-2 border-b border-gray-100 text-gray-600 text-xs font-medium truncate max-w-[100px]" title={member.saho}>{member.saho || '-'}</td>
                   <td className="p-2 border-b border-gray-100 text-gray-400 text-xs">{member.joinDate}</td>
                   <td className="p-2 border-b border-gray-100 text-gray-400 text-xs">{member.expiryDate}</td>
                   <td className="p-2 border-b border-gray-100 text-gray-600 text-xs font-bold">{formatMemberRank(member.rank)}</td>
@@ -277,7 +279,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="text-center py-20 text-gray-400 font-bold italic">
+                <td colSpan={8} className="text-center py-20 text-gray-400 font-bold italic">
                   검색 결과가 없습니다.
                 </td>
               </tr>

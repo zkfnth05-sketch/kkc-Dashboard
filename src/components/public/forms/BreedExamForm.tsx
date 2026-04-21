@@ -6,13 +6,42 @@ import { FormShell } from './FormShell';
 export const BreedExamForm: React.FC<{ competition: any, onClose: () => void, showAlert: (t: string, m: string) => void }> = ({
     competition, onClose, showAlert
 }) => {
-    const { formData, setFormData, isSubmitting, isSearching, handleInputChange, handleSearchMember, handleSave } = usePublicForm(
+    const { 
+        formData, isSubmitting, isSearching, handleInputChange, handleSearchMember, handleSave,
+        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle
+    } = usePublicForm(
         competition, 'breed_exam_applicant', onClose, showAlert
     );
 
     return (
-        <FormShell title={competition.title} category={competition.category} onClose={onClose} onSave={handleSave} isSubmitting={isSubmitting}>
+        <FormShell 
+            title={competition.title} 
+            category={competition.category} 
+            onClose={onClose} 
+            onSave={handleSave} 
+            isSubmitting={isSubmitting}
+            options={eventOptions}
+            selectedOptionIds={selectedOptionIds}
+            onOptionToggle={handleOptionToggle}
+            totalAmount={totalAmount}
+        >
             <div className="grid grid-cols-1 gap-8">
+                {/* 아이디 조회 */}
+                <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-600">아이디 (ID) 조회</label>
+                    <div className="flex gap-2">
+                        <input name="handler_id" value={formData.handler_id} onChange={handleInputChange} className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-teal-500 outline-none" placeholder="회원 ID 입력" />
+                        <button
+                            type="button"
+                            onClick={handleSearchMember}
+                            disabled={isSearching}
+                            className="px-6 bg-slate-900 !text-white rounded-2xl font-bold text-xs hover:bg-black transition-all flex items-center gap-2"
+                        >
+                            {isSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} 조회
+                        </button>
+                    </div>
+                </div>
+
                 {/* 이름 */}
                 <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-600">이름 *</label>

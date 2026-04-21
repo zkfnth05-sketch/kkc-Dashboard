@@ -29,3 +29,14 @@
   min-height: 400px;
   background: white;
 }
+
+/* 🛡️ 로컬 개발 환경용 PC/Mobile 응답형 뷰 분리 */
+@media (min-width: 1025px) {
+  .kkc-show-mobile { display: none !important; }
+  .kkc-show-pc { display: block !important; }
+}
+@media (max-width: 1024px) {
+  .kkc-show-pc { display: none !important; }
+  .kkc-show-mobile { display: block !important; }
+  div.kkc-show-mobile { display: flex !important; }
+}

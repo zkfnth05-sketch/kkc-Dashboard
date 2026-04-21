@@ -14,12 +14,13 @@ interface MemberEditFormProps {
 /**
  * 🎯 직능 선택 모달 컴포넌트
  */
-const SkillSelectorModal = ({ isOpen, onClose, selectedCodes, onSave, availableSkills }: {
+const SkillSelectorModal = ({ isOpen, onClose, selectedCodes, onSave, availableSkills, typeFilter }: {
   isOpen: boolean,
   onClose: () => void,
   selectedCodes: string[],
   onSave: (codes: string[]) => void,
-  availableSkills: ProClass[]
+  availableSkills: ProClass[],
+  typeFilter?: number
 }) => {
   const [currentCodes, setCurrentCodes] = useState<string[]>([]);
 
@@ -39,28 +40,32 @@ const SkillSelectorModal = ({ isOpen, onClose, selectedCodes, onSave, availableS
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-[600px] max-h-[85vh] rounded-lg shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0">
-          <h3 className="text-[18px] font-bold text-gray-800">직능 선택</h3>
+          <h3 className="text-[18px] font-bold text-gray-800">
+            {typeFilter === 0 ? '자격증 선택' : '직능 선택'}
+          </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors"><X size={20} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-2 bg-gray-50/30">
-          {availableSkills.map((pc) => {
-            const isSelected = currentCodes.includes(pc.keyy);
-            return (
-              <button
-                key={pc.uid}
-                type="button"
-                onClick={() => toggleSkill(pc.keyy)}
-                className={`flex items-center justify-between px-4 py-2.5 rounded border text-[12px] font-bold transition-all text-left group
-                  ${isSelected
-                    ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-sm'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-500 hover:bg-blue-50/10'}`}
-              >
-                <span className="truncate mr-2">{pc.name}</span>
-                {isSelected && <Check size={14} className="shrink-0 text-blue-500 animate-in zoom-in-50 duration-200" />}
-              </button>
-            );
-          })}
+          {availableSkills
+            .filter(pc => typeFilter === undefined ? true : pc.type === typeFilter)
+            .map((pc) => {
+              const isSelected = currentCodes.includes(pc.keyy);
+              return (
+                <button
+                  key={pc.uid}
+                  type="button"
+                  onClick={() => toggleSkill(pc.keyy)}
+                  className={`flex items-center justify-between px-4 py-2.5 rounded border text-[12px] font-bold transition-all text-left group
+                    ${isSelected
+                      ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-sm'
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-500 hover:bg-blue-50/10'}`}
+                >
+                  <span className="truncate mr-2">{pc.name}</span>
+                  {isSelected && <Check size={14} className="shrink-0 text-blue-500 animate-in zoom-in-50 duration-200" />}
+                </button>
+              );
+            })}
         </div>
 
         <div className="px-6 py-4 bg-white border-t border-gray-100 flex justify-end gap-2 sticky bottom-0">
@@ -104,6 +109,7 @@ export const MemberEditForm: React.FC<MemberEditFormProps> = ({ member, onSave, 
   const [formData, setFormData] = useState<Member>({ ...member });
   const [isSaving, setIsSaving] = useState(false);
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
+  const [skillModalType, setSkillModalType] = useState<number>(1);
   const [proClasses, setProClasses] = useState<ProClass[]>([]);
 
   useEffect(() => {
@@ -234,49 +240,97 @@ export const MemberEditForm: React.FC<MemberEditFormProps> = ({ member, onSave, 
             </div>
 
             <div className="bg-[#fcfcfc] px-4 py-3 border-b border-gray-200">
-              <h3 className="text-[15px] font-bold text-gray-800">보유 직능</h3>
+              <h3 className="text-[15px] font-bold text-gray-800">기술 및 자격 정보</h3>
             </div>
-            <div className="p-5">
-              <div className="flex flex-wrap gap-2 items-center min-h-[40px] mb-5">
-                {(() => {
-                  const currentCodes = (formData.proClass || '').split(/[- ,]+/).filter(c => c.trim() !== '');
-                  const skillMap: Record<string, string> = {};
-                  proClasses.forEach(p => { skillMap[p.keyy] = p.name; });
+            <div className="p-5 space-y-8">
+              {/* 1. 보유 직능 (type=1) */}
+              <div>
+                <h4 className="text-[13px] font-bold text-gray-700 mb-3 ml-1 flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div> 보유 직능
+                </h4>
+                <div className="flex flex-wrap gap-2 items-center min-h-[40px] p-3 bg-gray-50/30 rounded border border-gray-100">
+                  {(() => {
+                    const currentCodes = (formData.proClass || '').split(/[- ,]+/).filter(c => c.trim() !== '');
+                    const skillMap: Record<string, string> = {};
+                    proClasses.forEach(p => { skillMap[p.keyy] = p.name; });
 
-                  const skillNames = formatSkillNames(formData.proClass, skillMap);
+                    const skillCodes = currentCodes.filter(code => {
+                      const pc = proClasses.find(p => p.keyy === code);
+                      return pc ? pc.type === 1 : true;
+                    });
 
-                  return currentCodes.map((code, idx) => (
-                    <div key={idx} className="flex items-center gap-1.5 bg-blue-50/50 text-[#5c5fef] px-4 py-1.5 rounded-full border border-blue-100 text-[12px] font-bold shadow-sm group">
-                      {skillNames[idx]}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSkill(code)}
-                        className="text-blue-300 hover:text-red-500 transition-colors ml-1"
-                      >
-                        <X size={13} />
-                      </button>
-                    </div>
-                  ));
-                })()}
-                <button
-                  type="button"
-                  onClick={() => setIsSkillModalOpen(true)}
-                  className="flex items-center gap-1.5 bg-white border border-blue-200 text-blue-500 px-4 py-1.5 rounded-md text-[12px] font-bold hover:bg-blue-50 transition-all ml-2"
-                >
-                  <Plus size={14} /> 직능 추가
-                </button>
+                    return skillCodes.map((code, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 bg-blue-50/50 text-[#5c5fef] px-4 py-1.5 rounded-full border border-blue-100 text-[12px] font-bold shadow-sm group">
+                        {skillMap[code] || code}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSkill(code)}
+                          className="text-blue-300 hover:text-red-500 transition-colors ml-1"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ));
+                  })()}
+                  <button
+                    type="button"
+                    onClick={() => { setSkillModalType(1); setIsSkillModalOpen(true); }}
+                    className="flex items-center gap-1.5 bg-white border border-blue-200 text-blue-500 px-4 py-1.5 rounded-md text-[12px] font-bold hover:bg-blue-50 transition-all ml-2"
+                  >
+                    <Plus size={14} /> 직능 추가
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. 보유 자격증 (type=0) */}
+              <div>
+                <h4 className="text-[13px] font-bold text-gray-700 mb-3 ml-1 flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div> 보유 자격증
+                </h4>
+                <div className="flex flex-wrap gap-2 items-center min-h-[40px] p-3 bg-orange-50/5 rounded border border-orange-50">
+                  {(() => {
+                    const currentCodes = (formData.proClass || '').split(/[- ,]+/).filter(c => c.trim() !== '');
+                    const skillMap: Record<string, string> = {};
+                    proClasses.forEach(p => { skillMap[p.keyy] = p.name; });
+
+                    const licenseCodes = currentCodes.filter(code => {
+                      const pc = proClasses.find(p => p.keyy === code);
+                      return pc && pc.type === 0;
+                    });
+
+                    return licenseCodes.map((code, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 bg-orange-50/50 text-orange-600 px-4 py-1.5 rounded-full border border-orange-100 text-[12px] font-bold shadow-sm group">
+                        {skillMap[code] || code}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSkill(code)}
+                          className="text-orange-300 hover:text-red-500 transition-colors ml-1"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ));
+                  })()}
+                  <button
+                    type="button"
+                    onClick={() => { setSkillModalType(0); setIsSkillModalOpen(true); }}
+                    className="flex items-center gap-1.5 bg-white border border-orange-200 text-orange-500 px-4 py-1.5 rounded-md text-[12px] font-bold hover:bg-orange-50 transition-all ml-2"
+                  >
+                    <Plus size={14} /> 자격증 추가
+                  </button>
+                </div>
               </div>
 
               {/* 🎯 직능 RAW 데이터 직접 수정 (사용자 요청) */}
               <div className="p-4 bg-gray-50 rounded-sm border border-gray-100">
                 <p className="text-[11px] text-gray-400 mb-2 font-medium flex items-center gap-1">
-                  <Search size={12} /> 직능 데이터 직접 수정 (예시: TR5-TR2-aad-CD)
+                  <Search size={12} /> 데이터 원본 (하이픈 구분 코드)
                 </p>
                 <input
                   type="text"
                   value={formData.proClass || ''}
                   onChange={(e) => handleChange('proClass', e.target.value)}
-                  placeholder="직능 코드를 직접 입력하세요 (하이픈 구분)"
+                  placeholder="직능/자격증 코드를 직접 입력하세요 (하이픈 구분)"
                   className="w-full border border-gray-200 rounded-sm px-3 h-9 text-[13px] font-mono text-blue-600 focus:border-blue-500 outline-none bg-white transition-all shadow-inner"
                 />
               </div>
@@ -303,9 +357,10 @@ export const MemberEditForm: React.FC<MemberEditFormProps> = ({ member, onSave, 
       <SkillSelectorModal
         isOpen={isSkillModalOpen}
         onClose={() => setIsSkillModalOpen(false)}
-        selectedCodes={(formData.proClass || '').split('-').filter(c => c.trim() !== '')}
+        selectedCodes={(formData.proClass || '').split(/[- ,]+/).filter(c => c.trim() !== '')}
         onSave={handleUpdateSkills}
         availableSkills={proClasses}
+        typeFilter={skillModalType}
       />
     </div>
   );

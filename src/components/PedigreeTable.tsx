@@ -8,7 +8,7 @@ interface PedigreeTableProps {
     totalCount: number;
     currentPage: number;
     isLoading: boolean;
-    onSearch: (field: string, query: string) => void;
+    onSearch: (field: string, query: string, rank: string) => void;
     onPageChange: (page: number) => void;
     onRowClick: (pedigree: Pedigree) => void;
     onNewRegistration?: () => void;
@@ -25,6 +25,7 @@ const SEARCH_OPTIONS = [
     { label: '모견 등록번호', value: 'mo_regno' },
     { label: '부견 등록번호', value: 'fa_regno' },
     { label: '동태 번호', value: 'dongtae_no' },
+    { label: '색인번호', value: 'index_no' },
     { label: '생년월일', value: 'birth' },
     { label: '견사호', value: 'saho_eng' },
 ];
@@ -47,17 +48,18 @@ export const PedigreeTable: React.FC<PedigreeTableProps> = ({
 }) => {
   const [searchField, setSearchField] = useState('all'); 
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRank, setSelectedRank] = useState('all');
 
   const totalPages = Math.ceil(totalCount / 50);
 
   const handleSearch = () => {
-      onSearch(searchField, searchQuery);
+      onSearch(searchField, searchQuery, selectedRank);
   };
 
   const handleFieldChange = (newField: string) => {
       setSearchField(newField);
       // 🎯 항목 선택 시 즉시 필터링 로직 유지 (데이터가 입력된 개체만 즉시 필터링됨)
-      onSearch(newField, searchQuery);
+      onSearch(newField, searchQuery, selectedRank);
   };
 
   const getPageNumbers = () => {
@@ -130,6 +132,21 @@ export const PedigreeTable: React.FC<PedigreeTableProps> = ({
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                     />
                 </div>
+                <select
+                    value={selectedRank}
+                    onChange={(e) => {
+                        setSelectedRank(e.target.value);
+                        onSearch(searchField, searchQuery, e.target.value);
+                    }}
+                    className="border-2 border-gray-200 rounded-md px-3 h-10 text-[12px] font-bold text-gray-700 bg-white hover:bg-gray-50 outline-none transition-colors cursor-pointer"
+                >
+                    <option value="all">전체회원</option>
+                    <option value="C0">특별회원</option>
+                    <option value="A3">정회원3년</option>
+                    <option value="A2">정회원2년</option>
+                    <option value="A1">정회원1년</option>
+                    <option value="B0">준회원</option>
+                </select>
                 <button 
                     onClick={handleSearch}
                     className="bg-blue-600 text-white px-8 h-10 text-sm rounded-md hover:bg-blue-700 font-bold transition-all shadow-lg shadow-blue-100 active:scale-95"
@@ -166,8 +183,8 @@ export const PedigreeTable: React.FC<PedigreeTableProps> = ({
                         <th className="p-3 border border-gray-200">소유자</th>
                         <th className="p-3 border border-gray-200">생년월일</th>
                         <th className="p-3 border border-gray-200">마이크로칩</th>
-                        <th className="p-3 border border-gray-200">부(UID)</th>
-                        <th className="p-3 border border-gray-200">모(UID)</th>
+                        <th className="p-3 border border-gray-200">부(등록번호)</th>
+                        <th className="p-3 border border-gray-200">모(등록번호)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -205,8 +222,8 @@ export const PedigreeTable: React.FC<PedigreeTableProps> = ({
                                 <td className="p-3 border-x border-gray-200 truncate font-medium">{row.owner}</td>
                                 <td className="p-3 border-x border-gray-200 text-gray-400 font-mono text-[12px]">{row.birthDate}</td>
                                 <td className={`p-3 border-x border-gray-200 font-bold ${row.microchip ? 'text-blue-600 bg-blue-50/20' : 'text-gray-300'}`}>{row.microchip || '-'}</td>
-                                <td className="p-3 border-x border-gray-200 text-gray-400 text-[11px]">{row.sireRegNo}</td>
-                                <td className="p-3 border-x border-gray-200 text-gray-400 text-[11px]">{row.damRegNo}</td>
+                                <td className="p-3 border-x border-gray-200 text-gray-400 text-[11px]">{row.sireRegNoText || '-'}</td>
+                                <td className="p-3 border-x border-gray-200 text-gray-400 text-[11px]">{row.damRegNoText || '-'}</td>
                             </tr>
                         ))
                     ) : (

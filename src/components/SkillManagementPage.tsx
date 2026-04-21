@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { fetchMembers, fetchProClasses, createProClass, deleteProClass } from '../services/memberService';
+import { fetchMembers, fetchProClasses, createProClass, deleteProClass, updateProClass } from '../services/memberService';
 import { fetchExportMembers } from '../services/exportService';
 import { ProClass } from '../types';
-import { Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Download, Activity, FileSpreadsheet, Plus, Trash2, X, RefreshCw } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Download, Activity, FileSpreadsheet, Plus, Trash2, X, RefreshCw, Edit } from 'lucide-react';
 
 interface SkillMember {
   id: string;
@@ -69,11 +69,19 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
   const [isAddingNewSkill, setIsAddingNewSkill] = useState(false);
   const [newSkillName, setNewSkillName] = useState('');
   const [newSkillCode, setNewSkillCode] = useState('');
+  const [newSkillType, setNewSkillType] = useState<number>(1); // 1: 직능, 0: 자격증
   const [codeCheckResult, setCodeCheckResult] = useState<{ checked: boolean, available: boolean, message: string }>({
     checked: false,
     available: false,
     message: ''
   });
+  
+  // 🚀 직능 수정 모달 상태
+  const [isEditingSkill, setIsEditingSkill] = useState(false);
+  const [editingSkillUid, setEditingSkillUid] = useState('');
+  const [editingSkillName, setEditingSkillName] = useState('');
+  const [editingSkillCode, setEditingSkillCode] = useState('');
+  const [editingSkillType, setEditingSkillType] = useState<number>(1);
 
   const limit = 10;
 
@@ -176,19 +184,77 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
 
     setIsLoading(true);
     try {
-      await createProClass({ keyy: newSkillCode.trim(), name: newSkillName.trim() });
+      await createProClass({ keyy: newSkillCode.trim(), name: newSkillName.trim(), type: newSkillType });
       await loadProClasses(); // 목롭 업데이트
       setIsAddingNewSkill(false);
       setNewSkillName('');
       setNewSkillCode('');
       setCodeCheckResult({ checked: false, available: false, message: '' });
-      showAlert('알림', '신규 직능이 DB에 추가되었습니다.');
+      showAlert('성공', '신규 직능이 DB에 성공적으로 추가되었습니다.');
     } catch (e: any) {
       showAlert('추가 실패', e.message);
     } finally {
       setIsLoading(false);
     }
   };
+
+  /**
+   * 🎯 직능 수정 모달 열기
+   */
+  const handleEditSkillClick = () => {
+    if (!selectedSkill) {
+      showAlert('알림', '수정할 직능을 상단 목록에서 먼저 선택해주세요.');
+      return;
+    }
+    const found = proClasses.find(p => p.name === selectedSkill);
+    if (found) {
+      setEditingSkillUid(found.uid);
+      setEditingSkillName(found.name);
+      setEditingSkillCode(found.keyy);
+      setEditingSkillType(found.type);
+      setIsEditingSkill(true);
+    }
+  };
+
+  /**
+   * 🎯 직능 수정 실행
+   */
+  const handleSaveEditedSkill = async () => {
+    if (!editingSkillName.trim() || !editingSkillCode.trim()) {
+      showAlert('오류', '직능명과 코드를 모두 입력해주세요.');
+      return;
+    }
+
+    // 자기 자신을 제외한 다른 직능과 코드가 중복되는지 확인
+    const isDuplicate = proClasses.some(p => p.keyy === editingSkillCode.trim() && p.uid !== editingSkillUid);
+    if (isDuplicate) {
+      showAlert('오류', '이미 다른 직능에서 사용 중인 코드입니다.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await updateProClass({ 
+        uid: editingSkillUid, 
+        keyy: editingSkillCode.trim(), 
+        name: editingSkillName.trim(), 
+        type: editingSkillType 
+      });
+      await loadProClasses(); // 목록 업데이트
+      
+      // 현재 선택된 스킬명이 바뀌었을 수 있으므로 업데이트
+      setSelectedSkill(editingSkillName.trim());
+      setActiveSkill(editingSkillName.trim());
+      
+      setIsEditingSkill(false);
+      showAlert('성공', '직능 정보가 성공적으로 수정되었습니다.');
+    } catch (e: any) {
+      showAlert('수정 실패', e.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   /**
    * 🎯 직능 삭제 로직 (DB 연동)
@@ -402,8 +468,15 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
       {/* Header section matches the screenshot */}
       <div className="px-10 py-8">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-[26px] font-bold text-gray-800">직능별 회원 관리</h2>
+          <h2 className="text-[26px] font-bold text-gray-800">직능 및 자격증 회원관리</h2>
           <div className="flex gap-2">
+            <button
+              onClick={handleEditSkillClick}
+              className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-md font-bold text-sm transition-all active:scale-95 flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!selectedSkill}
+            >
+              <Edit size={18} /> 직능 수정
+            </button>
             <button
               onClick={() => setIsAddingNewSkill(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-md font-bold text-sm transition-all active:scale-95 flex items-center gap-2 shadow-sm"
@@ -664,6 +737,29 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
                   </p>
                 )}
               </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">분류 선택</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewSkillType(1)}
+                    className={`flex-1 py-2 px-3 rounded border text-xs font-bold transition-all ${
+                      newSkillType === 1 ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-gray-200 text-gray-500'
+                    }`}
+                  >
+                    직능 (Skill)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewSkillType(0)}
+                    className={`flex-1 py-2 px-3 rounded border text-xs font-bold transition-all ${
+                      newSkillType === 0 ? 'bg-orange-600 border-orange-600 text-white shadow-md' : 'bg-white border-gray-200 text-gray-500'
+                    }`}
+                  >
+                    자격증 (License)
+                  </button>
+                </div>
+              </div>
               <div className="p-3 bg-blue-50 rounded text-[11px] text-blue-600 leading-relaxed">
                 ※ 추가된 직능은 회원 상세 정보의 '직능 선택' 목록에도 나타납니다. 코드는 중복되지 않도록 주의하세요.
               </div>
@@ -680,6 +776,80 @@ export const SkillManagementPage: React.FC<SkillManagementPageProps> = ({ tableN
                 className="px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded hover:bg-blue-700 shadow-sm transition-all active:scale-95"
               >
                 추가하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🚀 직능 수정 모달 */}
+      {isEditingSkill && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-5 border-b bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900 leading-none">직능 정보 수정</h3>
+              <button onClick={() => setIsEditingSkill(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase">직능 명칭</label>
+                <input
+                  type="text"
+                  placeholder="예: 특수훈련심사위원"
+                  className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:border-blue-500"
+                  value={editingSkillName}
+                  onChange={(e) => setEditingSkillName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase">직능 코드</label>
+                <input
+                  type="text"
+                  placeholder="예: SPEC-1"
+                  className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:border-blue-500 font-mono"
+                  value={editingSkillCode}
+                  onChange={(e) => setEditingSkillCode(e.target.value)}
+                />
+                <p className="text-[11px] text-gray-400">※ 코드를 변경하면 기존에 해당 코드를 가졌던 회원의 데이터 연결이 끊어질 수 있으니 주의하세요.</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">분류 선택</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingSkillType(1)}
+                    className={`flex-1 py-2 px-3 rounded border text-xs font-bold transition-all ${
+                      editingSkillType === 1 ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-gray-200 text-gray-500'
+                    }`}
+                  >
+                    직능 (Skill)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingSkillType(0)}
+                    className={`flex-1 py-2 px-3 rounded border text-xs font-bold transition-all ${
+                      editingSkillType === 0 ? 'bg-orange-600 border-orange-600 text-white shadow-md' : 'bg-white border-gray-200 text-gray-500'
+                    }`}
+                  >
+                    자격증 (License)
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="p-5 border-t bg-gray-50 flex justify-end gap-2">
+              <button
+                onClick={() => setIsEditingSkill(false)}
+                className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSaveEditedSkill}
+                className="px-6 py-2 bg-green-600 text-white text-sm font-bold rounded hover:bg-green-700 shadow-sm transition-all active:scale-95"
+              >
+                저장하기
               </button>
             </div>
           </div>

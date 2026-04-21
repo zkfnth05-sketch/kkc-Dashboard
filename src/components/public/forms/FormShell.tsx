@@ -8,6 +8,10 @@ interface FormShellProps {
     onSave: () => void;
     isSubmitting: boolean;
     children: React.ReactNode;
+    options?: any[];
+    selectedOptionIds?: Set<string>;
+    onOptionToggle?: (id: string | number) => void;
+    totalAmount?: number;
 }
 
 export const FormShell: React.FC<FormShellProps> = ({
@@ -16,7 +20,11 @@ export const FormShell: React.FC<FormShellProps> = ({
     onClose,
     onSave,
     isSubmitting,
-    children
+    children,
+    options = [],
+    selectedOptionIds = new Set(),
+    onOptionToggle,
+    totalAmount = 0
 }) => {
     return (
         <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 lg:p-10 font-sans">
@@ -52,7 +60,61 @@ export const FormShell: React.FC<FormShellProps> = ({
                     <div className="space-y-10">
                         {children}
                     </div>
+
+                    {/* 💰 [FEE OPTIONS DISPLAY] */}
+                    {options.length > 0 && (
+                        <div className="mt-12 pt-10 border-t border-slate-100 animate-in slide-in-from-bottom-5 duration-700">
+                            <h3 className="text-sm font-black text-slate-900 mb-6 flex items-center gap-2">
+                                <div className="w-1.5 h-4 bg-teal-500 rounded-full" />
+                                추가 옵션 및 참가비 선택
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {options.map(opt => {
+                                    const idStr = String(opt.id);
+                                    const isSelected = selectedOptionIds.has(idStr);
+                                    const isRequired = opt.is_required === 1 || opt.is_required === '1';
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            type="button"
+                                            onClick={() => onOptionToggle?.(idStr)}
+                                            className={`p-5 rounded-[24px] border-2 text-left transition-all flex justify-between items-center group ${
+                                                isSelected 
+                                                ? 'bg-teal-50 border-teal-500 shadow-md' 
+                                                : 'bg-white border-slate-100 hover:border-slate-200'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                                                    isSelected ? 'bg-teal-500 border-teal-500' : 'bg-white border-slate-200'
+                                                }`}>
+                                                    {isSelected && <Check size={14} className="text-white" />}
+                                                </div>
+                                                <div className="space-y-0.5">
+                                                    <p className={`text-[13px] font-bold ${isSelected ? 'text-teal-900' : 'text-slate-600'}`}>
+                                                        {opt.option_name}
+                                                        {isRequired && <span className="ml-2 px-2 py-0.5 bg-rose-500 text-white text-[9px] rounded-md">필수</span>}
+                                                    </p>
+                                                    <p className={`text-xs font-medium ${isSelected ? 'text-teal-600' : 'text-slate-400'}`}>
+                                                        {Number(opt.option_price).toLocaleString()}원
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </div>
+
+                {/* Total Balance sticky (optional) */}
+                {totalAmount > 0 && (
+                    <div className="px-12 py-4 bg-teal-50/50 border-t border-teal-100 flex justify-between items-center">
+                        <span className="text-xs font-black text-teal-600 uppercase tracking-widest">결제 예정 금액</span>
+                        <span className="text-xl font-black text-teal-900">{totalAmount.toLocaleString()}원</span>
+                    </div>
+                )}
 
                 {/* Modal Footer */}
                 <div className="px-12 py-10 bg-slate-50/50 border-t border-slate-100 flex gap-4">

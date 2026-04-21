@@ -34,6 +34,7 @@ export const FlyballApplicantManagement: React.FC<FlyballApplicantManagementProp
     const [applicants, setApplicants] = useState<FlyballApplicant[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedOptionsApp, setSelectedOptionsApp] = useState<any>(null);
     const [editTargetId, setEditTargetId] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
@@ -254,6 +255,12 @@ export const FlyballApplicantManagement: React.FC<FlyballApplicantManagementProp
                                 </td>
                                 <td className="py-4 px-3">
                                     <div className="flex justify-center gap-1.5">
+                                        <button
+                                            onClick={() => setSelectedOptionsApp(item)}
+                                            className="px-3 py-1.5 bg-blue-50 border border-blue-100 rounded text-[11px] font-bold text-blue-600 hover:bg-blue-100 transition-all"
+                                        >
+                                            옵션보기
+                                        </button>
                                         <button onClick={() => handleOpenModal(item)} className="px-3 py-1.5 bg-white border border-gray-200 rounded text-[11px] font-bold text-gray-600 hover:bg-gray-50 hover:border-blue-300 transition-all">수정</button>
                                         <button onClick={() => handleDelete(item.id, item.name)} className="px-3 py-1.5 bg-red-50 border border-red-100 rounded text-[11px] font-bold text-red-500 hover:bg-red-100 transition-all">삭제</button>
                                     </div>
@@ -276,6 +283,32 @@ export const FlyballApplicantManagement: React.FC<FlyballApplicantManagementProp
             </div>
 
             {/* MODAL */}
+            {selectedOptionsApp && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedOptionsApp(null)}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100 bg-[#f8f9fa]">
+                            <div>
+                                <h3 className="text-[15px] font-black text-gray-800">신청 옵션 상세</h3>
+                                <p className="text-[12px] text-gray-500 mt-0.5">{selectedOptionsApp.name} 님의 신청 항목</p>
+                            </div>
+                            <button onClick={() => setSelectedOptionsApp(null)} className="text-gray-400 hover:text-gray-600 p-1"><X size={18} /></button>
+                        </div>
+                        <div className="p-5">
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                                <p className="text-[13px] font-bold text-blue-900 leading-relaxed whitespace-pre-wrap">{selectedOptionsApp.options_summary || '옵션 정보 없음'}</p>
+                            </div>
+                            <div className="mt-3 flex justify-between text-[12px] text-gray-500">
+                                <span>참가비 합계</span>
+                                <span className="font-black text-teal-600">{selectedOptionsApp.total_amount ? Number(selectedOptionsApp.total_amount).toLocaleString() : 0}원</span>
+                            </div>
+                        </div>
+                        <div className="px-5 pb-5">
+                            <button onClick={() => setSelectedOptionsApp(null)} className="w-full py-2.5 bg-gray-800 text-white rounded-lg font-bold text-[13px] hover:bg-gray-700 transition-colors">닫기</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[95vh]">
