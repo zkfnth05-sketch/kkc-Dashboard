@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DaumPostcode from 'react-daum-postcode';
 import { Member, MEMBER_RANK_MAP, ProClass } from '../types';
 import { CheckpointBar } from './CheckpointBar';
 import { RotateCcw, Save, Search, Plus, X, Loader2, Check } from 'lucide-react';
@@ -128,6 +129,7 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
   const [isAddingSkill, setIsAddingSkill] = useState(false);
   const [skillModalType, setSkillModalType] = useState<number>(1);
   const [proClasses, setProClasses] = useState<ProClass[]>([]);
+  const [postcodeTarget, setPostcodeTarget] = useState<'main' | 'dm' | null>(null);
 
   useEffect(() => {
     fetchProClasses().then(setProClasses).catch(console.error);
@@ -170,6 +172,26 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
       addr_dm: formData.addr,
       addr1_dm: formData.addr1
     });
+  };
+
+  const handleComplete = (data: any) => {
+    let fullAddress = data.address;
+    let extraAddress = '';
+
+    if (data.addressType === 'R') {
+      if (data.bname !== '') extraAddress += data.bname;
+      if (data.buildingName !== '') extraAddress += extraAddress !== '' ? `, ${data.buildingName}` : data.buildingName;
+      fullAddress += extraAddress !== '' ? ` (${extraAddress})` : '';
+    }
+
+    if (postcodeTarget === 'main') {
+      handleChange('zipcode', data.zonecode);
+      handleChange('addr', fullAddress);
+    } else if (postcodeTarget === 'dm') {
+      handleChange('zipcode_dm', data.zonecode);
+      handleChange('addr_dm', fullAddress);
+    }
+    setPostcodeTarget(null);
   };
 
   if (!formData) {
@@ -244,7 +266,13 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
             <div className="px-3 py-2 space-y-1">
               <div className="flex gap-1">
                 <input type="text" className="w-24 h-8 px-2 border border-gray-300 rounded-sm text-sm" value={formData.zipcode || ''} onChange={(e) => handleChange('zipcode', e.target.value)} />
-                <button className="bg-green-600 text-white text-[11px] font-bold px-3 rounded hover:bg-green-700 transition-colors">주소 찾기</button>
+                <button 
+                  type="button" 
+                  onClick={() => setPostcodeTarget('main')}
+                  className="bg-green-600 text-white text-[11px] font-bold px-3 rounded hover:bg-green-700 transition-colors"
+                >
+                  주소 찾기
+                </button>
               </div>
               <input type="text" className="w-full h-8 px-2 border border-gray-300 rounded-sm text-sm" placeholder="기본 주소 (addr)" value={formData.addr || ''} onChange={(e) => handleChange('addr', e.target.value)} />
               <input type="text" className="w-full h-8 px-2 border border-gray-300 rounded-sm text-sm" placeholder="상세 주소 (addr1)" value={formData.addr1 || ''} onChange={(e) => handleChange('addr1', e.target.value)} />
@@ -255,8 +283,14 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
             <div className="px-3 py-2 space-y-1">
               <div className="flex gap-1">
                 <input type="text" className="w-24 h-8 px-2 border border-gray-300 rounded-sm text-sm" value={formData.zipcode_dm || ''} onChange={(e) => handleChange('zipcode_dm', e.target.value)} />
-                <button className="bg-green-600 text-white text-[11px] font-bold px-3 rounded hover:bg-green-700 transition-colors">주소 찾기</button>
-                <button onClick={copyAddressToDm} className="bg-green-600 text-white text-[11px] font-bold px-3 rounded hover:bg-green-700 transition-colors">기본 주소와 동일</button>
+                <button 
+                  type="button" 
+                  onClick={() => setPostcodeTarget('dm')}
+                  className="bg-green-600 text-white text-[11px] font-bold px-3 rounded hover:bg-green-700 transition-colors"
+                >
+                  주소 찾기
+                </button>
+                <button type="button" onClick={copyAddressToDm} className="bg-green-600 text-white text-[11px] font-bold px-3 rounded hover:bg-green-700 transition-colors">기본 주소와 동일</button>
               </div>
               <input type="text" className="w-full h-8 px-2 border border-gray-300 rounded-sm text-sm" placeholder="DM 기본 주소 (addr_dm)" value={formData.addr_dm || ''} onChange={(e) => handleChange('addr_dm', e.target.value)} />
               <input type="text" className="w-full h-8 px-2 border border-gray-300 rounded-sm text-sm" placeholder="DM 상세 주소 (addr1_dm)" value={formData.addr1_dm || ''} onChange={(e) => handleChange('addr1_dm', e.target.value)} />
@@ -477,6 +511,23 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
           </div>
         </div>
       </div>
+
+      {/* 🎯 우편번호 찾기 모달 */}
+      {postcodeTarget && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white p-4 rounded-md shadow-2xl w-[500px] flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+              <h3 className="font-bold text-[16px] text-gray-800">우편번호 찾기</h3>
+              <button onClick={() => setPostcodeTarget(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="border border-gray-100 rounded overflow-hidden h-[450px]">
+              <DaumPostcode onComplete={handleComplete} style={{ height: '100%' }} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

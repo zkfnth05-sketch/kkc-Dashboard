@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DaumPostcode from 'react-daum-postcode';
 import { fetchProClasses } from '../services/memberService';
 import { Member, ProClass, formatMemberRank } from '../types';
 import { X, Loader2, Plus, Search, MapPin, Calendar, User, Check } from 'lucide-react';
@@ -111,6 +112,7 @@ export const MemberEditForm: React.FC<MemberEditFormProps> = ({ member, onSave, 
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [skillModalType, setSkillModalType] = useState<number>(1);
   const [proClasses, setProClasses] = useState<ProClass[]>([]);
+  const [postcodeTarget, setPostcodeTarget] = useState<'main' | 'dm' | null>(null);
 
   useEffect(() => {
     fetchProClasses().then(setProClasses).catch(console.error);
@@ -144,6 +146,26 @@ export const MemberEditForm: React.FC<MemberEditFormProps> = ({ member, onSave, 
     setIsSkillModalOpen(false);
   };
 
+  const handleComplete = (data: any) => {
+    let fullAddress = data.address;
+    let extraAddress = '';
+
+    if (data.addressType === 'R') {
+      if (data.bname !== '') extraAddress += data.bname;
+      if (data.buildingName !== '') extraAddress += extraAddress !== '' ? `, ${data.buildingName}` : data.buildingName;
+      fullAddress += extraAddress !== '' ? ` (${extraAddress})` : '';
+    }
+
+    if (postcodeTarget === 'main') {
+      handleChange('zipcode', data.zonecode);
+      handleChange('addr', fullAddress);
+    } else if (postcodeTarget === 'dm') {
+      handleChange('zipcode_dm', data.zonecode);
+      handleChange('addr_dm', fullAddress);
+    }
+    setPostcodeTarget(null);
+  };
+
   const handleSaveInternal = async () => {
     setIsSaving(true);
     try { await onSave(formData); } catch (e) { console.error(e); }
@@ -172,7 +194,13 @@ export const MemberEditForm: React.FC<MemberEditFormProps> = ({ member, onSave, 
             <Row label="우편번호">
               <div className="flex gap-2 w-full max-w-md">
                 <Input value={formData.zipcode} onChange={(v: any) => handleChange('zipcode', v)} />
-                <button type="button" className="px-5 bg-white border border-gray-300 text-[11px] font-bold rounded-sm h-8 hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap">우편번호 찾기</button>
+                <button 
+                  type="button" 
+                  onClick={() => setPostcodeTarget('main')}
+                  className="px-5 bg-white border border-gray-300 text-[11px] font-bold rounded-sm h-8 hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap"
+                >
+                  우편번호 찾기
+                </button>
               </div>
             </Row>
             <Row label="주소">
@@ -184,7 +212,13 @@ export const MemberEditForm: React.FC<MemberEditFormProps> = ({ member, onSave, 
             <Row label="DM우편번호">
               <div className="flex gap-2 w-full max-w-md">
                 <Input value={formData.zipcode_dm} onChange={(v: any) => handleChange('zipcode_dm', v)} />
-                <button type="button" className="px-5 bg-white border border-gray-300 text-[11px] font-bold rounded-sm h-8 hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap">우편번호 찾기</button>
+                <button 
+                  type="button" 
+                  onClick={() => setPostcodeTarget('dm')}
+                  className="px-5 bg-white border border-gray-300 text-[11px] font-bold rounded-sm h-8 hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap"
+                >
+                  우편번호 찾기
+                </button>
               </div>
             </Row>
             <Row label="DM주소">
@@ -362,6 +396,23 @@ export const MemberEditForm: React.FC<MemberEditFormProps> = ({ member, onSave, 
         availableSkills={proClasses}
         typeFilter={skillModalType}
       />
+
+      {/* 🎯 우편번호 찾기 모달 */}
+      {postcodeTarget && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white p-4 rounded-lg shadow-2xl w-[500px] flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-4 pb-2 border-b">
+              <h3 className="font-bold text-[16px] text-gray-800">우편번호 찾기</h3>
+              <button onClick={() => setPostcodeTarget(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="border border-gray-100 rounded overflow-hidden h-[450px]">
+              <DaumPostcode onComplete={handleComplete} style={{ height: '100%' }} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
