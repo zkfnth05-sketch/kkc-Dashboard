@@ -506,8 +506,9 @@ export const PedigreeRegistrationForm: React.FC<PedigreeRegistrationFormProps> =
                  <div>
                     <label className={labelStyle}>생년월일</label>
                     <input 
-                      type="date" 
+                      type="text" 
                       className={inputStyle}
+                      placeholder="예: 2026-05-07"
                       value={commonData.birthDate}
                       onChange={e => setCommonData({...commonData, birthDate: e.target.value})}
                     />

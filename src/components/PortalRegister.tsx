@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserPlus, User, Lock, Phone, Mail, ArrowLeft, Loader2, CheckCircle2, MapPin, Calendar, Smartphone, Globe } from 'lucide-react';
 import { portalRegister, portalCheckId } from '../services/portalService';
+import DaumPostcode from 'react-daum-postcode';
 
 interface PortalRegisterProps {
   onBackToLogin: () => void;
@@ -17,6 +18,7 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [postcodeTarget, setPostcodeTarget] = useState<'main' | 'dm' | null>(null);
 
   const handleCheckId = async () => {
     if (!formData.id) return setError('아이디를 입력해주세요.');
@@ -32,15 +34,25 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
   };
 
   const handleAddressSearch = (type: 'main' | 'dm') => {
-    new (window as any).daum.Postcode({
-      oncomplete: (data: any) => {
-        if (type === 'main') {
-          setFormData({ ...formData, zipcode: data.zonecode, addr: data.address });
-        } else {
-          setFormData({ ...formData, zipcode2: data.zonecode, addr2: data.address });
-        }
-      }
-    }).open();
+    setPostcodeTarget(type);
+  };
+
+  const handleComplete = (data: any) => {
+    let fullAddress = data.address;
+    let extraAddress = '';
+
+    if (data.addressType === 'R') {
+        if (data.bname !== '') extraAddress += data.bname;
+        if (data.buildingName !== '') extraAddress += extraAddress !== '' ? `, ${data.buildingName}` : data.buildingName;
+        fullAddress += extraAddress !== '' ? ` (${extraAddress})` : '';
+    }
+
+    if (postcodeTarget === 'main') {
+      setFormData({ ...formData, zipcode: data.zonecode, addr: fullAddress });
+    } else if (postcodeTarget === 'dm') {
+      setFormData({ ...formData, zipcode2: data.zonecode, addr2: fullAddress });
+    }
+    setPostcodeTarget(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -362,6 +374,21 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
           </div>
         </form>
       </div>
+
+      {/* 우편번호 모달 */}
+      {postcodeTarget && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white p-4 rounded-3xl shadow-2xl w-full max-w-[500px] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-4 px-2">
+              <h3 className="font-black text-lg text-slate-800">우편번호 찾기</h3>
+              <button type="button" onClick={() => setPostcodeTarget(null)} className="text-slate-400 hover:text-slate-800 p-1 rounded-full hover:bg-slate-100 transition-colors">✕</button>
+            </div>
+            <div className="border border-slate-200 rounded-2xl overflow-hidden h-[450px]">
+              <DaumPostcode onComplete={handleComplete} style={{ height: '100%' }} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

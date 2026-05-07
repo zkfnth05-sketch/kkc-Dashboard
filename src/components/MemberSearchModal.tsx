@@ -153,12 +153,22 @@ export const PersonSearchModal: React.FC<PersonSearchModalProps> = ({
                            {person.context}
                         </span>
                       </div>
-                      <div className="text-xs text-gray-500 mt-1 truncate">
-                        <span className="font-medium text-orange-600 font-bold">{person.data.saho ? `🏠 ${person.data.saho}` : ''}</span>
-                        {person.data.saho && <span className="mx-2 text-gray-300">|</span>}
-                        <span className="font-medium">📞 {person.data.phone || '연락처 없음'}</span>
-                        <span className="mx-2 text-gray-300">|</span>
-                        <span className="font-medium">📍 {person.data.address || '주소 정보 없음'}</span>
+                      <div className="text-xs text-gray-500 mt-1 flex flex-col gap-1">
+                        <div className="truncate">
+                          <span className="font-medium">📞 {person.data.phone || '연락처 없음'}</span>
+                          <span className="mx-2 text-gray-300">|</span>
+                          <span className="font-medium">📍 {person.data.address || '주소 정보 없음'}</span>
+                        </div>
+                        {person.data.saho && (
+                          <div className="truncate mt-0.5">
+                            <span className="font-medium text-orange-600 font-bold bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">
+                              🏠 견사호: {person.data.saho}
+                            </span>
+                            {person.data.sahoEng && (
+                              <span className="font-medium text-gray-400 ml-2">({person.data.sahoEng})</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                   </div>
                   <div className="shrink-0 ml-4">
