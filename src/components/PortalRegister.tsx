@@ -89,7 +89,7 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
           </p>
           <button
             onClick={onBackToLogin}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-100 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full bg-blue-600 hover:bg-blue-700 !text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-100 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             로그인 화면으로 이동
           </button>
@@ -145,7 +145,7 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
                   <button 
                     type="button"
                     onClick={handleCheckId}
-                    className={`px-8 rounded-2xl font-black transition-all shadow-sm ${isIdChecked ? 'bg-green-500 text-white' : 'bg-slate-900 text-white hover:bg-black active:scale-95'}`}
+                    className={`px-8 rounded-2xl font-black transition-all shadow-sm ${isIdChecked ? 'bg-green-500 !text-white' : 'bg-slate-900 !text-white hover:bg-black active:scale-95'}`}
                   >
                     {isIdChecked ? '사용 가능' : '중복 확인'}
                   </button>
@@ -357,7 +357,7 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-6 rounded-[24px] shadow-2xl shadow-blue-200 transition-all hover:scale-[1.01] active:scale-[0.98] disabled:bg-slate-300 disabled:shadow-none text-xl relative overflow-hidden group"
+              className="w-full bg-blue-600 hover:bg-blue-700 !text-white font-black py-6 rounded-[24px] shadow-2xl shadow-blue-200 transition-all hover:scale-[1.01] active:scale-[0.98] disabled:bg-slate-300 disabled:shadow-none text-xl relative overflow-hidden group"
             >
               {isLoading ? (
                 <Loader2 className="animate-spin mx-auto" size={24} />

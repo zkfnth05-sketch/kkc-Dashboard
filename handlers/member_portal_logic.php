@@ -344,6 +344,7 @@ function kkf_portal_register($input) {
             'mem_degree' => 'B0', // 일반(가족)회원 기본값
             'mem_type' => 'P',   // 개인회원 기본값
             'signdate' => time(),
+            'firstdate' => time(), // 🚀 [FIX] 가입일(1970-01-01 표기 오류) 누락 수정
             'client_ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'
         ];
 
