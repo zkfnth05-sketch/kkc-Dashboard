@@ -603,8 +603,10 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
       // 🏆 [DOG SHOW CATALOG LOGIC]
       // ds_type이 정확히 '도그쇼'인 경우에만 3줄 카탈로그 양식 적용 (전람회/진도견 제외)
       const isPureDogShow = (comp.category === '도그쇼' || comp.category === 'Dog Show') && (comp.ds_type === '도그쇼' || comp.ds_type === 'Dog Show');
+      const isShepherdShow = comp.ds_type === '셰퍼드 전람회';
+      const isJindoShow = comp.ds_type === '진도견 선발대회';
 
-      if (isPureDogShow) {
+      if (isPureDogShow || isShepherdShow || isJindoShow) {
         const regNos = applicants.map(a => a.pedigree_number).filter(Boolean);
         if (regNos.length === 0) {
           finalData = applicants.map(a => ({ '번호': '', '정보1': a.name, '정보2': a.pedigree_number, '정보3': '혈통정보 없음' }));
