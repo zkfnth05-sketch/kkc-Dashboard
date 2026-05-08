@@ -644,10 +644,12 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
             const d = dogMap[a.pedigree_number] || {};
             const birth = d.birth || '';
             let months = -1;
-            if (birth) {
+            if (birth && birth !== '0000-00-00') {
               const bDate = new Date(birth);
-              const targetDate = new Date(comp.startDate || comp.ds_date || new Date());
-              months = (targetDate.getFullYear() - bDate.getFullYear()) * 12 + (targetDate.getMonth() - bDate.getMonth());
+              if (!isNaN(bDate.getTime())) {
+                const targetDate = new Date(comp.startDate || comp.ds_date || new Date());
+                months = (targetDate.getFullYear() - bDate.getFullYear()) * 12 + (targetDate.getMonth() - bDate.getMonth());
+              }
             }
 
             let className = '';
