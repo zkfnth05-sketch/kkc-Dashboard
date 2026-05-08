@@ -671,12 +671,16 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
               const baseIdx = ['유견 C', '유견 B', '유견 A', '장견', '미성견', '성견'].indexOf(baseName.trim());
               classIdx = baseIdx * 2 + (d.sex === 'M' ? 1 : 0);
             } else if (isJindoShow) {
-              if (months >= 3 && months < 6) className = '자견';
-              else if (months >= 6 && months < 12) className = '유견';
-              else if (months >= 12 && months < 18) className = '장견';
-              else if (months >= 18 && months < 24) className = '미성견';
-              else if (months >= 24) className = '성견';
-              classIdx = jindoClassOrder.indexOf(className);
+              const sexK = d.sex === 'M' ? '수조' : '암조';
+              if (months >= 3 && months < 6) className = `자견${sexK}(3~6개월)`;
+              else if (months >= 6 && months < 12) className = `유견${sexK}(6~12개월)`;
+              else if (months >= 12 && months < 18) className = `장견${sexK}(12~18개월)`;
+              else if (months >= 18 && months < 24) className = `미성견${sexK}(18~24개월)`;
+              else if (months >= 24) className = `성견${sexK}(24~개월)`;
+              
+              const baseName = className.split(sexK)[0];
+              const baseIdx = ['자견', '유견', '장견', '미성견', '성견'].indexOf(baseName);
+              classIdx = baseIdx * 2 + (d.sex === 'M' ? 1 : 0);
             } else {
               if (months >= 3 && months < 6) className = 'BABY(3-6개월)';
               else if (months >= 6 && months < 9) className = 'PUPPY B(6~9개월)';
@@ -737,8 +741,8 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
             const breedName = item.breed || 'Other';
             
             // 조별 명칭 구성 (나이 정보가 없으면 성별만 표시)
-            // 🚀 셰퍼드는 이미 className에 성별과 월령이 포함되어 있으므로 그대로 사용
-            const className = isShepherdShow ? item.className : (item.className ? `${item.className} ${item.sex}조` : `${item.sex}조`);
+            // 🚀 셰퍼드 & 진도는 이미 className에 모든 정보가 포함되어 있음
+            const className = (isShepherdShow || isJindoShow) ? item.className : (item.className ? `${item.className} ${item.sex}조` : `${item.sex}조`);
 
             // Group 변경 체크
             if (!currentGroup || currentGroup.groupName !== groupName) {
@@ -782,7 +786,8 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
             });
           });
 
-          await exportDogShowCatalog(comp.title, catalogGroups, isShepherdShow);
+          const exportType = isShepherdShow ? 'shepherd' : (isJindoShow ? 'jindo' : 'default');
+          await exportDogShowCatalog(comp.title, catalogGroups, exportType);
           return; // CSV 다운로드 중단
         }
       } else {
