@@ -650,10 +650,12 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
               months = (targetDate.getFullYear() - bDate.getFullYear()) * 12 + (targetDate.getMonth() - bDate.getMonth());
             }
 
-            let className = 'ADULT';
+            let className = '';
             let classIdx = 0;
 
-            if (isShepherdShow) {
+            if (months === -1) {
+              // 생년월일 없으면 공란 유지
+            } else if (isShepherdShow) {
               if (months >= 3 && months < 6) className = '유견 C';
               else if (months >= 6 && months < 9) className = '유견 B';
               else if (months >= 9 && months < 12) className = '유견 A';
@@ -669,14 +671,14 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
               else if (months >= 24) className = '성견';
               classIdx = jindoClassOrder.indexOf(className);
             } else {
-              if (months >= 3 && months < 6) className = 'BABY';
-              else if (months >= 6 && months < 9) className = 'PUPPY B';
-              else if (months >= 9 && months < 12) className = 'PUPPY A';
-              else if (months >= 12 && months < 18) className = 'JUNIOR';
-              else if (months >= 18 && months < 24) className = 'YOUNG ADULT';
-              else if (months >= 24) className = 'ADULT';
+              if (months >= 3 && months < 6) className = 'BABY(3-6개월)';
+              else if (months >= 6 && months < 9) className = 'PUPPY B(6~9개월)';
+              else if (months >= 9 && months < 12) className = 'PUPPY A(9~12개월)';
+              else if (months >= 12 && months < 18) className = 'JUNIOR(12~18개월)';
+              else if (months >= 18 && months < 24) className = 'YOUNG ADULT(18~24개월)';
+              else className = 'ADULT(24개월~)';
               if (d.show_title?.includes('CH')) className = 'CHAMPION';
-              classIdx = classOrder.indexOf(className);
+              classIdx = classOrder.indexOf(className.split('(')[0]);
             }
 
             return {
@@ -727,10 +729,8 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
             const groupName = item.group || 'Other';
             const breedName = item.breed || 'Other';
             
-            // 조별 명칭에 개월 수 정보 추가 (예: BABY(3-6개월) 암조)
-            const classAgeLabel = classAgeMap[item.className] || '';
-            const displayClassName = item.className === 'CHAMPION' ? '챔피언' : item.className;
-            const className = `${displayClassName}${classAgeLabel} ${item.sex}조`;
+            // 조별 명칭 구성 (나이 정보가 없으면 성별만 표시)
+            const className = item.className ? `${item.className} ${item.sex}조` : `${item.sex}조`;
 
             // Group 변경 체크
             if (!currentGroup || currentGroup.groupName !== groupName) {
