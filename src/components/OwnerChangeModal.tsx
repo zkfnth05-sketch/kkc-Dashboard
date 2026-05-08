@@ -129,10 +129,7 @@ export const OwnerChangeModal: React.FC<OwnerChangeModalProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-[110px_1fr] items-center gap-x-4">
-              <label className="text-sm font-bold text-gray-600">소유자 영문명</label>
-              <input type="text" value={ownerNameEng} onChange={(e) => setOwnerNameEng(e.target.value)} placeholder="English Name" className="border border-gray-300 rounded-sm px-3 py-1.5 text-sm h-9 outline-none focus:border-blue-500 uppercase"/>
-            </div>
+            {/* 영문명 입력란 제거 */}
 
             <div className="grid grid-cols-[110px_1fr] items-center gap-x-4">
               <label className="text-sm font-bold text-gray-600">소유자 연락처</label>

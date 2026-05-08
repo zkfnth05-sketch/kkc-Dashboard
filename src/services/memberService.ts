@@ -239,6 +239,7 @@ export const fetchMembers = async (t: string, p: number, q: string, f: string, l
                 ds_date: d.ds_date,
                 ds_place: d.ds_place || '',
                 ds_etc: d.ds_etc || '',
+                ds_type: d.ds_type || '',
                 // UI 호환을 위한 매핑
                 id: d.ds_pid?.toString(),
                 name: d.ds_name,

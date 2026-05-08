@@ -45,6 +45,8 @@ interface Competition {
   reg_end_m?: string;
   is_multi_day?: boolean;
   ds_etc?: string; // 추가 필드 (부제목, 접수일자 등 JSON)
+  ds_type?: string; // 🚀 대회 유형 (도그쇼, 세퍼드전람회 등)
+  ds_date?: string; // 🚀 대회 개최일
   applicant_count?: number; // 신청자 수
   organizer?: string;
 }
@@ -587,200 +589,193 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
       else if (isTraining) targetTable = 'sports_applicant';
 
       const res = await fetchApplicants(parsedDsPid, targetTable);
-      const applicants = res.data || [];
+      // 🛡️ [PAYMENT FILTER] 입금완료된 신청자만 카탈로그에 포함
+      const applicants = (res.data || []).filter((a: any) => a.payment_status === '입금완료');
       
-      // [FIX] 입금 완료 필터를 제거하여 '미입금' 신청자도 모두 엑셀에 포함시킵니다.
       if (applicants.length === 0) { 
-        showAlert('알림', '이 대회에는 아직 등록된 신청자가 한 명도 없습니다.'); 
+        showAlert('알림', '입금 완료된 신청자가 한 명도 없습니다. (입금 상태를 확인해 주세요)'); 
         return; 
       }
 
-      const finalData = applicants.map((a: any) => {
-        // [공통 정보]
-        const base: any = { 
-          '이름': a.name, 
-          '연락처': a.contact || '', 
-          '회원ID': a.handler_id || '',
-          '지불상태': a.payment_status || '미입금', 
-          '신청일시': a.created_at || '', 
-          '참가비': a.total_amount || '0',
-          '옵션내역': (a.options_summary || '').replace(/,/g, ' | ')
-        };
+      let finalData: any[] = [];
 
-        // URL 보강 함수 (전체 주소가 아니면 자동 생성)
-        const formatUrl = (path: string) => {
-            if (!path) return '';
-            if (path.startsWith('http')) return path;
-            return `https://kkc3349.mycafe24.com/data/dog/${path}`; // 기본값은 dog 폴더
-        };
+      // 🏆 [DOG SHOW CATALOG LOGIC]
+      // ds_type이 정확히 '도그쇼'인 경우에만 3줄 카탈로그 양식 적용 (전람회/진도견 제외)
+      const isPureDogShow = (comp.category === '도그쇼' || comp.category === 'Dog Show') && (comp.ds_type === '도그쇼' || comp.ds_type === 'Dog Show');
+      const isShepherdShow = comp.ds_type === '셰퍼드 전람회';
+      const isJindoShow = comp.ds_type === '진도견 선발대회';
 
-        // [유형별 정규 맵핑]
-        if (isStylistIntl) {
-          return {
-            '회원아이디': a.handler_id || '',
-            '이름': a.name,
-            '연락처': a.contact || '',
-            '생년월일': a.birthdate || '',
-            '이메일': a.email || '',
-            '주소': a.address || '',
-            '자격번호': a.license_number || '',
-            '소속': a.affiliation || '',
-            '심사유형': a.entry_type || '',
-            '모종': a.dog_breed || '',
-            '종목': a.entry_category || '',
-            '참가비': a.total_amount || '0',
-            '옵션내역': a.options_summary || '',
-            '신청일': a.created_at || '',
-            '입금상태': a.payment_status || ''
-          };
-        }
-        if (isStylist) {
-           return {
-            '회원아이디': a.handler_id || '',
-            '이름': a.name,
-            '연락처': a.contact || '',
-            '생년월일': a.birthdate || '',
-            '이메일': a.email || '',
-            '주소': a.address || '',
-            '소속': a.affiliation || '',
-            '모종': a.dog_breed || '',
-            '참가유형': a.entry_type || '',
-            '종목': a.entry_category || '',
-            '사진(URL)': formatUrl(a.student_id_photo),
-            '참가비': a.total_amount || '0',
-            '입금상태': a.payment_status || '',
-            '옵션내역': a.options_summary || '',
-            '신청일': a.created_at || ''
-          };
-        }
-        if (isSeminar) {
-          return {
-            '회원아이디': a.handler_id || '',
-            '이름': a.name,
-            '연락처': a.contact || '',
-            '생년월일': a.birthdate || '',
-            '이메일': a.email || '',
-            '소속': a.affiliation || '',
-            '옵션내역': a.options_summary || '',
-            '참가비': a.total_amount || '0',
-            '입금상태': a.payment_status || '',
-            '신청일': a.created_at || ''
-          };
-        }
-        if (isAgility) {
-          return {
-            '회원아이디': a.handler_id || '',
-            '참가자이름': a.name,
-            '영문성명': a.name_eng || '',
-            '연락처': a.contact || '',
-            '종목': a.subject || '',
-            '팀명': a.team_name || '',
-            '사이즈': a.size || '',
-            '구분': a.division || '',
-            '견종': a.dog_breed || '',
-            '견명': a.dog_name || '',
-            '견영문명': a.dog_name_eng || '',
-            '성별': a.dog_gender || '',
-            '발정유무': a.is_heat || '',
-            '견사진': formatUrl(a.dog_photo),
-            '학생증사진': formatUrl(a.student_id_photo),
-            '참가비': a.total_amount || '0',
-            '입금상태': a.payment_status || '',
-            '신청일': a.created_at || ''
-          };
-        }
-        if (isDiscDog) {
-          return {
-            '핸들러ID': a.handler_id || '',
-            '이름': a.name,
-            '영문명': a.name_eng || '',
-            '연락처': a.contact || '',
-            '견명': a.dog_name || '',
-            '견영문명': a.dog_name_eng || '',
-            '견종': a.dog_breed || '',
-            '종목': a.subject || '',
-            '팀명': a.team_name || '',
-            '사이즈': a.size || '',
-            '구분': a.division || '',
-            '성별': a.dog_gender || '',
-            '발정유무': a.is_heat || '',
-            '학생증사진': formatUrl(a.student_id_photo),
-            '견사진': formatUrl(a.dog_photo),
-            '옵션내역': a.options_summary || '',
-            '참가비': a.total_amount || '0',
-            '입금상태': a.payment_status || '',
-            '신청일': a.created_at || ''
-          };
-        }
-        if (isTraining) {
-          return {
-            '핸들러ID': a.handler_id || '',
-            '이름': a.name,
-            '연락처': a.contact || '',
-            '종목': a.subject || '',
-            '견종': a.dog_breed || '',
-            '견명': a.dog_name || '',
-            '성별': a.dog_gender || '',
-            '발정유무': a.is_heat || '',
-            '혈통번호': a.pedigree_no || '',
-            '구분': a.division || '',
-            '견사진': formatUrl(a.dog_photo),
-            '학생증사진': formatUrl(a.student_id_photo),
-            '입금상태': a.payment_status || '',
-            '참가비': a.total_amount || '0',
-            '옵션내역': a.options_summary || '',
-            '신청일': a.created_at || ''
-          };
-        }
-        if (isFlyball) {
-          return {
-            '핸들러ID': a.handler_id || '',
-            '팀원명': a.name,
-            '연락처': a.contact || '',
-            '견종': a.dog_breed || '',
-            '견명': a.dog_name || '',
-            '종목': a.subject || '',
-            '입금상태': a.payment_status || '',
-            '참가비': a.total_amount || '0',
-            '옵션내역': a.options_summary || '',
-            '신청일': a.created_at || ''
-          };
-        }
-        if (isBreedComp) {
-          return {
-            '핸들러ID': a.handler_id || '',
-            '신청자이름': a.name,
-            '연락처': a.contact || '',
-            '혈통서등록번호': a.pedigree_number || '',
-            '입금상태': a.payment_status || '',
-            '참가비': a.total_amount || '0',
-            '신청일': a.created_at || ''
-          };
-        }
+      if (isPureDogShow || isShepherdShow || isJindoShow) {
+        const regNos = applicants.map(a => a.pedigree_number).filter(Boolean);
+        if (regNos.length === 0) {
+          finalData = applicants.map(a => ({ '번호': '', '정보1': a.name, '정보2': a.pedigree_number, '정보3': '혈통정보 없음' }));
+        } else {
+          // 🚀 1. dogTab 상세 정보 배치 조회
+          const dogMap: Record<string, any> = {};
+          const dogChunks = [];
+          for (let i = 0; i < regNos.length; i += 50) dogChunks.push(regNos.slice(i, i + 50));
 
-        // [[ 기본 도그쇼 ]]
-        return {
-          '핸들러ID': a.handler_id || '',
-          '이름': a.name,
-          '연락처': a.contact || '',
-          '혈통번호': a.pedigree_number || '',
-          '입금상태': a.payment_status || '',
-          '신청일시': a.created_at || '',
-          '참가비': a.total_amount || '0',
-          '옵션내역': a.options_summary || ''
-        };
-      });
+          await Promise.all(dogChunks.map(async (chunk) => {
+            const res = await fetchBridge({ mode: 'list', table: 'dogTab', search: chunk.join(','), field: 'reg_no', limit: 100 });
+            if (res.data) res.data.forEach((d: any) => { dogMap[d.reg_no] = d; });
+          }));
 
-      // 🛰️ [ULTIMATE EXPORT CHECK]
+          // 🚀 2. 부모견 UID 추적 및 재조회
+          const parentUids = new Set<string>();
+          Object.values(dogMap).forEach(d => {
+            if (d.fa_regno && d.fa_regno !== '0' && !isNaN(Number(d.fa_regno))) parentUids.add(d.fa_regno);
+            if (d.mo_regno && d.mo_regno !== '0' && !isNaN(Number(d.mo_regno))) parentUids.add(d.mo_regno);
+          });
+
+          const parentMap: Record<string, any> = {};
+          if (parentUids.size > 0) {
+            const uidList = Array.from(parentUids);
+            const uidChunks = [];
+            for (let i = 0; i < uidList.length; i += 50) uidChunks.push(uidList.slice(i, i + 50));
+            await Promise.all(uidChunks.map(async (chunk) => {
+              const res = await fetchBridge({ mode: 'list', table: 'dogTab', search: chunk.join(','), field: 'uid', limit: 100 });
+              if (res.data) res.data.forEach((p: any) => { parentMap[p.uid] = p; });
+            }));
+          }
+
+          // 🚀 3. 조(Class) 판별 및 데이터 정제
+          const groupOrder = ['Herding', 'Hound', 'Non-Sporting', 'Sporting', 'Terrier', 'Toy', 'Working', '한국견'];
+          const classOrder = ['BABY', 'PUPPY B', 'PUPPY A', 'JUNIOR', 'YOUNG ADULT', 'ADULT', 'CHAMPION'];
+          const shepherdClassOrder = ['유견 C', '유견 B', '유견 A', '장견', '미성견', '성견'];
+          const jindoClassOrder = ['자견', '유견', '장견', '미성견', '성견'];
+
+          const enriched = applicants.map(a => {
+            const d = dogMap[a.pedigree_number] || {};
+            const birth = d.birth || '';
+            let months = -1;
+            if (birth) {
+              const bDate = new Date(birth);
+              const targetDate = new Date(comp.startDate || comp.ds_date || new Date());
+              months = (targetDate.getFullYear() - bDate.getFullYear()) * 12 + (targetDate.getMonth() - bDate.getMonth());
+            }
+
+            let className = 'ADULT';
+            let classIdx = 0;
+
+            if (isShepherdShow) {
+              if (months >= 3 && months < 6) className = '유견 C';
+              else if (months >= 6 && months < 9) className = '유견 B';
+              else if (months >= 9 && months < 12) className = '유견 A';
+              else if (months >= 12 && months < 18) className = '장견';
+              else if (months >= 18 && months < 24) className = '미성견';
+              else if (months >= 24) className = '성견';
+              classIdx = shepherdClassOrder.indexOf(className);
+            } else if (isJindoShow) {
+              if (months >= 3 && months < 6) className = '자견';
+              else if (months >= 6 && months < 12) className = '유견';
+              else if (months >= 12 && months < 18) className = '장견';
+              else if (months >= 18 && months < 24) className = '미성견';
+              else if (months >= 24) className = '성견';
+              classIdx = jindoClassOrder.indexOf(className);
+            } else {
+              if (months >= 3 && months < 6) className = 'BABY';
+              else if (months >= 6 && months < 9) className = 'PUPPY B';
+              else if (months >= 9 && months < 12) className = 'PUPPY A';
+              else if (months >= 12 && months < 18) className = 'JUNIOR';
+              else if (months >= 18 && months < 24) className = 'YOUNG ADULT';
+              else if (months >= 24) className = 'ADULT';
+              if (d.show_title?.includes('CH')) className = 'CHAMPION';
+              classIdx = classOrder.indexOf(className);
+            }
+
+            return {
+              ...a,
+              dogDetail: d,
+              group: d.groupp || 'Other',
+              breed: d.dog_class || 'Other',
+              sex: (d.sex === '1' || d.sex === '수') ? '수' : '암',
+              className,
+              classIdx
+            };
+          });
+
+          // 정렬 (셰퍼드/진도는 조별 암수순, 도그쇼는 그룹/견종별)
+          if (isShepherdShow || isJindoShow) {
+            enriched.sort((a, b) => {
+              if (a.classIdx !== b.classIdx) return a.classIdx - b.classIdx;
+              if (a.sex !== b.sex) return a.sex === '암' ? -1 : 1;
+              return 0;
+            });
+          } else {
+            enriched.sort((a, b) => {
+              const gA = groupOrder.indexOf(a.group);
+              const gB = groupOrder.indexOf(b.group);
+              if (gA !== gB) return (gA === -1 ? 99 : gA) - (gB === -1 ? 99 : gB);
+              if (a.breed !== b.breed) return a.breed.localeCompare(b.breed, 'ko');
+              if (a.sex !== b.sex) return a.sex === '암' ? -1 : 1;
+              return a.classIdx - b.classIdx;
+            });
+          }
+
+          // 🚀 4. 최종 카탈로그 조립 (3줄 레이아웃)
+          let entryNo = 1;
+          let lastGroup = '', lastBreed = '', lastClass = '';
+          
+          enriched.forEach(item => {
+            const d = item.dogDetail;
+            if (isShepherdShow || isJindoShow) {
+              const classKey = `${item.className} ${item.sex}조`;
+              if (classKey !== lastClass) {
+                finalData.push({ '번호': `[[ ${classKey} ]]`, '정보1': '', '정보2': '', '정보3': '' });
+                lastClass = classKey;
+              }
+            } else {
+              if (item.group !== lastGroup) {
+                finalData.push({ '번호': `[[ ${item.group.toUpperCase()} GROUP ]]`, '정보1': '', '정보2': '', '정보3': '' });
+                lastGroup = item.group;
+              }
+              if (item.breed !== lastBreed) {
+                finalData.push({ '번호': `[ ${item.breed} ]`, '정보1': '', '정보2': '', '정보3': '' });
+                lastBreed = item.breed;
+              }
+              const classKey = `${item.className} ${item.sex}조`;
+              if (classKey !== lastClass) {
+                finalData.push({ '번호': `${classKey}`, '정보1': '', '정보2': '', '정보3': '' });
+                lastClass = classKey;
+              }
+            }
+
+            const sName = parentMap[d.fa_regno]?.fullname || parentMap[d.fa_regno]?.name || d.sire_name_text || '-';
+            const sReg = parentMap[d.fa_regno]?.reg_no || d.sire_reg_no_text || '-';
+            const mName = parentMap[d.mo_regno]?.fullname || parentMap[d.mo_regno]?.name || d.dam_name_text || '-';
+            const mReg = parentMap[d.mo_regno]?.reg_no || d.dam_reg_no_text || '-';
+
+            finalData.push({ '번호': entryNo++, '정보1': d.fullname || d.name || item.name, '정보2': d.reg_no || item.pedigree_number, '정보3': d.birth || '-' });
+            finalData.push({ '번호': '', '정보1': `부: ${sName} (${sReg})`, '정보2': `모: ${mName} (${mReg})`, '정보3': '' });
+            finalData.push({ '번호': '', '정보1': `Breeder: ${d.breed_name || '-'}`, '정보2': `Owner: ${d.poss_name || '-'}`, '정보3': '' });
+            finalData.push({ '번호': '', '정보1': '', '정보2': '', '정보3': '' });
+          });
+        }
+      } else {
+        // 기존 타 종목 처리
+        finalData = applicants.map((a: any) => {
+          if (isStylistIntl) {
+            return { '회원아이디': a.handler_id, '이름': a.name, '연락처': a.contact, '종목': a.entry_category, '참가비': a.total_amount, '신청일': a.created_at };
+          }
+          if (isStylist) {
+            return { '회원아이디': a.handler_id, '이름': a.name, '연락처': a.contact, '종목': a.entry_category, '참가비': a.total_amount, '신청일': a.created_at };
+          }
+          if (isAgility) {
+            return { '참가자이름': a.name, '연락처': a.contact, '종목': a.subject, '견종': a.dog_breed, '견명': a.dog_name, '참가비': a.total_amount, '신청일': a.created_at };
+          }
+          return { '핸들러ID': a.handler_id, '이름': a.name, '연락처': a.contact, '혈통번호': a.pedigree_number, '입금상태': a.payment_status, '참가비': a.total_amount, '신청일': a.created_at };
+        });
+      }
+
+      if (finalData.length === 0) return;
+
       const headers = Object.keys(finalData[0]);
       const csvContent = [
-        headers.join(','), // 제목줄 추가
+        headers.join(','),
         ...finalData.map((row: any) => headers.map(h => `"${(row[h] || '').toString().replace(/"/g, '""')}"`).join(','))
       ].join('\n');
       
-      // 파일명에서 특수문자 제거 후 전송
-      const cleanedTitle = comp.title.replace(/[\\/:*?"<>|]/g, '').trim();
-      downloadCsv(csvContent, `${cleanedTitle}_신청자목록`);
+      downloadCsv(csvContent, `도그쇼_신청자명단_카탈로그`);
 
     } catch (e: any) { showAlert('오류', '다운로드 실패: ' + e.message); }
     finally { setIsLoading(false); }

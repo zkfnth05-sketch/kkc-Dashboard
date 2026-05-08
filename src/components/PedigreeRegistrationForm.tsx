@@ -123,11 +123,27 @@ export const PedigreeRegistrationForm: React.FC<PedigreeRegistrationFormProps> =
     setIsAssigningRegNo(true);
     try {
       const lastRegNo = await fetchLastRegNo(prefix);
-      let nextNum = 1;
+      
+      // 🎯 [YEAR-BASED AUTO-CHAEBON] 현재 년도의 마지막 자리를 첫 숫자로 설정
+      const currentYear = new Date().getFullYear();
+      const yearDigit = currentYear % 10; // 2026 -> 6
+      
+      // 자릿수 기준 설정 (일반 5자리=10000, NR 6자리=100000)
+      const paddingLimit = initialData.selectedType === 'N' ? 100000 : 10000;
+      const minYearNum = yearDigit * paddingLimit; // 예: 6 * 10000 = 60000
+      
+      let nextNum = minYearNum + 1; // 기본 시작값 (예: 60001)
 
       if (lastRegNo) {
         const numPart = lastRegNo.replace(prefix, '').match(/\d+/);
-        if (numPart) nextNum = parseInt(numPart[0], 10) + 1;
+        if (numPart) {
+          const lastNumInt = parseInt(numPart[0], 10);
+          // 마지막 번호의 앞자리가 현재 년도와 같다면 이어서 번호 부여
+          if (Math.floor(lastNumInt / paddingLimit) === yearDigit) {
+            nextNum = lastNumInt + 1;
+          }
+          // 만약 년도가 바뀌었다면 (앞자리가 다르면) 위에서 설정한 nextNum(60001) 유지
+        }
       }
 
       const newDogs = [...dogsData];
@@ -281,7 +297,7 @@ export const PedigreeRegistrationForm: React.FC<PedigreeRegistrationFormProps> =
     const kennel = commonData.kennelEng || commonData.kennel || '';
     const name = dogsData[index].name || '';
     let assembled = '';
-    if (type === 'prefix') assembled = `${name} OF ${kennel}`.trim();
+    if (type === 'prefix') assembled = `${name} ${kennel}`.trim();
     else assembled = `${kennel} ${name}`.trim();
     
     handleDogChange('fullName', assembled);
@@ -554,17 +570,7 @@ export const PedigreeRegistrationForm: React.FC<PedigreeRegistrationFormProps> =
                  ) : null}
 
                  <div className={`mt-4 ${isNR ? 'opacity-50 grayscale brightness-75 contrast-75 pointer-events-none select-none' : ''}`}>
-                    <label className={labelStyle}>부견 모종 선택</label>
-                    <select 
-                      className={inputStyle} 
-                      value={commonData.sireCoatType} 
-                      onChange={e => setCommonData({...commonData, sireCoatType: e.target.value})}
-                    >
-                      <option value="">- 선택 -</option>
-                      <option value="stock hair">stock hair</option>
-                      <option value="Long Coat">Long Coat</option>
-                      {commonData.sireCoatType && commonData.sireCoatType !== 'stock hair' && commonData.sireCoatType !== 'Long Coat' && <option value={commonData.sireCoatType}>{commonData.sireCoatType}</option>}
-                    </select>
+
                  </div>
               </div>
 
@@ -607,17 +613,7 @@ export const PedigreeRegistrationForm: React.FC<PedigreeRegistrationFormProps> =
                  ) : null}
 
                  <div className={`mt-4 ${isNR ? 'opacity-50 grayscale brightness-75 contrast-75 pointer-events-none select-none' : ''}`}>
-                    <label className={labelStyle}>모견 모종 선택</label>
-                    <select 
-                      className={inputStyle} 
-                      value={commonData.damCoatType} 
-                      onChange={e => setCommonData({...commonData, damCoatType: e.target.value})}
-                    >
-                      <option value="">- 선택 -</option>
-                      <option value="stock hair">stock hair</option>
-                      <option value="Long Coat">Long Coat</option>
-                      {commonData.damCoatType && commonData.damCoatType !== 'stock hair' && commonData.damCoatType !== 'Long Coat' && <option value={commonData.damCoatType}>{commonData.damCoatType}</option>}
-                    </select>
+
                  </div>
               </div>
             </div>

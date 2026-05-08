@@ -296,6 +296,7 @@ export const PedigreeManagementPage: React.FC<PedigreeManagementPageProps> = ({
             });
           }}
           dogClasses={dogClasses}
+          onEditOwner={(id) => onGoToMember(id)}
         />
       ) : isRegistrationMode ? (
         registrationStep === 1 ? (

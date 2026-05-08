@@ -20,6 +20,7 @@ interface PedigreeEditFormProps {
   checkpoints?: any[];
   onRestore?: (checkpoint: any) => void;
   dogClasses?: any[];
+  onEditOwner?: (id: string) => void;
 }
 
 const CustomConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "확인", cancelText = "취소", isDanger = false }: any) => {
@@ -149,7 +150,7 @@ const ParentDogBox = ({ type, dog, isSearching, regNo, onRegNoChange, onSearch, 
 
 export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({ 
   pedigree, onSave, onCancel, onGoToPoints, onGoToPrizes, onOpenDongtaeForm, onEditOtherDog, tableName = 'dogTab', 
-  memberTableName = 'memTab', checkpoints = [], onRestore, dogClasses = []
+  memberTableName = 'memTab', checkpoints = [], onRestore, dogClasses = [], onEditOwner
 }) => {
   const [formData, setFormData] = useState<Pedigree>({...pedigree});
   const [ownerHistory, setOwnerHistory] = useState<OwnerHistory[]>([]);
@@ -260,7 +261,7 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
   const handleFullNameAssembly = (type: 'prefix' | 'suffix') => {
     const kennel = formData.kennelNameEng || formData.kennel || '';
     const name = formData.name || '';
-    if (type === 'prefix') handleChange('fullName', `${name} OF ${kennel}`.trim());
+    if (type === 'prefix') handleChange('fullName', `${name} ${kennel}`.trim());
     else handleChange('fullName', `${kennel} ${name}`.trim());
   };
 
@@ -590,7 +591,7 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
               <InputField label="훈련" value={formData.specTrain} onChange={(v:any) => handleChange('specTrain', v)} maxLength={20} />
               
               <InputField label="근친번식" value={formData.specRelate} onChange={(v:any) => handleChange('specRelate', v)} />
-              <InputField label="메모" value={formData.memo} onChange={(v:any) => handleChange('memo', v)} />
+              {/* 기존 메모 위치 삭제 */}
 
               <InputField label="국내타단체번호" value={formData.domesticNo} onChange={(v:any) => handleChange('domesticNo', v)} />
               <InputField label="외국타단체번호" value={formData.foreignNo} onChange={(v:any) => handleChange('foreignNo', v)} />
@@ -655,6 +656,22 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
                 <InputField label="등록일" type="date" value={formData.joinDate} onChange={(v:any) => handleChange('joinDate', v)} />
                 <InputField label="수정일" type="date" value={formData.editDate} readOnly placeholder="저장 시 자동 갱신됨" />
               </div>
+
+              {/* 하단으로 이동된 메모 칸 (Textarea) */}
+              <div className="col-span-2 mt-4">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 mb-1 px-1">
+                    <div className="w-1.5 h-4 bg-blue-600 rounded-full"></div>
+                    <label className="text-[13px] font-bold text-gray-700">메모 및 특이사항 (상세 기록)</label>
+                  </div>
+                  <textarea 
+                    className="w-full border border-gray-300 rounded-md px-4 py-3 text-[13px] min-h-[150px] outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all shadow-sm bg-gray-50/30 placeholder:text-gray-400 leading-relaxed resize-y" 
+                    value={formData.memo || ''} 
+                    onChange={e => handleChange('memo', e.target.value)}
+                    placeholder="혈통서와 관련된 상세 메모나 특이사항을 자유롭게 입력하세요. (여러 줄 입력 가능)"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -695,33 +712,45 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
                 소유자 변경 추가
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto min-h-[160px] p-4">
+            <div className="flex-1 overflow-y-auto min-h-[160px] p-0">
               {ownerHistory.length > 0 ? (
-                <div className="space-y-3">
-                  {ownerHistory.map((h, idx) => (
-                    <div key={h.uid || idx} className="text-[12px] p-3 border border-gray-100 rounded bg-gray-50/50 flex justify-between items-center group">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-gray-900">{h.poss_name}</span>
-                          <span className="text-[10px] text-gray-400">({h.change_date || h.sign_date})</span>
-                        </div>
-                        <div className="text-gray-500 text-[11px] flex flex-col">
-                          {h.poss_phone && <span className="text-blue-600">Tel: {h.poss_phone}</span>}
-                          <span className="truncate max-w-[250px]">{h.poss_addr || '주소 정보 없음'}</span>
-                        </div>
-                      </div>
-                      <button 
-                        type="button" 
-                        onClick={() => handleDeleteHistory(h.uid)}
-                        className="opacity-0 group-hover:opacity-100 text-red-500 hover:bg-red-50 p-1.5 rounded transition-all"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                <table className="w-full text-left border-collapse">
+                  <thead className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
+                    <tr>
+                      <th className="px-4 py-2 text-[12px] font-bold text-gray-600">변경일자</th>
+                      <th className="px-4 py-2 text-[12px] font-bold text-gray-600">새 소유자</th>
+                      <th className="px-4 py-2 text-[12px] font-bold text-gray-600">소유자 ID</th>
+                      <th className="px-4 py-2 text-[12px] font-bold text-gray-600 text-center">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {ownerHistory.map((h, idx) => (
+                      <tr key={h.uid || idx} className="hover:bg-blue-50/30 transition-colors">
+                        <td className="px-4 py-2.5 text-[12px] text-gray-500 font-medium">{h.change_date || h.sign_date}</td>
+                        <td className="px-4 py-2.5 text-[12px] text-gray-900 font-bold">{h.poss_name}</td>
+                        <td className="px-4 py-2.5 text-[12px]">
+                          <span 
+                            onClick={() => h.poss_id && onEditOwner && onEditOwner(h.poss_id)} 
+                            className="text-blue-600 font-bold cursor-pointer hover:underline"
+                          >
+                            {h.poss_id || '-'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-[12px] text-center">
+                          <button 
+                            type="button" 
+                            onClick={() => handleDeleteHistory(h.uid)}
+                            className="text-red-500 hover:underline font-bold"
+                          >
+                            삭제
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center text-gray-300 italic text-[12px] py-10">
+                <div className="h-full flex flex-col items-center justify-center text-gray-300 italic text-[12px] py-10 px-4">
                   소유자 변경 이력이 없습니다.
                 </div>
               )}

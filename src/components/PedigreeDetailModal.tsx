@@ -1,9 +1,37 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, Check, Trophy } from 'lucide-react';
+import { X, Loader2, Check, Trophy, Search } from 'lucide-react';
 import { Pedigree, DongtaeInfo, ParentDogInfo, Evaluation, OwnerHistory } from '../types';
-import { fetchDogsByUids, fetchPointsByRegNo, fetchPrizesByRegNo, fetchOwnerHistory } from '../services/memberService';
+import { fetchDogsByUids, fetchPointsByRegNo, fetchPrizesByRegNo, fetchOwnerHistory, deleteOwnerHistory } from '../services/memberService';
 import { fetchDongtaeInfo } from '../services/dongtaeService'; // 👈 분리된 서비스 참조
+import { AlertCircle } from 'lucide-react';
+
+const CustomConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "확인", cancelText = "취소", isDanger = false }: any) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden border border-gray-200">
+        <div className="p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`p-2 rounded-full ${isDanger ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+              <AlertCircle size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+          </div>
+          <p className="text-gray-600 text-sm leading-relaxed">{message}</p>
+        </div>
+        <div className="bg-gray-50 px-5 py-4 flex justify-end gap-3">
+          <button onClick={onCancel} className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-md transition-colors">
+            {cancelText}
+          </button>
+          <button onClick={onConfirm} className={`px-4 py-2 text-sm font-bold text-white rounded-md transition-all active:scale-95 shadow-lg ${isDanger ? 'bg-red-500 hover:bg-red-600 shadow-red-100' : 'bg-blue-500 hover:bg-blue-600 shadow-blue-100'}`}>
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface PedigreeDetailModalProps {
   pedigree: Pedigree;
@@ -34,6 +62,23 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
   const [pointsList, setPointsList] = useState<any[]>([]);
   const [prizesList, setPrizesList] = useState<any[]>([]);
   const [ownerHistory, setOwnerHistory] = useState<OwnerHistory[]>([]);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {}, isDanger: false });
+
+  const loadOwnerHistory = async () => {
+    if (pedigree.id) {
+      try {
+        const history = await fetchOwnerHistory(pedigree.id);
+        const sorted = [...history].sort((a, b) => {
+            const dateA = a.change_date || '0000-00-00';
+            const dateB = b.change_date || '0000-00-00';
+            return dateB.localeCompare(dateA);
+        });
+        setOwnerHistory(sorted);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
 
   useEffect(() => {
     const loadLitterInfo = async () => {
@@ -63,19 +108,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
             const searchKeys = [sireSearch, damSearch, sireVal, damVal].filter(v => v !== '' && v !== '미등록' && v !== '0' && v !== '-');
             
             if (searchKeys.length > 0) {
-                // 1단계: UID로 시도
                 const byUid = await fetchDogsByUids(searchKeys, tableName);
-                
-                // 2단계: 누락된 정보 등록번호로 시도
                 const missingKeys = searchKeys.filter(k => !byUid[k]);
                 let byRegNo: Record<string, ParentDogInfo> = {};
                 if (missingKeys.length > 0) {
                     const fetchDogsByRegNos = (await import('../services/memberService')).fetchDogsByRegNos;
                     byRegNo = await fetchDogsByRegNos(missingKeys, tableName);
                 }
-
                 const getDog = (key: string, backupKey?: string) => byUid[key] || byRegNo[key] || (backupKey ? (byUid[backupKey] || byRegNo[backupKey]) : null);
-
                 setSireInfo(getDog(sireSearch, sireVal));
                 setDamInfo(getDog(damSearch, damVal));
             }
@@ -88,19 +128,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
     loadLitterInfo();
     loadParentInfo();
+    loadOwnerHistory();
     
-    if (pedigree.id) {
-        fetchOwnerHistory(pedigree.id).then(history => {
-            // 날짜순으로 정렬 (최신순)
-            const sorted = [...history].sort((a, b) => {
-                const dateA = a.change_date || '0000-00-00';
-                const dateB = b.change_date || '0000-00-00';
-                return dateB.localeCompare(dateA);
-            });
-            setOwnerHistory(sorted);
-        }).catch(console.error);
-    }
-
     if (pedigree.regNo && String(pedigree.regNo).trim() !== '') {
       fetchPointsByRegNo(pedigree.regNo).then(setPointsList).catch(console.error);
       fetchPrizesByRegNo(pedigree.regNo).then(setPrizesList).catch(console.error);
@@ -121,6 +150,37 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         return strVal;
     }
     return isTextField ? '-' : '0';
+  };
+
+  const handleDeleteHistory = async (uid: string) => {
+    console.log("Preparing to delete owner history with UID:", uid);
+    if (!uid) {
+        alert("삭제할 항목의 식별자(UID)가 없습니다.");
+        return;
+    }
+    
+    setConfirmModal({
+        isOpen: true,
+        title: '변경 이력 삭제',
+        message: '이 소유자 변경 기록을 정말 삭제하시겠습니까?',
+        isDanger: true,
+        onConfirm: async () => {
+            try {
+                const res = await deleteOwnerHistory(uid);
+                console.log("Server response:", res);
+                if (res && res.success) {
+                    alert('삭제가 완료되었습니다.');
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                    await loadOwnerHistory();
+                } else {
+                    alert('서버 응답 실패: ' + (res?.message || '알 수 없는 이유로 실패했습니다.'));
+                }
+            } catch (e: any) {
+                console.error("Delete failed:", e);
+                alert('삭제 실패: ' + (e.message || '알 수 없는 오류가 발생했습니다.'));
+            }
+        }
+    });
   };
 
   const formatGender = (gender: string) => {
@@ -213,43 +273,48 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
                <div className="bg-white rounded border border-gray-200 overflow-hidden shadow-sm">
                    <div className={sectionTitleStyle}>소유자 변경 이력</div>
-                   <div className="p-4 bg-white min-h-[100px] max-h-[400px] overflow-y-auto">
-                       {ownerHistory.length > 0 ? (
-                           <div className="flex flex-col gap-3">
-                               {ownerHistory.map((h, idx) => (
-                                   <div key={h.uid || idx} className="text-[12px] p-3 border border-gray-100 rounded bg-gray-50/50 flex flex-col gap-1.5 hover:bg-white hover:border-blue-100 transition-all shadow-sm">
-                                       <div className="flex justify-between items-center border-b border-gray-100 pb-1.5 mb-1">
-                                           <span className="font-bold text-gray-900 text-[13px]">{h.poss_name}</span>
-                                           <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-[3px] text-[10px] font-bold">
-                                               {h.change_date || h.sign_date}
-                                           </span>
-                                       </div>
-                                       <div className="flex flex-col gap-1">
-                                           {h.poss_phone && (
-                                               <div className="flex items-center gap-1.5 text-gray-600">
-                                                   <span className="text-[10px] text-gray-400 font-bold w-12 shrink-0">연락처:</span>
-                                                   <span className="text-blue-600 font-medium">{h.poss_phone}</span>
-                                               </div>
-                                           )}
-                                           {h.poss_addr && (
-                                               <div className="flex items-start gap-1.5 text-gray-600">
-                                                   <span className="text-[10px] text-gray-400 font-bold w-12 shrink-0 mt-0.5">주소:</span>
-                                                   <span className="leading-tight">{h.poss_addr}</span>
-                                               </div>
-                                           )}
-                                           {!h.poss_phone && !h.poss_addr && (
-                                               <div className="text-gray-400 italic text-[11px]">상세 정보 없음</div>
-                                           )}
-                                       </div>
-                                   </div>
-                               ))}
-                           </div>
-                       ) : (
-                           <div className="h-24 flex flex-col items-center justify-center text-gray-400 italic text-[13px]">
-                               소유자 변경 이력이 없습니다.
-                           </div>
-                       )}
-                   </div>
+                    <div className="p-0 bg-white min-h-[100px] max-h-[400px] overflow-y-auto">
+                        {ownerHistory.length > 0 ? (
+                            <table className="w-full text-left border-collapse">
+                                <thead className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
+                                    <tr>
+                                        <th className="px-4 py-2 text-[12px] font-bold text-gray-600">변경일자</th>
+                                        <th className="px-4 py-2 text-[12px] font-bold text-gray-600">새 소유자</th>
+                                        <th className="px-4 py-2 text-[12px] font-bold text-gray-600">소유자 ID</th>
+                                        <th className="px-4 py-2 text-[12px] font-bold text-gray-600 text-center">관리</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {ownerHistory.map((h, idx) => (
+                                        <tr key={h.uid || idx} className="hover:bg-blue-50/30 transition-colors">
+                                            <td className="px-4 py-2.5 text-[12px] text-gray-500 font-medium">{h.change_date || h.sign_date}</td>
+                                            <td className="px-4 py-2.5 text-[12px] text-gray-900 font-bold">{h.poss_name}</td>
+                                            <td className="px-4 py-2.5 text-[12px]">
+                                                <span 
+                                                    onClick={() => h.poss_id && onEditOwner(h.poss_id)} 
+                                                    className="text-blue-600 font-bold cursor-pointer hover:underline"
+                                                >
+                                                    {h.poss_id || '-'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-[12px] text-center">
+                                                <button 
+                                                    onClick={() => handleDeleteHistory(h.uid || (h as any).id)} 
+                                                    className="text-red-500 hover:underline font-bold"
+                                                >
+                                                    삭제
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <div className="h-24 flex flex-col items-center justify-center text-gray-400 italic text-[13px] px-4">
+                                소유자 변경 이력이 없습니다.
+                            </div>
+                        )}
+                    </div>
                </div>
             </div>
             <div className="space-y-5">
@@ -289,27 +354,47 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                <div className="bg-white rounded border border-gray-200 overflow-hidden shadow-sm">
                     <div className={sectionTitleStyle}>부모견 정보</div>
                     <table className="w-full table-fixed"><tbody>
-                        <tr className="bg-blue-50/20 group cursor-pointer hover:bg-blue-100/40 transition-colors" title="부견 정보 바로가기" onClick={() => pedigree.sireRegNo && onViewPedigreeByUid?.(pedigree.sireRegNo)}>
+                        <tr className="bg-blue-50/20 border-b border-gray-100">
                             <th className={thStyle}>부견 UID</th>
-                            <td className={tdStyle}><span className="text-blue-700 font-bold group-hover:underline">{pedigree.sireRegNo || '-'}</span></td>
+                            <td className={tdStyle}>
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-blue-700 font-bold">{pedigree.sireRegNo || '-'}</span>
+                                    <button 
+                                        onClick={() => pedigree.sireRegNo && onViewPedigreeByUid?.(pedigree.sireRegNo)}
+                                        className="bg-white border border-blue-200 text-blue-600 px-2 py-0.5 rounded text-[10px] font-bold hover:bg-blue-600 hover:text-white transition-all shadow-sm shrink-0 flex items-center gap-1"
+                                    >
+                                        <Search size={11} /> 정보보기
+                                    </button>
+                                </div>
+                            </td>
                             <th className={thStyle}><div className="flex items-center gap-1.5 font-bold">{sireInfo ? <Check size={14} className="text-blue-500" /> : <div className="w-3 h-3 bg-gray-100 rounded-full" />}부견 등록번호</div></th>
-                            <td className={tdStyle}><span className="text-gray-900 font-bold underline decoration-blue-200 group-hover:text-blue-600">{sireInfo?.reg_no || pedigree.sireRegNoText || (isLoadingParents ? '조회중...' : '-')}</span></td>
+                            <td className={tdStyle}><span className="text-gray-900 font-bold">{sireInfo?.reg_no || pedigree.sireRegNoText || (isLoadingParents ? '조회중...' : '-')}</span></td>
                         </tr>
-                        <tr className="group cursor-pointer hover:bg-gray-50 transition-colors" title="부견 정보 바로가기" onClick={() => pedigree.sireRegNo && onViewPedigreeByUid?.(pedigree.sireRegNo)}>
+                        <tr className="border-b border-gray-100">
                             <th className={thStyle}>부견명</th>
-                            <td colSpan={3} className="px-3 py-2.5 border-b border-gray-100 text-[13px] font-bold text-blue-800 bg-white group-hover:bg-blue-50/30">
+                            <td colSpan={3} className="px-3 py-2.5 border-b border-gray-100 text-[13px] font-bold text-blue-800 bg-white">
                                 {sireInfo?.fullname || sireInfo?.name || pedigree.sireNameText || '-'}
                             </td>
                         </tr>
-                        <tr className="bg-pink-50/20 border-t-2 border-gray-100 group cursor-pointer hover:bg-pink-100/40 transition-colors" title="모견 정보 바로가기" onClick={() => pedigree.damRegNo && onViewPedigreeByUid?.(pedigree.damRegNo)}>
+                        <tr className="bg-pink-50/20 border-t-2 border-gray-100">
                             <th className={thStyle}>모견 UID</th>
-                            <td className={tdStyle}><span className="text-pink-700 font-bold group-hover:underline">{pedigree.damRegNo || '-'}</span></td>
+                            <td className={tdStyle}>
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-pink-700 font-bold">{pedigree.damRegNo || '-'}</span>
+                                    <button 
+                                        onClick={() => pedigree.damRegNo && onViewPedigreeByUid?.(pedigree.damRegNo)}
+                                        className="bg-white border border-pink-200 text-pink-600 px-2 py-0.5 rounded text-[10px] font-bold hover:bg-pink-600 hover:text-white transition-all shadow-sm shrink-0 flex items-center gap-1"
+                                    >
+                                        <Search size={11} /> 정보보기
+                                    </button>
+                                </div>
+                            </td>
                             <th className={thStyle}><div className="flex items-center gap-1.5 font-bold">{damInfo ? <Check size={14} className="text-pink-500" /> : <div className="w-3 h-3 bg-gray-100 rounded-full" />}모견 등록번호</div></th>
-                            <td className={tdStyle}><span className="text-gray-900 font-bold underline decoration-pink-200 group-hover:text-pink-600">{damInfo?.reg_no || pedigree.damRegNoText || (isLoadingParents ? '조회중...' : '-')}</span></td>
+                            <td className={tdStyle}><span className="text-gray-900 font-bold">{damInfo?.reg_no || pedigree.damRegNoText || (isLoadingParents ? '조회중...' : '-')}</span></td>
                         </tr>
-                        <tr className="group cursor-pointer hover:bg-gray-50 transition-colors" title="모견 정보 바로가기" onClick={() => pedigree.damRegNo && onViewPedigreeByUid?.(pedigree.damRegNo)}>
+                        <tr className="border-b border-gray-100">
                             <th className={thStyle}>모견명</th>
-                            <td colSpan={3} className="px-3 py-2.5 border-b border-gray-100 text-[13px] font-bold text-pink-800 bg-white group-hover:bg-pink-50/30">
+                            <td colSpan={3} className="px-3 py-2.5 border-b border-gray-100 text-[13px] font-bold text-pink-800 bg-white">
                                 {damInfo?.fullname || damInfo?.name || pedigree.damNameText || '-'}
                             </td>
                         </tr>
@@ -334,6 +419,15 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
            <button onClick={() => onEdit(pedigree)} className="px-6 py-1.5 bg-[#374151] text-white text-[13px] font-bold rounded hover:bg-black transition-all ml-2 shadow-md">수정하기</button>
         </div>
       </div>
+
+      <CustomConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        isDanger={confirmModal.isDanger}
+      />
     </div>
   );
 };
