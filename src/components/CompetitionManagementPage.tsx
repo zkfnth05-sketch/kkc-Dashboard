@@ -609,14 +609,15 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
         if (regNos.length === 0) {
           finalData = applicants.map(a => ({ '번호': '', '정보1': a.name, '정보2': a.pedigree_number, '정보3': '혈통정보 없음' }));
         } else {
-          // 🚀 1. dogTab 상세 정보 개별 조회 (LIKE 검색 이슈 회피)
+          // 🚀 1. dogTab 상세 정보 개별 조회 (공백 이슈 방지)
           const dogMap: Record<string, any> = {};
-          await Promise.all(regNos.map(async (regNo) => {
+          await Promise.all(regNos.map(async (rawRegNo) => {
+            const regNo = rawRegNo.trim(); // 앞뒤 공백 제거
             const res = await fetchBridge({ mode: 'list', table: 'dogTab', search: regNo, field: 'reg_no', limit: 1 });
             if (res.data && res.data.length > 0) {
-              // Exact match 필터링 (LIKE 방지)
-              const exactDog = res.data.find((d: any) => d.reg_no === regNo);
-              if (exactDog) dogMap[regNo] = exactDog;
+              // Exact match 시에도 trim 적용하여 비교
+              const exactDog = res.data.find((d: any) => d.reg_no.trim() === regNo);
+              if (exactDog) dogMap[rawRegNo] = exactDog;
             }
           }));
 
