@@ -658,13 +658,18 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
             if (months === -1) {
               // 생년월일 없으면 공란 유지
             } else if (isShepherdShow) {
-              if (months >= 3 && months < 6) className = '유견 C';
-              else if (months >= 6 && months < 9) className = '유견 B';
-              else if (months >= 9 && months < 12) className = '유견 A';
-              else if (months >= 12 && months < 18) className = '장견';
-              else if (months >= 18 && months < 24) className = '미성견';
-              else if (months >= 24) className = '성견';
-              classIdx = shepherdClassOrder.indexOf(className);
+              const sexE = d.sex === 'M' ? 'Male' : 'Female';
+              const sexK = d.sex === 'M' ? '수조' : '암조';
+              if (months >= 3 && months < 6) className = `유견 C ${sexK}(3~6 Month ${sexE})`;
+              else if (months >= 6 && months < 9) className = `유견 B ${sexK}(6~9 Month ${sexE})`;
+              else if (months >= 9 && months < 12) className = `유견 A ${sexK}(9~12 Month ${sexE})`;
+              else if (months >= 12 && months < 18) className = `장견 ${sexK}(12~18 Month ${sexE})`;
+              else if (months >= 18 && months < 24) className = `미성견 ${sexK}(18~24 Month ${sexE})`;
+              else if (months >= 24) className = `성견 ${sexK}(24~Month ${sexE})`;
+              
+              const baseName = className.split(' ')[0] + (className.includes('유견') ? ' ' + className.split(' ')[1] : '');
+              const baseIdx = ['유견 C', '유견 B', '유견 A', '장견', '미성견', '성견'].indexOf(baseName.trim());
+              classIdx = baseIdx * 2 + (d.sex === 'M' ? 1 : 0);
             } else if (isJindoShow) {
               if (months >= 3 && months < 6) className = '자견';
               else if (months >= 6 && months < 12) className = '유견';
@@ -732,7 +737,8 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
             const breedName = item.breed || 'Other';
             
             // 조별 명칭 구성 (나이 정보가 없으면 성별만 표시)
-            const className = item.className ? `${item.className} ${item.sex}조` : `${item.sex}조`;
+            // 🚀 셰퍼드는 이미 className에 성별과 월령이 포함되어 있으므로 그대로 사용
+            const className = isShepherdShow ? item.className : (item.className ? `${item.className} ${item.sex}조` : `${item.sex}조`);
 
             // Group 변경 체크
             if (!currentGroup || currentGroup.groupName !== groupName) {
@@ -771,11 +777,12 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
               damRegNo: mReg,
               // 🚀 번시자(breed_name) 및 소유자(poss_name) 매핑
               breeder: d.breed_name || item.breeder_name || '-',
-              owner: d.poss_name || item.owner_name || item.name || '-'
+              owner: d.poss_name || item.owner_name || item.name || '-',
+              microchip: d.micro_chip || item.micro_chip || '-'
             });
           });
 
-          await exportDogShowCatalog(comp.title, catalogGroups);
+          await exportDogShowCatalog(comp.title, catalogGroups, isShepherdShow);
           return; // CSV 다운로드 중단
         }
       } else {
