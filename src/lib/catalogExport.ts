@@ -98,19 +98,19 @@ export const exportDogShowCatalog = async (title: string, groups: CatalogGroup[]
             r1.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
             r1.getCell(6).font = { size: 10 };
 
-            // [2행] 부모 정보 (B열 시작, 10pt, 연한색)
+            // [2행] 부모 정보 (B열 시작, 11pt, 연한색)
             const parentInfo = `(${entry.sireName},${entry.sireRegNo}, ${entry.damName},${entry.damRegNo})`;
             const r2 = worksheet.addRow(['', parentInfo]);
-            r2.height = 16;
+            r2.height = 18;
             worksheet.mergeCells(`B${r2.number}:F${r2.number}`);
-            r2.getCell(2).font = { size: 10, color: { argb: 'FF666666' } };
+            r2.getCell(2).font = { size: 11, color: { argb: 'FF666666' } };
 
-            // [3행] Breeder(B), Owner(C), 마이크로칩(D)
+            // [3행] Breeder(B), Owner(C), 마이크로칩(D) - 모두 11pt
             const r3 = worksheet.addRow(['', `Breeder: ${entry.breeder}`, `Owner: ${entry.owner}`, entry.microchip || '']);
-            r3.height = 16;
-            r3.getCell(2).font = { size: 10 };
-            r3.getCell(3).font = { size: 10 };
-            r3.getCell(4).font = { size: 10 };
+            r3.height = 18;
+            r3.getCell(2).font = { size: 11 };
+            r3.getCell(3).font = { size: 11 };
+            r3.getCell(4).font = { size: 11 };
 
             // 상단 테두리만 살짝 넣어서 데이터 묶음 구분 (사진 스타일)
             r1.getCell(1).border = { top: { style: 'thin', color: { argb: 'FFF0F0F0' } } };
