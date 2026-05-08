@@ -646,7 +646,7 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
             let months = -1;
             if (birth && birth !== '0000-00-00') {
               const bDate = new Date(birth);
-              if (!isNaN(bDate.getTime())) {
+              if (!isNaN(bDate.getTime()) && bDate.getFullYear() > 1970) {
                 const targetDate = new Date(comp.startDate || comp.ds_date || new Date());
                 months = (targetDate.getFullYear() - bDate.getFullYear()) * 12 + (targetDate.getMonth() - bDate.getMonth());
               }
