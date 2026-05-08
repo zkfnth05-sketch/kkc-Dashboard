@@ -765,10 +765,10 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
             }
 
             // 🚀 부모견 정보 매핑 (dog_logic.php의 JOIN 결과 활용)
-            const sName = d.sire_name_text || '-';
-            const sReg = d.sire_reg_no_text || '';
-            const mName = d.dam_name_text || '-';
-            const mReg = d.dam_reg_no_text || '';
+            const sName = d.sire_name_text || '[정보 없음]';
+            const sReg = d.sire_reg_no_text || '-';
+            const mName = d.dam_name_text || '[정보 없음]';
+            const mReg = d.dam_reg_no_text || '-';
 
             currentClass.entries.push({
               entryNo: entryNo++,
