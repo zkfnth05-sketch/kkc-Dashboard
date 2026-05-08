@@ -611,37 +611,18 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
         if (regNos.length === 0) {
           finalData = applicants.map(a => ({ '번호': '', '정보1': a.name, '정보2': a.pedigree_number, '정보3': '혈통정보 없음' }));
         } else {
-          // 🚀 1. dogTab 상세 정보 배치 조회
+          // 🚀 1. dogTab 상세 정보 개별 조회 (LIKE 검색 이슈 회피)
           const dogMap: Record<string, any> = {};
-          const dogChunks = [];
-          for (let i = 0; i < regNos.length; i += 50) dogChunks.push(regNos.slice(i, i + 50));
-
-          await Promise.all(dogChunks.map(async (chunk) => {
-            const res = await fetchBridge({ mode: 'list', table: 'dogTab', search: chunk.join(','), field: 'reg_no', limit: 100 });
-            if (res.data) res.data.forEach((d: any) => { dogMap[d.reg_no] = d; });
+          await Promise.all(regNos.map(async (regNo) => {
+            const res = await fetchBridge({ mode: 'list', table: 'dogTab', search: regNo, field: 'reg_no', limit: 1 });
+            if (res.data && res.data.length > 0) {
+              // Exact match 필터링 (LIKE 방지)
+              const exactDog = res.data.find((d: any) => d.reg_no === regNo);
+              if (exactDog) dogMap[regNo] = exactDog;
+            }
           }));
 
-          // 🚀 2. 부모견 UID 추적 및 재조회
-          const parentUids = new Set<string>();
-          Object.values(dogMap).forEach(d => {
-            if (d.fa_regno && d.fa_regno !== '0' && !isNaN(Number(d.fa_regno))) parentUids.add(d.fa_regno);
-            if (d.mo_regno && d.mo_regno !== '0' && !isNaN(Number(d.mo_regno))) parentUids.add(d.mo_regno);
-          });
-
-          const parentMap: Record<string, any> = {};
-          if (parentUids.size > 0) {
-            const uidList = Array.from(parentUids);
-            const uidChunks = [];
-            for (let i = 0; i < uidList.length; i += 50) uidChunks.push(uidList.slice(i, i + 50));
-            await Promise.all(uidChunks.map(async (chunk) => {
-              // 🛡️ [PEDIGREE SYNC] 혈통서 방식대로 uid 필드로 조회
-              const res = await fetchBridge({ mode: 'list', table: 'dogTab', search: chunk.join(','), field: 'uid', limit: 100 });
-              if (res.data) res.data.forEach((p: any) => { 
-                // 🚀 키값을 String으로 강제 변환하여 매핑 오류 방지
-                parentMap[String(p.uid)] = p; 
-              });
-            }));
-          }
+          // 🚀 2. 부모견 정보는 dog_logic.php에서 Join으로 이미 가져옴 (별도 조회 불필요)
 
           // 🚀 3. 조(Class) 판별 및 데이터 정제
           const groupOrder = ['Herding', 'Hound', 'Non-Sporting', 'Sporting', 'Terrier', 'Toy', 'Working', '한국견'];
@@ -770,20 +751,17 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
               currentBreed.classes.push(currentClass);
             }
 
-            // 🚀 부모견 정보 매핑 (UID 기반 - 혈통서와 동일 방식)
-            const faUid = String(d.fa_regno || '');
-            const moUid = String(d.mo_regno || '');
-            
-            const sName = parentMap[faUid]?.fullname || parentMap[faUid]?.name || d.sire_name_text || '-';
-            const sReg = parentMap[faUid]?.reg_no || d.sire_reg_no_text || '-';
-            const mName = parentMap[moUid]?.fullname || parentMap[moUid]?.name || d.dam_name_text || '-';
-            const mReg = parentMap[moUid]?.reg_no || d.dam_reg_no_text || '-';
+            // 🚀 부모견 정보 매핑 (dog_logic.php의 JOIN 결과 활용)
+            const sName = d.sire_name_text || '-';
+            const sReg = d.sire_reg_no_text || '';
+            const mName = d.dam_name_text || '-';
+            const mReg = d.dam_reg_no_text || '';
 
             currentClass.entries.push({
               entryNo: entryNo++,
               dogName: d.fullname || d.name || item.name,
               regNo: d.reg_no || item.pedigree_number,
-              birthDate: d.birth || '-',
+              birthDate: d.birth && d.birth !== '0000-00-00' ? d.birth : '-',
               sireName: sName,
               sireRegNo: sReg,
               damName: mName,
