@@ -89,17 +89,17 @@ export const exportDogShowCatalog = async (title: string, groups: CatalogGroup[]
         worksheet.addRow([]);
 
         cls.entries.forEach(entry => {
-          // Row 1: [번호(14pt)] | [견명(11pt, Bold, B~C)] | [생년월일(D)] | [등록번호(E)]
-          const r1 = worksheet.addRow([entry.entryNo, entry.dogName, '', entry.birthDate, entry.regNo]);
+          // Row 1: [번호(14pt)] | [견명(11pt, Bold, B~C)] | [등록번호(D)] | [생년월일(E)]
+          const r1 = worksheet.addRow([entry.entryNo, entry.dogName, '', entry.regNo, entry.birthDate]);
           worksheet.mergeCells(`B${r1.number}:C${r1.number}`);
           r1.height = 20.25;
           
           r1.getCell(1).font = { size: 14 };
           r1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
           r1.getCell(2).font = { bold: true, size: 11 }; 
-          r1.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
-          r1.getCell(4).font = { size: 9 };
-          r1.getCell(5).alignment = { horizontal: 'left', vertical: 'middle' };
+          r1.getCell(4).alignment = { horizontal: 'left', vertical: 'middle' }; // 등록번호
+          r1.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' }; // 생년월일
+          r1.getCell(5).font = { size: 9 };
 
           // Row 2: (공백) | [부(B~C)] | [모(D~E)]
           const r2 = worksheet.addRow(['', `부: ${entry.sireName} (${entry.sireRegNo})`, '', `모: ${entry.damName} (${entry.damRegNo})`, '']);
