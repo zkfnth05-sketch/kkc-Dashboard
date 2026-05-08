@@ -135,19 +135,19 @@ export const exportDogShowCatalog = async (title: string, groups: CatalogGroup[]
             r1.getCell(5).alignment = { horizontal: 'left', vertical: 'middle' };
             r1.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
 
-            const r2 = worksheet.addRow(['', `부: ${entry.sireName} (${entry.sireRegNo})`, '', '', `모: ${entry.damName} (${entry.damRegNo})`, '']);
-            worksheet.mergeCells(`B${r2.number}:D${r2.number}`);
-            worksheet.mergeCells(`E${r2.number}:F${r2.number}`);
+            const r2 = worksheet.addRow(['', `부: ${entry.sireName} (${entry.sireRegNo})`, '', `모: ${entry.damName} (${entry.damRegNo})`, '', '']);
+            worksheet.mergeCells(`B${r2.number}:C${r2.number}`);
+            worksheet.mergeCells(`D${r2.number}:F${r2.number}`);
             r2.height = 16;
             r2.getCell(2).font = { size: 10.5, color: { argb: 'FF666666' } };
-            r2.getCell(5).font = { size: 10.5, color: { argb: 'FF666666' } };
+            r2.getCell(4).font = { size: 10.5, color: { argb: 'FF666666' } };
 
-            const r3 = worksheet.addRow(['', `Breeder: ${entry.breeder}`, '', '', `Owner: ${entry.owner}`, '']);
-            worksheet.mergeCells(`B${r3.number}:D${r3.number}`);
-            worksheet.mergeCells(`E${r3.number}:F${r3.number}`);
+            const r3 = worksheet.addRow(['', `Breeder: ${entry.breeder}`, '', `Owner: ${entry.owner}`, '', '']);
+            worksheet.mergeCells(`B${r3.number}:C${r3.number}`);
+            worksheet.mergeCells(`D${r3.number}:F${r3.number}`);
             r3.height = 16;
             r3.getCell(2).font = { size: 10.5 };
-            r3.getCell(5).font = { size: 10.5 };
+            r3.getCell(4).font = { size: 10.5 };
 
             // 상단 테두리로 데이터 구분 (사진 스타일)
             [r1.getCell(1), r1.getCell(2), r1.getCell(5), r1.getCell(6)].forEach(cell => {
