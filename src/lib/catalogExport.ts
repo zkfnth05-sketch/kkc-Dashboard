@@ -189,9 +189,6 @@ export const exportDogShowCatalog = async (title: string, groups: CatalogGroup[]
       });
     });
   });
-      });
-    });
-  });
 
   // 4. 파일 다운로드
   const buffer = await workbook.xlsx.writeBuffer();
