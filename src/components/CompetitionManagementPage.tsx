@@ -634,8 +634,12 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
             const uidChunks = [];
             for (let i = 0; i < uidList.length; i += 50) uidChunks.push(uidList.slice(i, i + 50));
             await Promise.all(uidChunks.map(async (chunk) => {
+              // 🛡️ [PEDIGREE SYNC] 혈통서 방식대로 uid 필드로 조회
               const res = await fetchBridge({ mode: 'list', table: 'dogTab', search: chunk.join(','), field: 'uid', limit: 100 });
-              if (res.data) res.data.forEach((p: any) => { parentMap[p.uid] = p; });
+              if (res.data) res.data.forEach((p: any) => { 
+                // 🚀 키값을 String으로 강제 변환하여 매핑 오류 방지
+                parentMap[String(p.uid)] = p; 
+              });
             }));
           }
 
@@ -748,10 +752,14 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
               currentBreed.classes.push(currentClass);
             }
 
-            const sName = parentMap[d.fa_regno]?.fullname || parentMap[d.fa_regno]?.name || d.sire_name_text || '-';
-            const sReg = parentMap[d.fa_regno]?.reg_no || d.sire_reg_no_text || '-';
-            const mName = parentMap[d.mo_regno]?.fullname || parentMap[d.mo_regno]?.name || d.dam_name_text || '-';
-            const mReg = parentMap[d.mo_regno]?.reg_no || d.dam_reg_no_text || '-';
+            // 🚀 부모견 정보 매핑 (UID 기반 - 혈통서와 동일 방식)
+            const faUid = String(d.fa_regno || '');
+            const moUid = String(d.mo_regno || '');
+            
+            const sName = parentMap[faUid]?.fullname || parentMap[faUid]?.name || d.sire_name_text || '-';
+            const sReg = parentMap[faUid]?.reg_no || d.sire_reg_no_text || '-';
+            const mName = parentMap[moUid]?.fullname || parentMap[moUid]?.name || d.dam_name_text || '-';
+            const mReg = parentMap[moUid]?.reg_no || d.dam_reg_no_text || '-';
 
             currentClass.entries.push({
               entryNo: entryNo++,
@@ -762,8 +770,9 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
               sireRegNo: sReg,
               damName: mName,
               damRegNo: mReg,
-              breeder: d.breed_name || '-',
-              owner: d.poss_name || '-'
+              // 🚀 번시자(breed_name) 및 소유자(poss_name) 매핑
+              breeder: d.breed_name || item.breeder_name || '-',
+              owner: d.poss_name || item.owner_name || item.name || '-'
             });
           });
 
