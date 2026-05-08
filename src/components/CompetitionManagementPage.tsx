@@ -778,7 +778,7 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
               // 🚀 번시자(breed_name) 및 소유자(poss_name) 매핑
               breeder: d.breed_name || item.breeder_name || '-',
               owner: d.poss_name || item.owner_name || item.name || '-',
-              microchip: d.micro_chip || item.micro_chip || '-'
+              microchip: d.micro || item.micro_chip || '-'
             });
           });
 
