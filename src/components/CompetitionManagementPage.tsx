@@ -20,6 +20,7 @@ import { FlyballApplicantManagement } from './FlyballApplicantManagement';
 import { SeminarApplicantManagement } from './SeminarApplicantManagement';
 import Papa from 'papaparse';
 import { downloadCsv } from '../lib/downloadUtils';
+import { exportDogShowCatalog } from '../lib/catalogExport';
 import FeeOptionEditor, { FeeOption } from './common/FeeOptionEditor';
 
 // 🛡️ [DATA MAPPING] wp_posts (kkf_event) 기반 데이터 규격
@@ -713,31 +714,38 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
           }
 
           // 🚀 4. 최종 카탈로그 조립 (3줄 레이아웃)
+
+          // 🚀 5. ExcelJS를 이용한 리치 카탈로그 생성
           let entryNo = 1;
-          let lastGroup = '', lastBreed = '', lastClass = '';
-          
+          const catalogGroups: any[] = [];
+          let currentGroup: any = null;
+          let currentBreed: any = null;
+          let currentClass: any = null;
+
           enriched.forEach(item => {
             const d = item.dogDetail;
-            if (isShepherdShow || isJindoShow) {
-              const classKey = `${item.className} ${item.sex}조`;
-              if (classKey !== lastClass) {
-                finalData.push({ '번호': `[[ ${classKey} ]]`, '정보1': '', '정보2': '', '정보3': '' });
-                lastClass = classKey;
-              }
-            } else {
-              if (item.group !== lastGroup) {
-                finalData.push({ '번호': `[[ ${item.group.toUpperCase()} GROUP ]]`, '정보1': '', '정보2': '', '정보3': '' });
-                lastGroup = item.group;
-              }
-              if (item.breed !== lastBreed) {
-                finalData.push({ '번호': `[ ${item.breed} ]`, '정보1': '', '정보2': '', '정보3': '' });
-                lastBreed = item.breed;
-              }
-              const classKey = `${item.className} ${item.sex}조`;
-              if (classKey !== lastClass) {
-                finalData.push({ '번호': `${classKey}`, '정보1': '', '정보2': '', '정보3': '' });
-                lastClass = classKey;
-              }
+            const groupName = item.group || 'Other';
+            const breedName = item.breed || 'Other';
+            const className = `${item.className} ${item.sex}조`;
+
+            // Group 변경 체크
+            if (!currentGroup || currentGroup.groupName !== groupName) {
+              currentGroup = { groupName, breeds: [] };
+              catalogGroups.push(currentGroup);
+              currentBreed = null;
+            }
+
+            // Breed 변경 체크
+            if (!currentBreed || currentBreed.breedName !== breedName) {
+              currentBreed = { breedName, classes: [] };
+              currentGroup.breeds.push(currentBreed);
+              currentClass = null;
+            }
+
+            // Class 변경 체크
+            if (!currentClass || currentClass.className !== className) {
+              currentClass = { className, entries: [] };
+              currentBreed.classes.push(currentClass);
             }
 
             const sName = parentMap[d.fa_regno]?.fullname || parentMap[d.fa_regno]?.name || d.sire_name_text || '-';
@@ -745,11 +753,22 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
             const mName = parentMap[d.mo_regno]?.fullname || parentMap[d.mo_regno]?.name || d.dam_name_text || '-';
             const mReg = parentMap[d.mo_regno]?.reg_no || d.dam_reg_no_text || '-';
 
-            finalData.push({ '번호': entryNo++, '정보1': d.fullname || d.name || item.name, '정보2': d.reg_no || item.pedigree_number, '정보3': d.birth || '-' });
-            finalData.push({ '번호': '', '정보1': `부: ${sName} (${sReg})`, '정보2': `모: ${mName} (${mReg})`, '정보3': '' });
-            finalData.push({ '번호': '', '정보1': `Breeder: ${d.breed_name || '-'}`, '정보2': `Owner: ${d.poss_name || '-'}`, '정보3': '' });
-            finalData.push({ '번호': '', '정보1': '', '정보2': '', '정보3': '' });
+            currentClass.entries.push({
+              entryNo: entryNo++,
+              dogName: d.fullname || d.name || item.name,
+              regNo: d.reg_no || item.pedigree_number,
+              birthDate: d.birth || '-',
+              sireName: sName,
+              sireRegNo: sReg,
+              damName: mName,
+              damRegNo: mReg,
+              breeder: d.breed_name || '-',
+              owner: d.poss_name || '-'
+            });
           });
+
+          await exportDogShowCatalog(comp.title, catalogGroups);
+          return; // CSV 다운로드 중단
         }
       } else {
         // 기존 타 종목 처리
