@@ -11,17 +11,17 @@ export const exportDogShowCatalog = async (title: string, groups: CatalogGroup[]
   const isJindo = type === 'jindo';
 
   // 1. 컬럼 너비 설정
-  if (isShepherd) {
+  if (isShepherd || type === 'default') {
     worksheet.columns = [
       { header: 'A', key: 'A', width: 6 },   // 번호
-      { header: 'B', key: 'B', width: 45 },  // 견명 / Sire&Dam / Breeder
-      { header: 'C', key: 'C', width: 25 },  // 등록번호 / Owner
-      { header: 'D', key: 'D', width: 30 },  // 마이크로칩
-      { header: 'E', key: 'E', width: 10 }, 
-      { header: 'F', key: 'F', width: 18 },  // 생년월일
+      { header: 'B', key: 'B', width: 35 },  // 견명 / Sire&Dam / Breeder
+      { header: 'C', key: 'C', width: 20 },  // Owner (Shepherd) / Name (Default)
+      { header: 'D', key: 'D', width: 25 },  // Microchip (Shepherd) / Name (Default)
+      { header: 'E', key: 'E', width: 25 },  // RegNo (Default)
+      { header: 'F', key: 'F', width: 18 },  // BirthDate
     ];
   } else {
-    // 도그쇼 & 진도견은 5컬럼
+    // 진도견은 5컬럼 유지
     worksheet.columns = [
       { header: 'A', key: 'A', width: 8 },
       { header: 'B', key: 'B', width: 35 },
@@ -36,9 +36,9 @@ export const exportDogShowCatalog = async (title: string, groups: CatalogGroup[]
     bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } }
   };
 
-  const lastCol = isShepherd ? 'F' : 'E';
+  const lastCol = (isShepherd || type === 'default') ? 'F' : 'E';
 
-  // 2. 타이틀 (도그쇼 & 진도견 표시)
+  // 2. 타이틀 (셰퍼드 제외 표시)
   if (!isShepherd) {
     const titleRow = worksheet.addRow([title.toUpperCase()]);
     worksheet.mergeCells(`A${titleRow.number}:${lastCol}${titleRow.number}`);
@@ -69,7 +69,7 @@ export const exportDogShowCatalog = async (title: string, groups: CatalogGroup[]
 
         cls.entries.forEach(entry => {
           if (isShepherd) {
-            // 셰퍼드 전용 6컬럼 3줄 레이아웃 (기존 유지)
+            // 셰퍼드 전용 6컬럼 (기존 유지)
             const r1 = worksheet.addRow([entry.entryNo, entry.dogName, entry.regNo, '', '', entry.birthDate]);
             r1.height = 18;
             r1.getCell(1).alignment = { horizontal: 'right', vertical: 'middle' };
@@ -90,9 +90,33 @@ export const exportDogShowCatalog = async (title: string, groups: CatalogGroup[]
             r1.getCell(2).border = { top: { style: 'thin', color: { argb: 'FFF0F0F0' } } };
             r1.getCell(3).border = { top: { style: 'thin', color: { argb: 'FFF0F0F0' } } };
             r1.getCell(6).border = { top: { style: 'thin', color: { argb: 'FFF0F0F0' } } };
+          } else if (type === 'default') {
+            // 도그쇼용 6컬럼 (A:No, B-D:Name, E:RegNo, F:BirthDate)
+            const r1 = worksheet.addRow([entry.entryNo, entry.dogName, '', '', entry.regNo, entry.birthDate]);
+            worksheet.mergeCells(`B${r1.number}:D${r1.number}`);
+            r1.height = 18;
+            r1.getCell(1).alignment = { horizontal: 'right', vertical: 'middle' };
+            r1.getCell(2).font = { bold: true, size: 11 };
+            r1.getCell(5).alignment = { horizontal: 'left', vertical: 'middle' };
+            r1.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
+
+            const r2 = worksheet.addRow(['', `부: ${entry.sireName} (${entry.sireRegNo})`, '', '', `모: ${entry.damName} (${entry.damRegNo})`, '']);
+            worksheet.mergeCells(`B${r2.number}:D${r2.number}`);
+            worksheet.mergeCells(`E${r2.number}:F${r2.number}`);
+            r2.getCell(2).font = { size: 11, color: { argb: 'FF666666' } };
+            r2.getCell(5).font = { size: 11, color: { argb: 'FF666666' } };
+
+            const r3 = worksheet.addRow(['', `Breeder: ${entry.breeder}`, '', '', `Owner: ${entry.owner}`, '']);
+            worksheet.mergeCells(`B${r3.number}:D${r3.number}`);
+            worksheet.mergeCells(`E${r3.number}:F${r3.number}`);
+            r3.getCell(2).font = { size: 11 };
+            r3.getCell(5).font = { size: 11 };
+
+            [r1, r2, r3].forEach(row => {
+              for(let i=1; i<=6; i++) row.getCell(i).border = { top: { style: 'thin', color: { argb: 'FFF0F0F0' } } };
+            });
           } else {
-            // 도그쇼 & 진도견용 5컬럼 3줄 레이아웃
-            // [1행] 번호(A), 견명(B+C 병합), 등록번호(D), 생년월일(E)
+            // 진도견용 5컬럼 레이아웃 (기존 유지)
             const r1 = worksheet.addRow([entry.entryNo, entry.dogName, '', entry.regNo, entry.birthDate]);
             worksheet.mergeCells(`B${r1.number}:C${r1.number}`);
             r1.height = 18;
@@ -101,26 +125,21 @@ export const exportDogShowCatalog = async (title: string, groups: CatalogGroup[]
             r1.getCell(4).alignment = { horizontal: 'left', vertical: 'middle' };
             r1.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
 
-            // [2행] 부/모 정보
             const r2 = worksheet.addRow(['', `부: ${entry.sireName} (${entry.sireRegNo})`, '', `모: ${entry.damName} (${entry.damRegNo})`, '']);
             worksheet.mergeCells(`B${r2.number}:C${r2.number}`);
             worksheet.mergeCells(`D${r2.number}:E${r2.number}`);
             r2.getCell(2).font = { size: 11, color: { argb: 'FF666666' } };
             r2.getCell(4).font = { size: 11, color: { argb: 'FF666666' } };
 
-            // [3행] Breeder/Owner
             const r3 = worksheet.addRow(['', `Breeder: ${entry.breeder}`, '', `Owner: ${entry.owner}`, '']);
             worksheet.mergeCells(`B${r3.number}:C${r3.number}`);
             worksheet.mergeCells(`D${r3.number}:E${r3.number}`);
             r3.getCell(2).font = { size: 11 };
             r3.getCell(4).font = { size: 11 };
 
-            // 진도견은 사진처럼 아주 옅은 구분선 추가
-            if (isJindo) {
-              [r1, r2, r3].forEach(row => {
-                for(let i=1; i<=5; i++) row.getCell(i).border = { top: { style: 'thin', color: { argb: 'FFF5F5F5' } } };
-              });
-            }
+            [r1, r2, r3].forEach(row => {
+              for(let i=1; i<=5; i++) row.getCell(i).border = { top: { style: 'thin', color: { argb: 'FFF5F5F5' } } };
+            });
           }
           worksheet.addRow([]); // 데이터 간 여백
         });
