@@ -51,21 +51,55 @@ export const exportDogShowCatalog = async (title: string, groups: CatalogGroup[]
 
   // 3. 데이터 반복
   groups.forEach(group => {
-    group.breeds.forEach(breed => {
-      breed.classes.forEach(cls => {
-        // 셰퍼드 & 진도견은 연하늘색 헤더 사용
-        const headerText = (isShepherd || isJindo) ? cls.className : `${group.groupName} - ${breed.breedName} (${cls.className})`;
-        const hRow = worksheet.addRow([headerText]);
-        worksheet.mergeCells(`A${hRow.number}:${lastCol}${hRow.number}`);
-        hRow.height = 24;
-        hRow.getCell(1).style = {
-          font: { bold: true, size: 14 },
-          alignment: { horizontal: 'center', vertical: 'middle' },
-          fill: (isShepherd || isJindo) ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F7FF' } } : undefined,
-          border: { bottom: { style: 'thin', color: { argb: 'FFB0C4DE' } } }
-        };
+    // [그룹 헤더] 도그쇼일 때만 별도 행으로 표시 (연하늘 배경)
+    if (type === 'default') {
+      const gRow = worksheet.addRow([group.groupName]);
+      worksheet.mergeCells(`A${gRow.number}:${lastCol}${gRow.number}`);
+      gRow.height = 24;
+      gRow.getCell(1).style = {
+        font: { bold: true, size: 14 },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F7FF' } }
+      };
+    }
 
-        worksheet.addRow([]); // 헤더 아래 여백
+    group.breeds.forEach(breed => {
+      // [견종 헤더] 도그쇼일 때만 별도 행으로 표시 (굵게, 중앙)
+      if (type === 'default') {
+        const bRow = worksheet.addRow([breed.breedName]);
+        worksheet.mergeCells(`A${bRow.number}:${lastCol}${bRow.number}`);
+        bRow.height = 22;
+        bRow.getCell(1).style = {
+          font: { bold: true, size: 13 },
+          alignment: { horizontal: 'center', vertical: 'middle' }
+        };
+      }
+
+      breed.classes.forEach(cls => {
+        // [조별 헤더]
+        // 셰퍼드 & 진도견은 통합 헤더, 도그쇼는 별도 행 (굵게, 왼쪽)
+        if (isShepherd || isJindo) {
+          const headerText = cls.className;
+          const hRow = worksheet.addRow([headerText]);
+          worksheet.mergeCells(`A${hRow.number}:${lastCol}${hRow.number}`);
+          hRow.height = 24;
+          hRow.getCell(1).style = {
+            font: { bold: true, size: 14 },
+            alignment: { horizontal: 'center', vertical: 'middle' },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F7FF' } },
+            border: { bottom: { style: 'thin', color: { argb: 'FFB0C4DE' } } }
+          };
+        } else if (type === 'default') {
+          const cRow = worksheet.addRow([cls.className]);
+          worksheet.mergeCells(`A${cRow.number}:${lastCol}${cRow.number}`);
+          cRow.height = 20;
+          cRow.getCell(1).style = {
+            font: { bold: true, size: 11 },
+            alignment: { horizontal: 'left', vertical: 'middle' }
+          };
+        }
+
+        worksheet.addRow([]); // 데이터 시작 전 여백
 
         cls.entries.forEach(entry => {
           if (isShepherd) {

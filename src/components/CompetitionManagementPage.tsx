@@ -611,19 +611,28 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
         if (regNos.length === 0) {
           finalData = applicants.map(a => ({ '번호': '', '정보1': a.name, '정보2': a.pedigree_number, '정보3': '혈통정보 없음' }));
         } else {
-          // 🚀 1. dogTab 상세 정보 개별 조회 (공백 이슈 방지)
+          // 🚀 1. dogTab 상세 정보 및 dog_classTab 정보 조회
           const dogMap: Record<string, any> = {};
+          const breedMap: Record<string, any> = {};
+          
+          // 견종 정보 미리 로드
+          const breedRes = await fetchBridge({ mode: 'list', table: 'dog_classTab', limit: 1000 });
+          if (breedRes.data) {
+            breedRes.data.forEach((b: any) => {
+              breedMap[b.keyy] = b;
+            });
+          }
+
           await Promise.all(regNos.map(async (rawRegNo) => {
-            const regNo = rawRegNo.trim(); // 앞뒤 공백 제거
+            const regNo = rawRegNo.trim();
             const res = await fetchBridge({ mode: 'list', table: 'dogTab', search: regNo, field: 'reg_no', limit: 1 });
             if (res.data && res.data.length > 0) {
-              // Exact match 시에도 trim 적용하여 비교
               const exactDog = res.data.find((d: any) => d.reg_no.trim() === regNo);
               if (exactDog) dogMap[rawRegNo] = exactDog;
             }
           }));
 
-          // 🚀 2. 부모견 정보는 dog_logic.php에서 Join으로 이미 가져옴 (별도 조회 불필요)
+          // 🚀 2. 데이터 정제 및 조(Class) 판별
 
           // 🚀 3. 조(Class) 판별 및 데이터 정제
           const groupOrder = ['Herding', 'Hound', 'Non-Sporting', 'Sporting', 'Terrier', 'Toy', 'Working', '한국견'];
@@ -692,11 +701,15 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
               classIdx = classOrder.indexOf(className.split('(')[0]);
             }
 
+            const breedInfo = breedMap[d.dog_class];
+            const groupName = breedInfo ? `그룹: ${breedInfo.groupp}` : (d.groupp ? `그룹: ${d.groupp}` : '그룹: Other');
+            const fullBreedName = breedInfo ? `${breedInfo.name}(${breedInfo.kor_name})` : (d.dog_class || 'Other');
+
             return {
               ...a,
               dogDetail: d,
-              group: d.groupp || 'Other',
-              breed: d.dog_class || 'Other',
+              group: groupName,
+              breed: fullBreedName,
               sex: (d.sex === '1' || d.sex === '수') ? '수' : '암',
               className,
               classIdx
