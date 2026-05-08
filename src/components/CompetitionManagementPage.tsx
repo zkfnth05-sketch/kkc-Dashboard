@@ -646,6 +646,15 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
           // 🚀 3. 조(Class) 판별 및 데이터 정제
           const groupOrder = ['Herding', 'Hound', 'Non-Sporting', 'Sporting', 'Terrier', 'Toy', 'Working', '한국견'];
           const classOrder = ['BABY', 'PUPPY B', 'PUPPY A', 'JUNIOR', 'YOUNG ADULT', 'ADULT', 'CHAMPION'];
+          const classAgeMap: Record<string, string> = {
+            'BABY': '(3-6개월)',
+            'PUPPY B': '(6~9개월)',
+            'PUPPY A': '(9~12개월)',
+            'JUNIOR': '(12~18개월)',
+            'YOUNG ADULT': '(18~24개월)',
+            'ADULT': '(24개월~)',
+            'CHAMPION': ''
+          };
           const shepherdClassOrder = ['유견 C', '유견 B', '유견 A', '장견', '미성견', '성견'];
           const jindoClassOrder = ['자견', '유견', '장견', '미성견', '성견'];
 
@@ -708,11 +717,16 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
             });
           } else {
             enriched.sort((a, b) => {
-              const gA = groupOrder.indexOf(a.group);
-              const gB = groupOrder.indexOf(b.group);
-              if (gA !== gB) return (gA === -1 ? 99 : gA) - (gB === -1 ? 99 : gB);
+              const gA = groupOrder.findIndex(g => a.group.includes(g));
+              const gB = groupOrder.findIndex(g => b.group.includes(g));
+              if (gA !== gB) return (gA === -1 ? 999 : gA) - (gB === -1 ? 999 : gB);
+              
               if (a.breed !== b.breed) return a.breed.localeCompare(b.breed, 'ko');
+              
+              // 성별 우선 (암 -> 수)
               if (a.sex !== b.sex) return a.sex === '암' ? -1 : 1;
+              
+              // 조 순서
               return a.classIdx - b.classIdx;
             });
           }
@@ -730,7 +744,11 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
             const d = item.dogDetail;
             const groupName = item.group || 'Other';
             const breedName = item.breed || 'Other';
-            const className = `${item.className} ${item.sex}조`;
+            
+            // 조별 명칭에 개월 수 정보 추가 (예: BABY(3-6개월) 암조)
+            const classAgeLabel = classAgeMap[item.className] || '';
+            const displayClassName = item.className === 'CHAMPION' ? '챔피언' : item.className;
+            const className = `${displayClassName}${classAgeLabel} ${item.sex}조`;
 
             // Group 변경 체크
             if (!currentGroup || currentGroup.groupName !== groupName) {
