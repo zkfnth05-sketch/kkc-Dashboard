@@ -54,19 +54,12 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
         setIsLoading(true);
         try {
             const pageSize = 20;
-            const res = await fetchDogShows(page, '', pageSize, cat);
+            // 🚀 [FETCH ALL FOR FRONTEND SORTING] 서버 페이징을 우회하여 1000개를 가져와 프론트에서 필터/정렬
+            const res = await fetchDogShows(1, '', 1000, cat);
             const allItems = res.data || [];
 
-            // 🛡️ [SAFETY] 서버가 limit을 무시하고 전체 데이터를 다 보내주는 경우를 대비한 클라이언트 사이드 슬라이싱
-            // 서버에서 이미 페이징을 해서 보냈다면 allItems.length는 20 이하일 것입니다.
-            // 만약 20보다 많다면 서버가 페이징을 무시한 것이므로 프론트에서 해당 페이지 분량만 자릅니다.
-            let paginatedData = allItems;
-            if (allItems.length > pageSize) {
-                const startIndex = (page - 1) * pageSize;
-                paginatedData = allItems.slice(startIndex, startIndex + pageSize);
-            }
-
-            const sanitized = paginatedData.map((item: any) => {
+            // 1. 데이터 매핑 (기존 로직)
+            const mapped = allItems.map((item: any) => {
                 const sDt = item.actual_start_dt || item.startDate || '';
                 const sParts = sDt.split(' ');
                 const startDate = sParts[0] || '';
@@ -89,9 +82,29 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                 };
             });
 
-            const totalCount = parseInt(res.total) || allItems.length;
-            cache.current[cacheKey] = { data: sanitized, total: totalCount };
-            setData(sanitized);
+            // 2. 필터링 (지난 대회 숨기기) 및 정렬 (가까운 날짜순)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const filteredAndSorted = mapped.filter((item: any) => {
+                const compDateStr = item.endDate || item.startDate;
+                if (!compDateStr) return true;
+                const compDate = new Date(compDateStr);
+                compDate.setHours(0, 0, 0, 0);
+                return compDate.getTime() >= today.getTime();
+            }).sort((a: any, b: any) => {
+                const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+                const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
+                return dateA - dateB; // 오름차순 (가까운 날짜가 위로)
+            });
+
+            // 3. 로컬 페이징 처리
+            const totalCount = filteredAndSorted.length;
+            const startIndex = (page - 1) * pageSize;
+            const paginatedData = filteredAndSorted.slice(startIndex, startIndex + pageSize);
+
+            cache.current[cacheKey] = { data: paginatedData, total: totalCount };
+            setData(paginatedData);
             setTotal(totalCount);
         } catch (e) {
             console.error(e);
@@ -185,11 +198,11 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                                             <tr key={item.id} className="group hover:bg-slate-50/50 transition-all duration-500">
                                                 <td className="py-9 px-10">
                                                     <div className="flex items-start gap-6">
-                                                        <div className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden group-hover:shadow-lg transition-all duration-500">
+                                                        <div className="!w-16 !h-16 !min-w-[4rem] !min-h-[4rem] rounded-2xl bg-slate-100 overflow-hidden !shrink-0 group-hover:shadow-lg transition-all duration-500">
                                                             {item.thumbnail_url ? (
-                                                                <img src={item.thumbnail_url} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" loading="lazy" />
+                                                                <img src={item.thumbnail_url} className="!w-full !h-full !object-cover group-hover:scale-110 transition-all duration-700" loading="lazy" />
                                                             ) : (
-                                                                <div className="w-full h-full flex items-center justify-center text-slate-300"><Calendar size={20} /></div>
+                                                                <div className="!w-full !h-full flex items-center justify-center text-slate-300"><Calendar size={20} /></div>
                                                             )}
                                                         </div>
                                                         <div className="space-y-1.5 pt-1">
@@ -312,11 +325,11 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
 
                                         {/* 1. Header & Title */}
                                         <div className="flex gap-4 pr-20">
-                                            <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden shrink-0 mt-1 shadow-inner">
+                                            <div className="!w-14 !h-14 !min-w-[3.5rem] !min-h-[3.5rem] rounded-2xl bg-slate-100 overflow-hidden !shrink-0 mt-1 shadow-inner">
                                                 {item.thumbnail_url ? (
-                                                    <img src={item.thumbnail_url} className="w-full h-full object-cover" loading="lazy" />
+                                                    <img src={item.thumbnail_url} className="!w-full !h-full !object-cover" loading="lazy" />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-slate-300"><Calendar size={20} /></div>
+                                                    <div className="!w-full !h-full flex items-center justify-center text-slate-300"><Calendar size={20} /></div>
                                                 )}
                                             </div>
                                             <div className="flex flex-col justify-center">

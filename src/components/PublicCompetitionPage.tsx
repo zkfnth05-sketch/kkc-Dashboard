@@ -272,9 +272,9 @@ export const PublicCompetitionPage: React.FC = () => {
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-20">
                                 <div className="lg:col-span-5 space-y-12">
                                     {selectedComp.thumbnail_url && (
-                                        <div className="aspect-square rounded-[40px] overflow-hidden bg-slate-100 border-8 border-slate-50 shadow-2xl relative group">
+                                        <div className="!aspect-square rounded-[40px] overflow-hidden bg-slate-100 border-8 border-slate-50 shadow-2xl relative group !min-w-[300px]">
                                             <div className="absolute inset-0 bg-gradient-to-tr from-teal-500/20 to-transparent mix-blend-multiply opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                                            <img src={selectedComp.thumbnail_url} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={selectedComp.title} />
+                                            <img src={selectedComp.thumbnail_url} className="!w-full !h-full !object-cover transition-transform duration-1000 group-hover:scale-110" alt={selectedComp.title} />
                                         </div>
                                     )}
 
