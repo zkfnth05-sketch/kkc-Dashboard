@@ -464,12 +464,8 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
     setIsLoading(true);
     setCurrentPage(page);
     try {
-      const pageSize = 20;
-      // 🚀 [FETCH ALL FOR FRONTEND SORTING] 프론트에서 전체 정렬/필터링을 위해 최대 1000개 로드
-      const res = await fetchDogShows(1, q, 1000, cat);
-      const allItems = res.data || [];
-      
-      const sanitizedData = allItems.map((item: any) => {
+      const res = await fetchDogShows(page, q, 20, cat);
+      const sanitizedData = (res.data || []).map((item: any) => {
         const sDt = item.actual_start_dt || item.startDate || '';
         const eDt = item.actual_end_dt || item.endDate || '';
         const sParts = sDt.split(' ');
@@ -490,34 +486,13 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
         const finalEndDate = (sTimeVal > eTimeVal) ? startDate : endDate;
         const finalEndTime = (sTimeVal > eTimeVal) ? startTime : endTime;
         return { ...item, startDate: finalStartDate, startTime: finalStartTime, endDate: finalEndDate, endTime: finalEndTime, venue, organizer };
-      }).filter((a: any) => {
-        // 🚀 [HIDE PAST EVENTS] 오늘 날짜 기준으로 지난 대회 숨기기
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // 시간 제외, 날짜만 비교
-        
-        // 종료일(endDate)이 있으면 종료일 기준, 없으면 시작일(startDate) 기준
-        const compDateStr = a.endDate || a.startDate;
-        if (!compDateStr) return true; // 날짜가 아예 없는 예외 케이스는 일단 표시
-        
-        const compDate = new Date(compDateStr);
-        compDate.setHours(0, 0, 0, 0);
-        
-        // 대회 날짜가 오늘보다 크거나 같으면(미래 또는 오늘) true 반환하여 남김
-        return compDate.getTime() >= today.getTime();
       }).sort((a: any, b: any) => {
         const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
         const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
-        // 🚀 [ASCENDING SORT] 날짜가 가까운 것(작은 값)이 위로 오도록 오름차순 정렬
-        return dateA - dateB;
+        return dateB - dateA;
       });
-
-      // 3. 로컬 페이징 처리
-      const totalCount = sanitizedData.length;
-      const startIndex = (page - 1) * pageSize;
-      const paginatedData = sanitizedData.slice(startIndex, startIndex + pageSize);
-
-      setData(paginatedData);
-      setTotal(totalCount);
+      setData(sanitizedData);
+      setTotal(res.total);
     } catch (e: any) { showAlert('오류', e.message); }
     finally { setIsLoading(false); }
   };
