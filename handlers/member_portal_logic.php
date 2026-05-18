@@ -245,7 +245,7 @@ function kkf_portal_apply_membership($input) {
         foreach ($data_map as $key => $val) {
             if (in_array($key, $actual_cols)) {
                 $final_fields[] = "`$key`";
-                $final_values[] = is_numeric($val) ? $val : "'$val'";
+                $final_values[] = "'$val'";
             }
         }
 
@@ -352,7 +352,7 @@ function kkf_portal_register($input) {
         foreach ($data_map as $key => $val) {
             if (in_array($key, $actual_cols)) {
                 $fields[] = "`$key`";
-                $values[] = is_numeric($val) && $key !== 'id' ? $val : "'$val'";
+                $values[] = "'$val'";
             }
         }
 

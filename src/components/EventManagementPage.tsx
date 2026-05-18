@@ -60,6 +60,57 @@ export const CustomEditor = ({ value, onChange, onImageUpload }: {
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
+    const handlePaste = async (e: React.ClipboardEvent<HTMLDivElement>) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                e.preventDefault();
+                const file = items[i].getAsFile();
+                if (file) {
+                    try {
+                        const compressed = await compressImage(file);
+                        const result = await onImageUpload(compressed);
+                        const url = typeof result === 'string' ? result : result?.url;
+                        const id = typeof result === 'string' ? '' : result?.id;
+                        if (url) {
+                            if (contentRef.current) contentRef.current.focus();
+                            const imgHtml = `<img src="${url}" ${id ? `data-attachment-id="${id}"` : ''} style="max-width:100%; height:auto;" />`;
+                            execCmd('insertHTML', imgHtml);
+                        }
+                    } catch (err) {
+                        console.error("Paste upload error:", err);
+                    }
+                }
+            }
+        }
+    };
+
+    const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+        const files = e.dataTransfer?.files;
+        if (!files || files.length === 0) return;
+        
+        for (let i = 0; i < files.length; i++) {
+            if (files[i].type.startsWith('image/')) {
+                e.preventDefault();
+                try {
+                    const compressed = await compressImage(files[i]);
+                    const result = await onImageUpload(compressed);
+                    const url = typeof result === 'string' ? result : result?.url;
+                    const id = typeof result === 'string' ? '' : result?.id;
+                    if (url) {
+                        if (contentRef.current) contentRef.current.focus();
+                        const imgHtml = `<img src="${url}" ${id ? `data-attachment-id="${id}"` : ''} style="max-width:100%; height:auto;" />`;
+                        execCmd('insertHTML', imgHtml);
+                    }
+                } catch (err) {
+                    console.error("Drop upload error:", err);
+                }
+            }
+        }
+    };
+
     return (
         <div className="flex flex-col border border-slate-200 rounded-[32px] overflow-hidden focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all bg-white h-full min-h-[500px] shadow-sm">
             <div className="bg-slate-50 p-4 border-b border-slate-200 flex flex-wrap gap-2 sticky top-0 z-10">
@@ -102,6 +153,8 @@ export const CustomEditor = ({ value, onChange, onImageUpload }: {
                 ref={contentRef}
                 contentEditable
                 onInput={handleInput}
+                onPaste={handlePaste}
+                onDrop={handleDrop}
                 className="flex-1 p-10 lg:p-14 outline-none prose prose-indigo max-w-none overflow-y-auto bg-white"
                 style={{ minHeight: '400px' }}
             />
