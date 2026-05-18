@@ -22,6 +22,7 @@ import Papa from 'papaparse';
 import { downloadCsv } from '../lib/downloadUtils';
 import { exportDogShowCatalog } from '../lib/catalogExport';
 import FeeOptionEditor, { FeeOption } from './common/FeeOptionEditor';
+import imageCompression from 'browser-image-compression';
 
 // 🛡️ [DATA MAPPING] wp_posts (kkf_event) 기반 데이터 규격
 interface Competition {
@@ -151,11 +152,22 @@ const CompetitionCreateForm: React.FC<{
   }, [initialData]);
 
   const internalImageUpload = async (file: File) => {
+    let fileToUpload = file;
+    try {
+      const options = { maxSizeMB: 0.2, maxWidthOrHeight: 1200, useWebWorker: true };
+      fileToUpload = await imageCompression(file, options);
+    } catch (e) {
+      console.warn('이미지 압축 실패:', e);
+    }
+
     const formData = new FormData();
     formData.append('mode', 'upload_image');
-    formData.append('image_file', file);
+    formData.append('image_file', fileToUpload, file.name);
+    formData.append('filename', file.name);
+
+    const uploadUrl = `${BRIDGE_URL}${BRIDGE_URL.includes('?') ? '&' : '?'}mode=upload_image`;
     try {
-      const response = await fetch(BRIDGE_URL, {
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         headers: { 'X-Auth-Token': SECRET_KEY },
         body: formData
