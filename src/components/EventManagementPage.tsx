@@ -555,7 +555,7 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
     }, [currentDate]);
 
     const filteredEvents = useMemo(() => {
-        if (activeCategory === 'all') return [...events].sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
+        if (activeCategory === 'all') return [...events].sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
 
         const filtered = events.filter(e => {
             const cat = e.category || '';
@@ -583,19 +583,20 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
             return cat.includes(activeCategory) || (tname && tname.includes(activeCategory));
         });
 
-        return [...filtered].sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
+        return [...filtered].sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
     }, [events, activeCategory]);
 
     const listEvents = useMemo(() => {
-        // 🚀 [SMART FILTER] 리스트에는 지난달 1일 이후의 내용만 표시
-        const now = new Date();
-        const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        // 🚀 [SMART FILTER] 리스트에는 오늘(00시 00분) 이후의 다가오는/진행중인 행사만 노출 (지난 행사는 달력에만 노출)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
         return filteredEvents.filter(e => {
             if (!e.startDate) return true; // 날짜 없는 특수 케이스는 일단 유지
             const eventEnd = e.endDate ? new Date(e.endDate) : new Date(e.startDate);
-            // 종료일 또는 시작일이 지난달 1일보다 크거나 같으면 표시
-            return eventEnd >= firstDayPrevMonth;
+            eventEnd.setHours(23, 59, 59, 999);
+            // 종료일 또는 시작일이 오늘보다 크거나 같으면 표시
+            return eventEnd >= today;
         });
     }, [filteredEvents]);
 
