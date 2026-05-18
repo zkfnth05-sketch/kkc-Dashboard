@@ -36,7 +36,13 @@ function kkc_handle_pedigree_list($input) {
         }
         $where[] = "(" . implode(" OR ", $sub) . ")";
     } else if ($field_input !== 'all') {
-        $where[] = "(`dogTab`.`$field_input` IS NOT NULL AND `dogTab`.`$field_input` <> '' AND `dogTab`.`$field_input` <> '0')";
+        if ($field_input === 'mo_regno') {
+            $where[] = "(`p_mo`.`reg_no` IS NOT NULL AND `p_mo`.`reg_no` <> '')";
+        } else if ($field_input === 'fa_regno') {
+            $where[] = "(`p_fa`.`reg_no` IS NOT NULL AND `p_fa`.`reg_no` <> '')";
+        } else {
+            $where[] = "(`dogTab`.`$field_input` IS NOT NULL AND `dogTab`.`$field_input` <> '' AND `dogTab`.`$field_input` <> '0')";
+        }
     }
 
     $final_where = implode(" AND ", $where);
