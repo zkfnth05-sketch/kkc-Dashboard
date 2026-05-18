@@ -112,6 +112,7 @@ function kkf_portal_get_my_data($input) {
                       WHERE $where 
                       ORDER BY a.created_at DESC";
             
+            $res = $conn->query($sql);
             if ($res) {
                 while($r = $res->fetch_assoc()) {
                     // DB가 Binary/EUC-KR일 수 있으므로 이름 및 옵션 컨버팅
