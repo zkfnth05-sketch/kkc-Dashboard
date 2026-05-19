@@ -813,16 +813,16 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
                                         </div>
 
                                         <div className="text-left sm:text-right flex flex-col items-start sm:items-end w-full">
-                                            <div className="px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded-md mb-1">
-                                                <span className="text-[8px] md:text-[9px] font-black text-indigo-700 uppercase tracking-tighter">
+                                            <div className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded-md mb-1.5">
+                                                <span className="text-[10px] md:text-[11px] font-black text-indigo-700 uppercase tracking-tighter">
                                                     {getDayName(e.startDate)}
                                                 </span>
                                             </div>
-                                            <div className="text-[9px] md:text-[10px] font-black leading-tight">
-                                                <div className="flex flex-col sm:items-end gap-0">
-                                                    <span className="text-slate-700">{e.startDate}</span>
-                                                    <span className="text-slate-400 text-[8px] sm:text-[9px] font-medium opacity-80 leading-none">- {e.endDate}</span>
-                                                    <div className="mt-0.5 text-slate-500/70 text-[8px] leading-none font-medium">
+                                            <div className="text-[12px] md:text-[14px] font-bold leading-tight">
+                                                <div className="flex flex-col sm:items-end gap-0.5">
+                                                    <span className="text-slate-800">{e.startDate}</span>
+                                                    <span className="text-slate-500 text-[10px] md:text-[12px] font-semibold opacity-95">- {e.endDate}</span>
+                                                    <div className="mt-0.5 text-slate-500 text-[10px] md:text-[11px] leading-none font-semibold">
                                                         {e.startTime ? `(${e.startTime})` : ''} ~ {e.endTime ? `(${e.endTime})` : ''}
                                                     </div>
                                                 </div>
