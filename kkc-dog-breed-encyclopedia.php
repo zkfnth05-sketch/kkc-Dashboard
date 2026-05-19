@@ -209,7 +209,7 @@ function kkc_ajax_get_public_breeds() {
                 'dog_height2'  => $h_max,
                 'dog_weight1'  => $w_min,
                 'dog_weight2'  => $w_max,
-                'content1'     => get_the_content(),
+                'content1'     => get_post_field('post_content', $post_id),
                 'img_url'      => $img_url ? esc_url($img_url) : '' // 대표 이미지 주입
             ];
         }
