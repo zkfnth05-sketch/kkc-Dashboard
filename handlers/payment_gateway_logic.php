@@ -29,10 +29,12 @@ function kkc_pg_register($input) {
         $trade_id = substr($trade_id, 0, 40);
     }
 
-    // 콜백 주소 정의
-    $ok_url = 'https://kkc3349.mycafe24.com/payment_callback.php';
-    $fail_url = 'https://kkc3349.mycafe24.com/payment_callback.php?status=fail';
-    $close_url = 'https://kkc3349.mycafe24.com/payment_callback.php?status=cancel';
+    // 콜백 주소 정의 (도메인 변경 시에도 자동 적응하도록 동적 site_url() 적용)
+    $base_domain = function_exists('site_url') ? site_url() : 'https://kkc3349.mycafe24.com';
+    $base_domain = rtrim($base_domain, '/');
+    $ok_url = $base_domain . '/payment_callback.php';
+    $fail_url = $ok_url . '?status=fail';
+    $close_url = $ok_url . '?status=cancel';
 
     // 무결성 검증을 위한 HMAC 생성 (amount + ok_url + trade_id + time_stamp)
     $message = $amount . $ok_url . $trade_id . $time_stamp;
