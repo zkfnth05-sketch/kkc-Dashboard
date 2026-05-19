@@ -81,7 +81,12 @@ function kkc_handle_general_list($input) {
         // 🚀 [COUNT FIX] 조인이 포함된 WHERE 절에 대응하도록 COUNT 쿼리도 조인 추가
         $total = $wpdb->get_var("SELECT COUNT(*) FROM `point` p LEFT JOIN `dogshow` d ON p.ds_pid = d.ds_pid WHERE $where");
     } else {
-        $data = $wpdb->get_results("SELECT * FROM `$table` WHERE $where ORDER BY 1 DESC LIMIT $limit OFFSET $offset", ARRAY_A);
+        // 🚀 [ORDER FIX] 참가비 옵션 테이블은 정순서(ID 오름차순)로 불러오고, 그 외 일반 목록은 내림차순(최신순)으로 정렬합니다.
+        $order = "1 DESC";
+        if ($table === 'competition_fee_options') {
+            $order = "1 ASC";
+        }
+        $data = $wpdb->get_results("SELECT * FROM `$table` WHERE $where ORDER BY $order LIMIT $limit OFFSET $offset", ARRAY_A);
         $total = $wpdb->get_var("SELECT COUNT(*) FROM `$table` WHERE $where");
     }
     
