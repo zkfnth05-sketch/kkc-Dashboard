@@ -716,7 +716,11 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
                                         {dayEvs.map(e => (
                                             <div
                                                 key={e.id}
-                                                className="text-[7px] md:text-[9px] font-black p-1 md:p-2 rounded-md md:rounded-lg bg-white border border-slate-100 shadow-sm flex items-center gap-1 md:gap-2 truncate hover:bg-slate-50 transition-colors"
+                                                onClick={(ev) => {
+                                                    ev.stopPropagation(); // 달력 셀 클릭 전파 방지
+                                                    setViewEvent(e);      // 상세 정보 사이드바 모달 열기
+                                                }}
+                                                className="text-[7px] md:text-[9px] font-black p-1 md:p-2 rounded-md md:rounded-lg bg-white border border-slate-100 shadow-sm flex items-center gap-1 md:gap-2 truncate hover:bg-slate-50 transition-colors cursor-pointer"
                                                 title={e.title}
                                             >
                                                 <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full shrink-0" style={{ backgroundColor: getCatColor(e.category || '', e.type_names || '') }} />
