@@ -20,7 +20,9 @@ function kkc_pg_register($input) {
         return ['success' => false, 'error' => '결제 금액은 0원보다 커야 합니다.'];
     }
 
-    $time_stamp = date('YmdHis');
+    // 한국 시간(KST) 강제 지정하여 타임스탬프 생성
+    $date = new DateTime("now", new DateTimeZone("Asia/Seoul"));
+    $time_stamp = $date->format("YmdHis");
     
     // 고유 거래 ID 생성 (최대 40자)
     $prefix = ($type === 'membership') ? 'MEM_' : 'APP_';
@@ -68,7 +70,7 @@ function kkc_pg_register($input) {
             'supply_value' => 0
         ],
         'trade_id' => $trade_id,
-        'site_url' => $input['site_url'] ?? 'https://www.kkc.or.kr',
+        'site_url' => $input['site_url'] ?? 'https://kkc.or.kr',
         'ok_url' => $ok_url,
         'fail_url' => $fail_url,
         'close_url' => $close_url,
