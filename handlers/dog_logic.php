@@ -24,12 +24,47 @@ function kkc_handle_pedigree_list($input) {
         $q_utf8_hex = bin2hex($search_query); 
         $fields = ($field_input !== 'all') ? [$field_input] : $conf['search_fields'];
         
+        // 🎯 [FUZZY REGISTRATION SEARCH] 하이픈(-), 슬러시(/), 점(.), 밑줄(_), 공백 제거 버전 생성
+        $clean_query = str_replace(['-', '/', '.', ' ', '_'], '', $search_query);
+        $clean_hex = bin2hex($clean_query);
+        
         $sub = [];
         foreach ($fields as $f) { 
             if ($f === 'fa_regno') {
-                $sub[] = "(`p_fa`.`reg_no` LIKE CONCAT('%', UNHEX('$q_utf8_hex'), '%') OR `dogTab`.`fa_regno` LIKE CONCAT('%', UNHEX('$q_utf8_hex'), '%'))";
+                // 부견 번호로 검색 시, 부견의 모든 가능한 등록번호 필드(reg_no, foreign100, foreign_no, foreign_no2)를 체크
+                $sub[] = "(
+                    (REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`p_fa`.`reg_no` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%'))
+                    OR (REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`p_fa`.`foreign100` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%'))
+                    OR (REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`p_fa`.`foreign_no` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%'))
+                    OR (REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`p_fa`.`foreign_no2` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%'))
+                    OR `dogTab`.`fa_regno` LIKE CONCAT('%', UNHEX('$q_utf8_hex'), '%')
+                )";
             } else if ($f === 'mo_regno') {
-                $sub[] = "(`p_mo`.`reg_no` LIKE CONCAT('%', UNHEX('$q_utf8_hex'), '%') OR `dogTab`.`mo_regno` LIKE CONCAT('%', UNHEX('$q_utf8_hex'), '%'))";
+                // 모견 번호로 검색 시, 모견의 모든 가능한 등록번호 필드(reg_no, foreign100, foreign_no, foreign_no2)를 체크
+                $sub[] = "(
+                    (REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`p_mo`.`reg_no` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%'))
+                    OR (REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`p_mo`.`foreign100` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%'))
+                    OR (REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`p_mo`.`foreign_no` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%'))
+                    OR (REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`p_mo`.`foreign_no2` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%'))
+                    OR `dogTab`.`mo_regno` LIKE CONCAT('%', UNHEX('$q_utf8_hex'), '%')
+                )";
+            } else if ($f === 'reg_no') {
+                // 등록번호(reg_no)로 검색 시, 본인 등록번호뿐만 아니라 국내타단체번호, 외국타단체번호1/2도 같이 검사
+                $sub[] = "(
+                    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`dogTab`.`reg_no` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%')
+                    OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`dogTab`.`foreign100` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%')
+                    OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`dogTab`.`foreign_no` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%')
+                    OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`dogTab`.`foreign_no2` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%')
+                )";
+            } else if (in_array($f, ['foreign_no', 'foreign_no2'])) {
+                // 외국타단체 번호 검색 시, 1과 2 모두 교차 검사하여 누락 방지
+                $sub[] = "(
+                    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`dogTab`.`foreign_no` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%')
+                    OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`dogTab`.`foreign_no2` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%')
+                )";
+            } else if (in_array($f, ['foreign100', 'micro'])) {
+                // 기타 식별 관련 필드들은 특수 기호를 소거하여 느슨하게 매칭
+                $sub[] = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(`dogTab`.`$f` USING utf8mb4), '-', ''), '/', ''), '.', ''), ' ', ''), '_', '') LIKE CONCAT('%', UNHEX('$clean_hex'), '%')";
             } else {
                 $sub[] = "CONVERT(`dogTab`.`$f` USING utf8mb4) LIKE CONCAT('%', UNHEX('$q_utf8_hex'), '%')"; 
             }

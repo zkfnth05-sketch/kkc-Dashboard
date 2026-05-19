@@ -191,8 +191,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     return gender;
   };
 
-  const thStyle = "px-3 py-2.5 text-left font-normal text-gray-500 bg-white border-b border-gray-100 text-[13px] w-[22%]";
-  const tdStyle = "px-3 py-2.5 border-b border-gray-100 text-[13px] font-medium text-gray-800";
+  const thStyle = "px-2 py-2 text-left font-normal text-gray-500 bg-white border-b border-gray-100 text-[13px] w-[110px]";
+  const tdStyle = "px-2 py-2 border-b border-gray-100 text-[13px] font-medium text-gray-800";
   const sectionTitleStyle = "px-4 py-2 bg-[#f8f9fa] border-b border-gray-200 font-bold text-gray-700 text-[14px]";
 
   return (

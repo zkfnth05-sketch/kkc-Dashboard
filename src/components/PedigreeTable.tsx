@@ -20,6 +20,7 @@ const SEARCH_OPTIONS = [
     { label: '등록번호', value: 'reg_no' },
     { label: '마이크로칩 번호', value: 'micro' },
     { label: '외국타단체 번호', value: 'foreign_no' },
+    { label: '국내타단체 번호', value: 'foreign100' }, // 👈 추가
     { label: '견명', value: 'name' },
     { label: '소유자명', value: 'poss_name' },
     { label: '모견 등록번호', value: 'mo_regno' },

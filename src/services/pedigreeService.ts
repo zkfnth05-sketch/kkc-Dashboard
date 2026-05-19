@@ -203,6 +203,10 @@ export const fetchLastRegNo = async (prefix: string) => {
     return null;
 };
 
+
+// 🎯 [FUZZY MATCH HELPER] 특수문자 및 공백을 정규화하여 느슨한 비교 지원
+const cleanStr = (s: string) => (s || '').toString().toLowerCase().replace(/[-/.\s_]/g, '');
+
 /**
  * 특정 등록번호가 이미 존재하는지 조회합니다.
  */
@@ -219,8 +223,8 @@ export const checkRegNoExists = async (regNo: string) => {
     });
 
     if (res.data && res.data.length > 0) {
-        // 정확히 일치하는지 확인
-        const found = res.data.find((d: any) => d.reg_no === regNo.trim());
+        // 정확히 일치하는지 확인 (특수문자 및 공백 제거 비교)
+        const found = res.data.find((d: any) => cleanStr(d.reg_no) === cleanStr(regNo));
         return found ? found : null;
     }
     return null;
@@ -243,10 +247,10 @@ export const checkForeignNoExists = async (no: string) => {
     });
 
     if (res.data && res.data.length > 0) {
-        // 정확히 일치하는지 확인 (두 필드 모두 체크)
+        // 정확히 일치하는지 확인 (두 필드 모두 체크, 특수문자 및 공백 제거 비교)
         const found = res.data.find((d: any) => 
-            (d.foreign_no && d.foreign_no.trim() === no.trim()) || 
-            (d.foreign_no2 && d.foreign_no2.trim() === no.trim())
+            (d.foreign_no && cleanStr(d.foreign_no) === cleanStr(no)) || 
+            (d.foreign_no2 && cleanStr(d.foreign_no2) === cleanStr(no))
         );
         return found ? found : null;
     }
@@ -269,7 +273,8 @@ export const checkOtherOrgNoExists = async (no: string) => {
     });
 
     if (res.data && res.data.length > 0) {
-        const found = res.data.find((d: any) => d.foreign100 && d.foreign100.trim() === no.trim());
+        // 특수문자 및 공백 제거 비교
+        const found = res.data.find((d: any) => d.foreign100 && cleanStr(d.foreign100) === cleanStr(no));
         return found ? found : null;
     }
     return null;

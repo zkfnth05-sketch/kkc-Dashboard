@@ -852,7 +852,8 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
             
             // 조별 명칭 구성 (나이 정보가 없으면 성별만 표시)
             // 🚀 셰퍼드 & 진도는 이미 className에 모든 정보가 포함되어 있음
-            const className = (isShepherdShow || isJindoShow) ? item.className : (item.className ? `${item.className} ${item.sex}조` : `${item.sex}조`);
+            const cleanClassName = item.className ? item.className.split('(')[0].trim() : '';
+            const className = (isShepherdShow || isJindoShow) ? item.className : (cleanClassName ? `${cleanClassName} ${item.sex}조` : `${item.sex}조`);
 
             // Group 변경 체크
             if (!currentGroup || currentGroup.groupName !== groupName) {

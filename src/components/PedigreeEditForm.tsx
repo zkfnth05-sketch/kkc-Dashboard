@@ -599,9 +599,7 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
               <InputField label="외국타단체번호2" value={formData.foreignNo2} onChange={(v:any) => handleChange('foreignNo2', v)} />
               <InputField label="마이크로칩번호" value={formData.microchip} onChange={(v:any) => handleChange('microchip', v)} />
               
-              <div className="col-span-2">
-                <InputField label="색인번호" value={formData.indexNo} onChange={(v:any) => handleChange('indexNo', v)} />
-              </div>
+              <InputField label="색인번호" value={formData.indexNo} onChange={(v:any) => handleChange('indexNo', v)} />
               
               <div className="flex flex-col mb-1 group col-span-2">
                 <div className="flex items-center mb-1">
