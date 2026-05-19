@@ -97,6 +97,21 @@ const CompetitionCreateForm: React.FC<{
 
   const [isLoading, setIsLoading] = useState(false);
   const [feeOptions, setFeeOptions] = useState<FeeOption[]>([]);
+  const [recentCompetitions, setRecentCompetitions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadRecent = async () => {
+      try {
+        const res = await fetchDogShows(1, '', 50, '전체');
+        if (res.data) {
+          setRecentCompetitions(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load recent competitions:', err);
+      }
+    };
+    loadRecent();
+  }, []);
 
   useEffect(() => {
     if (initialData) {
@@ -243,7 +258,7 @@ const CompetitionCreateForm: React.FC<{
             <label className="text-[13px] font-bold text-gray-600">대표 이미지 (썸네일)</label>
             <div className="relative group w-full aspect-video rounded-xl bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center overflow-hidden hover:border-blue-400 transition-all group">
               {formData.thumbnail_url ? (
-                <img src={formData.thumbnail_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Thumbnail" />
+                <img src={formData.thumbnail_url} className="!w-full !h-full !object-cover transition-transform duration-700 group-hover:scale-105" alt="Thumbnail" />
               ) : (
                 <div className="flex flex-col items-center gap-2 text-gray-300">
                   <Upload size={32} strokeWidth={1.5} />
@@ -413,6 +428,60 @@ const CompetitionCreateForm: React.FC<{
             <input type="checkbox" className="hidden" checked={formData.is_multi_day} onChange={e => setFormData({ ...formData, is_multi_day: e.target.checked })} />
             <span className="text-[14px] text-gray-700 font-medium">여러 일동안 진행되는 대회</span>
           </label>
+
+          {/* 📋 [COPY RECENT OPTIONS] 최근 대회 옵션 불러오기 추가 */}
+          <div className="p-4 bg-blue-50/30 rounded-xl border border-dashed border-blue-200/50 flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
+            <div className="text-left">
+              <span className="text-[13px] font-bold text-slate-700">이전 대회 옵션 복사하기</span>
+              <p className="text-[11px] text-slate-400 mt-0.5">이전에 개설했던 대회에서 사용했던 참가비 옵션을 그대로 가져옵니다.</p>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto shrink-0">
+              <select
+                className="text-[12px] font-bold px-3 py-2 bg-white border border-slate-300 rounded-lg outline-none focus:border-blue-500 max-w-[240px] truncate"
+                onChange={async (e) => {
+                  const targetIdStr = e.target.value;
+                  if (!targetIdStr) return;
+                  
+                  setIsLoading(true);
+                  try {
+                    const pid = parseInt(targetIdStr.replace(/[^0-9]/g, ''));
+                    let eventType = 'dogshow';
+                    if (targetIdStr.startsWith('st_')) eventType = 'stylist';
+                    else if (targetIdStr.startsWith('sp_')) eventType = 'sports_event';
+                    else if (targetIdStr.startsWith('sm_')) eventType = 'seminar';
+                    else if (targetIdStr.startsWith('be_')) eventType = 'breed_exam';
+
+                    const res = await fetchEventOptions(eventType, pid);
+                    if (res.data && res.data.length > 0) {
+                      // 🛡️ [SAFETY FILTER]
+                      const filtered = (res.data || []).filter((o: any) => o.event_type === eventType);
+                      const loadedOptions = filtered.map((opt: any) => ({
+                        label: opt.option_name,
+                        price: opt.option_price,
+                        is_required: opt.is_required === 1 || opt.is_required === '1'
+                      }));
+                      setFeeOptions(loadedOptions);
+                      alert(`'${e.target.selectedOptions[0].text}' 대회의 옵션 ${loadedOptions.length}개를 성공적으로 불러왔습니다!`);
+                    } else {
+                      alert('선택한 대회에 등록된 참가비 옵션이 없습니다.');
+                    }
+                  } catch (err) {
+                    alert('옵션을 불러오는 데 실패했습니다.');
+                  } finally {
+                    setIsLoading(false);
+                    e.target.value = ''; // reset dropdown
+                  }
+                }}
+              >
+                <option value="">복사할 대회를 선택하세요...</option>
+                {recentCompetitions.map((comp) => (
+                  <option key={comp.id} value={comp.id}>
+                    [{comp.category || '기타'}] {comp.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           {/* 💰 [FEE OPTION EDITOR] 쇼핑몰 방식 옵션 설정 추가 */}
           <FeeOptionEditor 
@@ -965,7 +1034,7 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                   <div className="lg:col-span-4 space-y-8">
                     <div className="rounded-3xl overflow-hidden shadow-xl aspect-square bg-slate-100 relative group">
-                      {viewDetailComp.thumbnail_url ? <img src={viewDetailComp.thumbnail_url} className="w-full h-full object-cover" alt={viewDetailComp.title} /> : <div className="w-full h-full flex items-center justify-center text-slate-200"><ImageIcon size={64} /></div>}
+                      {viewDetailComp.thumbnail_url ? <img src={viewDetailComp.thumbnail_url} className="!w-full !h-full !object-cover" alt={viewDetailComp.title} /> : <div className="w-full h-full flex items-center justify-center text-slate-200"><ImageIcon size={64} /></div>}
                     </div>
                     <div className="space-y-6">
                       <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 space-y-6">

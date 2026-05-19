@@ -182,7 +182,7 @@ const CompetitionCreateForm: React.FC<{
                         <label className="text-[13px] font-bold text-gray-600">대표 이미지 (썸네일)</label>
                         <div className="relative group w-full aspect-video rounded-xl bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center overflow-hidden hover:border-blue-400 transition-all">
                             {formData.thumbnail_url ? (
-                                <img src={formData.thumbnail_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Thumbnail" />
+                                <img src={formData.thumbnail_url} className="!w-full !h-full !object-cover transition-transform duration-700 group-hover:scale-105" alt="Thumbnail" />
                             ) : (
                                 <div className="flex flex-col items-center gap-2 text-gray-300">
                                     <Upload size={32} strokeWidth={1.5} />

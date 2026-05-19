@@ -778,7 +778,7 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
                                     {e.thumbnail_url ? (
                                         <img
                                             src={e.thumbnail_url}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 brightness-[1.03] contrast-[1.05]"
+                                            className="!w-full !h-full !object-cover group-hover:scale-110 transition-transform duration-1000 brightness-[1.03] contrast-[1.05]"
                                             style={{ imageRendering: '-webkit-optimize-contrast' }}
                                             alt={e.title}
                                         />
@@ -996,7 +996,7 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
                                             <label className="text-[11px] font-black text-rose-500 uppercase tracking-[0.3em] flex items-center gap-3"><ImageIcon size={14} /> 대표 썸네일 (최적화 모드)</label>
                                             <div className="relative group w-full aspect-video rounded-[48px] bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center overflow-hidden hover:border-indigo-400 transition-all shadow-inner group">
                                                 {formData.thumbnail_url ? (
-                                                    <img src={formData.thumbnail_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                                    <img src={formData.thumbnail_url} className="!w-full !h-full !object-cover transition-transform duration-700 group-hover:scale-105" />
                                                 ) : (
                                                     <div className="flex flex-col items-center gap-6 text-slate-300">
                                                         <div className="p-8 bg-white rounded-full shadow-sm border border-slate-50"><Upload size={48} strokeWidth={1} /></div>
@@ -1124,7 +1124,7 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
                                         <div className="lg:col-span-4 space-y-8">
                                             <div className="rounded-3xl overflow-hidden shadow-xl aspect-square bg-slate-100 relative group">
                                                 {viewEvent.thumbnail_url ? (
-                                                    <img src={viewEvent.thumbnail_url} className="w-full h-full object-cover" alt={viewEvent.title} />
+                                                    <img src={viewEvent.thumbnail_url} className="!w-full !h-full !object-cover" alt={viewEvent.title} />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center text-slate-200">
                                                         <ImageIcon size={64} />
