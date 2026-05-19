@@ -280,24 +280,35 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
             }
 
             if (totalAmount > 0 && paymentMethod === 'card') {
-                // 💳 신용카드 결제 연동
-                const res = await registerPgTransaction('applicant', payload, targetTable, competition.title);
-                if (res.success && res.pay_url) {
-                    const handlePaymentMessage = (e: MessageEvent) => {
-                        if (e.data && e.data.status) {
-                            window.removeEventListener('message', handlePaymentMessage);
-                            if (e.data.status === 'success') {
-                                showAlert('성공', '대회/세미나 참가 신청 및 카드 결제가 정상 처리되었습니다.');
-                                onClose();
-                            } else {
-                                showAlert('오류', e.data.message || '결제 처리에 실패하였습니다.');
+                // 💳 신용카드 결제 연동 (팝업 차단 우회를 위해 동기적으로 빈 창 선 오픈)
+                const paymentWindow = window.open('', 'kkc_payment', 'width=820,height=600,scrollbars=yes');
+                if (!paymentWindow) {
+                    throw new Error('팝업 차단이 설정되어 있습니다. 브라우저 설정에서 팝업을 허용해 주세요.');
+                }
+
+                try {
+                    const res = await registerPgTransaction('applicant', payload, targetTable, competition.title);
+                    if (res.success && res.pay_url) {
+                        const handlePaymentMessage = (e: MessageEvent) => {
+                            if (e.data && e.data.status) {
+                                window.removeEventListener('message', handlePaymentMessage);
+                                if (e.data.status === 'success') {
+                                    showAlert('성공', '대회/세미나 참가 신청 및 카드 결제가 정상 처리되었습니다.');
+                                    onClose();
+                                } else {
+                                    showAlert('오류', e.data.message || '결제 처리에 실패하였습니다.');
+                                }
                             }
-                        }
-                    };
-                    window.addEventListener('message', handlePaymentMessage);
-                    window.open(res.pay_url, 'kkc_payment', 'width=820,height=600,scrollbars=yes');
-                } else {
-                    throw new Error(res.error || '결제 등록 실패');
+                        };
+                        window.addEventListener('message', handlePaymentMessage);
+                        paymentWindow.location.href = res.pay_url;
+                    } else {
+                        paymentWindow.close();
+                        throw new Error(res.error || '결제 등록 실패');
+                    }
+                } catch (err: any) {
+                    paymentWindow.close();
+                    throw err;
                 }
             } else {
                 // 🏦 기존 무통장 입금 연동

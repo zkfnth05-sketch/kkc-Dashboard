@@ -419,36 +419,48 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
             setIsUpdating(true);
             try {
               if (reqData.payment_method === 'card') {
-                // 💳 신용카드 결제 연동
-                const res = await registerPgTransaction('membership', {
-                  mid: userData.mid,
-                  mem_no: profile.mem_no || '',
-                  name: profile.name || '',
-                  req_degree: reqData.req_degree,
-                  req_years: Number(reqData.req_years || 0),
-                  amount: Number(reqData.amount || 0)
-                });
-                
-                if (res.success && res.pay_url) {
-                  // 결제 완료/실패 메시지 리스너 등록
-                  const handlePaymentMessage = (e: MessageEvent) => {
-                    if (e.data && e.data.status) {
-                      window.removeEventListener('message', handlePaymentMessage);
-                      if (e.data.status === 'success') {
-                        alert('결제가 완료되었습니다. 정회원 등급이 즉시 반영되었습니다.');
-                        setIsUpgradeModalOpen(false);
-                        fetchData();
-                      } else {
-                        alert(e.data.message || '결제 처리에 실패하였습니다.');
-                      }
-                    }
-                  };
-                  window.addEventListener('message', handlePaymentMessage);
+                // 💳 신용카드 결제 연동 (팝업 차단 우회를 위해 동기적으로 빈 창 선 오픈)
+                const paymentWindow = window.open('', 'kkc_payment', 'width=820,height=600,scrollbars=yes');
+                if (!paymentWindow) {
+                  alert('팝업 차단이 설정되어 있습니다. 브라우저 설정에서 팝업을 허용해 주세요.');
+                  return;
+                }
+
+                try {
+                  const res = await registerPgTransaction('membership', {
+                    mid: userData.mid,
+                    mem_no: profile.mem_no || '',
+                    name: profile.name || '',
+                    req_degree: reqData.req_degree,
+                    req_years: Number(reqData.req_years || 0),
+                    amount: Number(reqData.amount || 0)
+                  });
                   
-                  // 결제 팝업창 오픈
-                  window.open(res.pay_url, 'kkc_payment', 'width=820,height=600,scrollbars=yes');
-                } else {
-                  alert(res.error || '결제창을 요청하지 못했습니다.');
+                  if (res.success && res.pay_url) {
+                    // 결제 완료/실패 메시지 리스너 등록
+                    const handlePaymentMessage = (e: MessageEvent) => {
+                      if (e.data && e.data.status) {
+                        window.removeEventListener('message', handlePaymentMessage);
+                        if (e.data.status === 'success') {
+                          alert('결제가 완료되었습니다. 정회원 등급이 즉시 반영되었습니다.');
+                          setIsUpgradeModalOpen(false);
+                          fetchData();
+                        } else {
+                          alert(e.data.message || '결제 처리에 실패하였습니다.');
+                        }
+                      }
+                    };
+                    window.addEventListener('message', handlePaymentMessage);
+                    
+                    // 결제창 URL로 리다이렉트
+                    paymentWindow.location.href = res.pay_url;
+                  } else {
+                    paymentWindow.close();
+                    alert(res.error || '결제창을 요청하지 못했습니다.');
+                  }
+                } catch (err: any) {
+                  paymentWindow.close();
+                  throw err;
                 }
               } else {
                 // 🏦 기존 무통장 입금 연동
