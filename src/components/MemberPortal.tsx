@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, Dog, Award, History, LogOut, ChevronRight, Star, Calendar, CreditCard, Phone, Mail, MapPin, ShieldCheck, Smartphone, X, Save, Loader2, Settings, Gem, Banknote, CheckCircle, Info, Check, Lock, Globe, ArrowLeft, Trophy } from 'lucide-react';
 import { portalGetMyData, portalUpdateMyData, portalApplyMembership } from '../services/portalService';
+import { registerPgTransaction } from '../services/memberService';
 import { formatMemberRank } from '../types';
 
 interface MemberPortalProps {
@@ -417,22 +418,56 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
             console.log("🚀 [Portal Apply] Submitting Request:", reqData);
             setIsUpdating(true);
             try {
-              // 🔄 [FIELD MAPPING] 프론트엔드 필드명을 백엔드 규격에 맞게 변환
-              const mappedData = {
-                req_degree: reqData.req_degree,
-                req_years: Number(reqData.req_years || 0),
-                amount: Number(reqData.amount || 0), // 💰 숫자로 확실하게 변환
-                depositor: reqData.depositor
-              };
-              
-              const res = await portalApplyMembership(userData.mid, mappedData);
-              console.log("📥 [Portal Apply] Server Feedback:", res);
-              if (res.success) {
-                  alert(res.message || '등급 전환 신청이 성공적으로 접수되었습니다. 입금이 확인되면 관리자가 승인해 드립니다.');
-                  setIsUpgradeModalOpen(false);
-                  fetchData();
+              if (reqData.payment_method === 'card') {
+                // 💳 신용카드 결제 연동
+                const res = await registerPgTransaction('membership', {
+                  mid: userData.mid,
+                  mem_no: profile.mem_no || '',
+                  name: profile.name || '',
+                  req_degree: reqData.req_degree,
+                  req_years: Number(reqData.req_years || 0),
+                  amount: Number(reqData.amount || 0)
+                });
+                
+                if (res.success && res.pay_url) {
+                  // 결제 완료/실패 메시지 리스너 등록
+                  const handlePaymentMessage = (e: MessageEvent) => {
+                    if (e.data && e.data.status) {
+                      window.removeEventListener('message', handlePaymentMessage);
+                      if (e.data.status === 'success') {
+                        alert('결제가 완료되었습니다. 정회원 등급이 즉시 반영되었습니다.');
+                        setIsUpgradeModalOpen(false);
+                        fetchData();
+                      } else {
+                        alert(e.data.message || '결제 처리에 실패하였습니다.');
+                      }
+                    }
+                  };
+                  window.addEventListener('message', handlePaymentMessage);
+                  
+                  // 결제 팝업창 오픈
+                  window.open(res.pay_url, 'kkc_payment', 'width=820,height=600,scrollbars=yes');
+                } else {
+                  alert(res.error || '결제창을 요청하지 못했습니다.');
+                }
               } else {
-                  alert(res.error || '신청 도중 오류가 발생했습니다.');
+                // 🏦 기존 무통장 입금 연동
+                const mappedData = {
+                  req_degree: reqData.req_degree,
+                  req_years: Number(reqData.req_years || 0),
+                  amount: Number(reqData.amount || 0),
+                  depositor: reqData.depositor
+                };
+                
+                const res = await portalApplyMembership(userData.mid, mappedData);
+                console.log("📥 [Portal Apply] Server Feedback:", res);
+                if (res.success) {
+                    alert(res.message || '등급 전환 신청이 성공적으로 접수되었습니다. 입금이 확인되면 관리자가 승인해 드립니다.');
+                    setIsUpgradeModalOpen(false);
+                    fetchData();
+                } else {
+                    alert(res.error || '신청 도중 오류가 발생했습니다.');
+                }
               }
             } catch (e: any) {
               console.error("🔥 [Portal Apply] Error occurred:", e);
@@ -487,6 +522,7 @@ const MembershipUpgradeModal = ({ onClose, onApply }: any) => {
   const [step, setStep] = useState(1);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [depositor, setDepositor] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'bank'>('card');
 
   const plans = [
     { id: 'A1', title: '정회원 1년', period: 1, price: 60000, desc: '가입비 포함 / 1년 유효', degree: 'A1' },
@@ -501,13 +537,14 @@ const MembershipUpgradeModal = ({ onClose, onApply }: any) => {
   };
 
   const handleFinalSubmit = () => {
-    console.log("👆 Final Submission Clicked:", selectedPlan, depositor);
-    if (!depositor.trim()) return alert('입금자 성함을 입력해 주세요.');
+    console.log("👆 Final Submission Clicked:", selectedPlan, depositor, paymentMethod);
+    if (paymentMethod === 'bank' && !depositor.trim()) return alert('입금자 성함을 입력해 주세요.');
     onApply({
         req_degree: selectedPlan.degree,
         req_years: selectedPlan.period,
         amount: selectedPlan.price,
-        depositor: depositor.trim()
+        payment_method: paymentMethod,
+        depositor: paymentMethod === 'bank' ? depositor.trim() : ''
     });
   };
 
@@ -563,23 +600,54 @@ const MembershipUpgradeModal = ({ onClose, onApply }: any) => {
                     </div>
                 ) : (
                     <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
-                        <div className="bg-blue-50 p-6 rounded-[32px] border border-blue-100">
-                          <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2">Deposit Account (입금 계좌)</div>
-                          <div className="text-xl font-black text-blue-900 mb-1">KEB하나은행 222-910031-30404</div>
-                          <div className="text-sm font-bold text-blue-600">(사단법인 한국애견협회)</div>
-                        </div>
+                        {/* 결제 수단 선택 */}
                         <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 block mb-2">실제 입금자 성함을 입력해 주세요</label>
-                           <input 
-                              className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-[24px] px-6 py-4 text-lg font-black outline-none transition-all" 
-                              placeholder="입금자 성함" 
-                              value={depositor} 
-                              onChange={e => setDepositor(e.target.value)} 
-                           />
-                           <p className="text-[11px] text-slate-400 font-bold ml-2 mt-2 leading-relaxed">
-                             * 입금 확인 후 등급 변경까지 영업일 기준 약 1일이 소요됩니다.
-                           </p>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 block mb-2">결제 방식 선택</label>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button 
+                                    onClick={() => setPaymentMethod('card')}
+                                    className={`py-4 px-6 rounded-[24px] border-2 font-black text-sm transition-all ${paymentMethod === 'card' ? 'border-orange-500 bg-orange-50/50 text-orange-600' : 'border-slate-100 text-slate-500 bg-slate-50/30'}`}
+                                >
+                                    💳 신용카드 결제
+                                </button>
+                                <button 
+                                    onClick={() => setPaymentMethod('bank')}
+                                    className={`py-4 px-6 rounded-[24px] border-2 font-black text-sm transition-all ${paymentMethod === 'bank' ? 'border-orange-500 bg-orange-50/50 text-orange-600' : 'border-slate-100 text-slate-500 bg-slate-50/30'}`}
+                                >
+                                    🏦 무통장 입금
+                                </button>
+                            </div>
                         </div>
+
+                        {paymentMethod === 'bank' ? (
+                            <div className="space-y-6">
+                                <div className="bg-blue-50 p-6 rounded-[32px] border border-blue-100">
+                                  <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2">Deposit Account (입금 계좌)</div>
+                                  <div className="text-xl font-black text-blue-900 mb-1">KEB하나은행 222-910031-30404</div>
+                                  <div className="text-sm font-bold text-blue-600">(사단법인 한국애견협회)</div>
+                                </div>
+                                <div className="space-y-2">
+                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 block mb-2">실제 입금자 성함을 입력해 주세요</label>
+                                   <input 
+                                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-[24px] px-6 py-4 text-lg font-black outline-none transition-all" 
+                                      placeholder="입금자 성함" 
+                                      value={depositor} 
+                                      onChange={e => setDepositor(e.target.value)} 
+                                   />
+                                   <p className="text-[11px] text-slate-400 font-bold ml-2 mt-2 leading-relaxed">
+                                     * 입금 확인 후 등급 변경까지 영업일 기준 약 1일이 소요됩니다.
+                                   </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-orange-50/50 p-8 rounded-[32px] border border-orange-100 space-y-2 text-center">
+                                <div className="text-2xl">💳</div>
+                                <h4 className="font-black text-orange-950 text-base">신용카드 결제 진행</h4>
+                                <p className="text-xs text-orange-900/60 font-bold leading-relaxed">
+                                    [신청 완료하기] 버튼을 누르시면 안전한 KG모빌리언스 신용카드 결제창이 팝업으로 표시됩니다.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

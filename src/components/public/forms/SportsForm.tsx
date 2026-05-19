@@ -19,7 +19,8 @@ export const SportsForm: React.FC<{ competition: any, onClose: () => void, showA
 
     const { 
         formData, setFormData, isSubmitting, isSearching, handleInputChange, handleImageUpload, handleSearchMember, handleSave,
-        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle
+        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle,
+        paymentMethod, setPaymentMethod
     } = usePublicForm(
         competition, targetTable, onClose, showAlert
     );
@@ -40,6 +41,8 @@ export const SportsForm: React.FC<{ competition: any, onClose: () => void, showA
             selectedOptionIds={selectedOptionIds}
             onOptionToggle={handleOptionToggle}
             totalAmount={totalAmount}
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
         >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">

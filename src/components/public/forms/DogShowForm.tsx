@@ -8,7 +8,8 @@ export const DogShowForm: React.FC<{ competition: any, onClose: () => void, show
 }) => {
     const { 
         formData, isSubmitting, isSearching, handleInputChange, handleSearchMember, handleSave,
-        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle
+        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle,
+        paymentMethod, setPaymentMethod
     } = usePublicForm(
         competition, 'dogshow_applicant', onClose, showAlert
     );
@@ -24,6 +25,8 @@ export const DogShowForm: React.FC<{ competition: any, onClose: () => void, show
             selectedOptionIds={selectedOptionIds}
             onOptionToggle={handleOptionToggle}
             totalAmount={totalAmount}
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
         >
             <div className="grid grid-cols-1 gap-8">
                 <div className="space-y-2">

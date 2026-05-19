@@ -439,6 +439,7 @@ export const createMember = async (table: string, data: any) => {
 export const deleteMember = async (table: string, id: string | number) => fetchBridge({ mode: 'delete_record', table, id });
 
 
+export const registerPgTransaction = async (type: string, data: any, targetTable?: string, title?: string) => fetchBridge({ mode: 'pg_register', type, data, targetTable, title });
 export const createRecord = async (table: string, data: any) => fetchBridge({ mode: 'create_record', table, data });
 export const fetchAllTableNames = async () => (await fetchBridge({ mode: 'get_all_tables' })).data || [];
 export const fetchCategories = async () => (await fetchBridge({ mode: 'get_categories' })).data || [];

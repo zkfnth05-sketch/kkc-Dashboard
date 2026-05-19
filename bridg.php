@@ -174,6 +174,12 @@ try {
             safe_req('member_logic.php', $handler_root); 
             $output = ($mode === 'membership_applications_list') ? kkc_handle_membership_applications_list($input) : kkc_handle_membership_application_action($input);
             break;
+        
+        // 💳 [PAYMENT GATEWAY] 결제 거래 등록 추가
+        case 'pg_register':
+            safe_req('payment_gateway_logic.php', $handler_root);
+            $output = kkc_pg_register($input);
+            break;
     }
 } catch (Exception $e) { 
     $output = ['success' => false, 'error' => $e->getMessage()]; 

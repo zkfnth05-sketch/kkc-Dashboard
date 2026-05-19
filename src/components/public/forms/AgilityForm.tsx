@@ -8,7 +8,8 @@ export const AgilityForm: React.FC<{ competition: any, onClose: () => void, show
 }) => {
     const { 
         formData, setFormData, isSubmitting, isSearching, handleInputChange, handleImageUpload, handleSearchMember, handleSave,
-        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle
+        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle,
+        paymentMethod, setPaymentMethod
     } = usePublicForm(
         competition, 'agility_applicant', onClose, showAlert
     );
@@ -29,6 +30,8 @@ export const AgilityForm: React.FC<{ competition: any, onClose: () => void, show
             selectedOptionIds={selectedOptionIds}
             onOptionToggle={handleOptionToggle}
             totalAmount={totalAmount}
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
         >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">

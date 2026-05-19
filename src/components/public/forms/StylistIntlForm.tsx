@@ -8,7 +8,8 @@ export const StylistIntlForm: React.FC<{ competition: any, onClose: () => void, 
 }) => {
     const { 
         formData, isSubmitting, isSearching, handleInputChange, handleSearchMember, handleSave,
-        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle
+        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle,
+        paymentMethod, setPaymentMethod
     } = usePublicForm(
         competition, 'stylist_intl_applicant', onClose, showAlert
     );
@@ -24,6 +25,8 @@ export const StylistIntlForm: React.FC<{ competition: any, onClose: () => void, 
             selectedOptionIds={selectedOptionIds}
             onOptionToggle={handleOptionToggle}
             totalAmount={totalAmount}
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
         >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">

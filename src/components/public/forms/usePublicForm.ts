@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { fetchMembers, uploadFile } from '../../../services/memberService';
+import React, { useState, useEffect } from 'react';
+import { fetchMembers, uploadFile, registerPgTransaction } from '../../../services/memberService';
 import { createApplicant, fetchEventOptions } from '../../../services/eventService';
-import { useEffect } from 'react';
 
 export const usePublicForm = (competition: any, targetTable: string, onClose: () => void, showAlert: (title: string, message: string) => void) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<'card' | 'bank'>('card');
     const [formData, setFormData] = useState<any>(() => {
         let user = { name: '', hp: '', phone: '', email: '', birth: '', id: '' };
         if (typeof window !== 'undefined') {
@@ -279,12 +279,35 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
                 payload = { ...finalData, ds_pid };
             }
 
-            const res = await createApplicant(payload, targetTable);
-            if (res.success) {
-                showAlert('성공', '신청이 완료되었습니다.');
-                onClose();
+            if (totalAmount > 0 && paymentMethod === 'card') {
+                // 💳 신용카드 결제 연동
+                const res = await registerPgTransaction('applicant', payload, targetTable, competition.title);
+                if (res.success && res.pay_url) {
+                    const handlePaymentMessage = (e: MessageEvent) => {
+                        if (e.data && e.data.status) {
+                            window.removeEventListener('message', handlePaymentMessage);
+                            if (e.data.status === 'success') {
+                                showAlert('성공', '대회/세미나 참가 신청 및 카드 결제가 정상 처리되었습니다.');
+                                onClose();
+                            } else {
+                                showAlert('오류', e.data.message || '결제 처리에 실패하였습니다.');
+                            }
+                        }
+                    };
+                    window.addEventListener('message', handlePaymentMessage);
+                    window.open(res.pay_url, 'kkc_payment', 'width=820,height=600,scrollbars=yes');
+                } else {
+                    throw new Error(res.error || '결제 등록 실패');
+                }
             } else {
-                throw new Error(res.error || '저장 실패');
+                // 🏦 기존 무통장 입금 연동
+                const res = await createApplicant(payload, targetTable);
+                if (res.success) {
+                    showAlert('성공', '신청이 완료되었습니다. 지정된 계좌로 입금해 주시기 바랍니다.');
+                    onClose();
+                } else {
+                    throw new Error(res.error || '저장 실패');
+                }
             }
         } catch (err: any) {
             showAlert('오류', err.message);
@@ -305,6 +328,8 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
         eventOptions,
         selectedOptionIds,
         totalAmount,
-        handleOptionToggle
+        handleOptionToggle,
+        paymentMethod,
+        setPaymentMethod
     };
 };

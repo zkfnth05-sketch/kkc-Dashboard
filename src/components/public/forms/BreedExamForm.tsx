@@ -8,7 +8,8 @@ export const BreedExamForm: React.FC<{ competition: any, onClose: () => void, sh
 }) => {
     const { 
         formData, isSubmitting, isSearching, handleInputChange, handleSearchMember, handleSave,
-        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle
+        eventOptions, selectedOptionIds, totalAmount, handleOptionToggle,
+        paymentMethod, setPaymentMethod
     } = usePublicForm(
         competition, 'breed_exam_applicant', onClose, showAlert
     );
@@ -24,6 +25,8 @@ export const BreedExamForm: React.FC<{ competition: any, onClose: () => void, sh
             selectedOptionIds={selectedOptionIds}
             onOptionToggle={handleOptionToggle}
             totalAmount={totalAmount}
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
         >
             <div className="grid grid-cols-1 gap-8">
                 {/* 아이디 조회 */}

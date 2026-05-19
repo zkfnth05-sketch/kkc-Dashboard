@@ -12,6 +12,8 @@ interface FormShellProps {
     selectedOptionIds?: Set<string>;
     onOptionToggle?: (id: string | number) => void;
     totalAmount?: number;
+    paymentMethod?: 'card' | 'bank';
+    setPaymentMethod?: (method: 'card' | 'bank') => void;
 }
 
 export const FormShell: React.FC<FormShellProps> = ({
@@ -24,7 +26,9 @@ export const FormShell: React.FC<FormShellProps> = ({
     options = [],
     selectedOptionIds = new Set(),
     onOptionToggle,
-    totalAmount = 0
+    totalAmount = 0,
+    paymentMethod,
+    setPaymentMethod
 }) => {
     return (
         <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 lg:p-10 font-sans">
@@ -113,6 +117,50 @@ export const FormShell: React.FC<FormShellProps> = ({
                     <div className="px-12 py-4 bg-teal-50/50 border-t border-teal-100 flex justify-between items-center">
                         <span className="text-xs font-black text-teal-600 uppercase tracking-widest">결제 예정 금액</span>
                         <span className="text-xl font-black text-teal-900">{totalAmount.toLocaleString()}원</span>
+                    </div>
+                )}
+
+                {/* 💳 [PAYMENT METHOD SELECTOR] */}
+                {totalAmount > 0 && setPaymentMethod && paymentMethod && (
+                    <div className="px-12 py-6 bg-slate-50 border-t border-slate-100 space-y-4">
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs font-black text-slate-500 uppercase tracking-widest">결제 방식 선택</span>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setPaymentMethod('card')}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+                                        paymentMethod === 'card'
+                                        ? 'bg-teal-600 text-white shadow-sm'
+                                        : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-100'
+                                    }`}
+                                >
+                                    💳 신용카드
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPaymentMethod('bank')}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+                                        paymentMethod === 'bank'
+                                        ? 'bg-teal-600 text-white shadow-sm'
+                                        : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-100'
+                                    }`}
+                                >
+                                    🏦 무통장 입금
+                                </button>
+                            </div>
+                        </div>
+                        {paymentMethod === 'bank' && (
+                            <div className="bg-blue-50/70 p-4 rounded-2xl border border-blue-100/50 text-[11px] font-bold text-blue-900/80 leading-relaxed">
+                                📌 KEB하나은행 222-910031-30404 (사단법인 한국애견협회)<br/>
+                                신청 완료 후 위 계좌로 참가비를 입금해 주셔야 최종 접수가 완료됩니다.
+                            </div>
+                        )}
+                        {paymentMethod === 'card' && (
+                            <div className="bg-orange-50/70 p-4 rounded-2xl border border-orange-100/50 text-[11px] font-bold text-orange-950/80 leading-relaxed">
+                                📌 [최종 신청 완료] 버튼 클릭 시 PG 결제 팝업창이 표시되며 결제 완료 즉시 접수 처리됩니다.
+                            </div>
+                        )}
                     </div>
                 )}
 

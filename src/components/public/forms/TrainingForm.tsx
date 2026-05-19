@@ -6,12 +6,23 @@ import { FormShell } from './FormShell';
 export const TrainingForm: React.FC<{ competition: any, onClose: () => void, showAlert: (t: string, m: string) => void }> = ({
     competition, onClose, showAlert
 }) => {
-    const { formData, setFormData, isSubmitting, isSearching, handleInputChange, handleSearchMember, handleSave } = usePublicForm(
+    const { 
+        formData, setFormData, isSubmitting, isSearching, handleInputChange, handleSearchMember, handleSave,
+        paymentMethod, setPaymentMethod
+    } = usePublicForm(
         competition, 'sports_applicant', onClose, showAlert
     );
 
     return (
-        <FormShell title={competition.title} category="훈련 경기대회" onClose={onClose} onSave={handleSave} isSubmitting={isSubmitting}>
+        <FormShell 
+            title={competition.title} 
+            category="훈련 경기대회" 
+            onClose={onClose} 
+            onSave={handleSave} 
+            isSubmitting={isSubmitting}
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
+        >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-600">아이디 (ID) 및 정보 조회</label>
