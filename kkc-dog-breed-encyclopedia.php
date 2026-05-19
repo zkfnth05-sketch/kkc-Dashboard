@@ -167,3 +167,570 @@ function kkc_dog_breed_migration_page() {
 
     echo '</div>';
 }
+
+// 🚀 4. 퍼블릭용 실시간 AJAX 데이터 조회 API 등록
+add_action('wp_ajax_kkc_get_public_breeds', 'kkc_ajax_get_public_breeds');
+add_action('wp_ajax_nopriv_kkc_get_public_breeds', 'kkc_ajax_get_public_breeds');
+function kkc_ajax_get_public_breeds() {
+    global $wpdb;
+    $results = $wpdb->get_results("SELECT * FROM dog_info ORDER BY dog_kor_name ASC", ARRAY_A);
+    
+    // 데이터 가공 및 클렌징
+    foreach ($results as &$r) {
+        $r['dog_kor_name'] = trim($r['dog_kor_name']);
+        $r['dog_eng_name'] = trim($r['dog_eng_name']);
+        $r['dog_origin'] = trim($r['dog_origin']);
+        $r['content1'] = trim($r['content1']);
+    }
+    wp_send_json_success($results);
+}
+
+// 🚀 5. [kkc_dog_breed_catalog] 숏코드 등록 (원페이지 명품 견종도감)
+add_shortcode('kkc_dog_breed_catalog', 'kkc_dog_breed_catalog_shortcode');
+function kkc_dog_breed_catalog_shortcode() {
+    ob_start();
+    ?>
+    <div id="kkc-breed-portal" class="kkc-breed-portal-wrap">
+        <!-- 🎨 프리미엄 검색 & 필터 헤더 바 -->
+        <div class="kkc-filter-section">
+            <div class="kkc-search-box-wrap">
+                <span class="kkc-search-icon">🔍</span>
+                <input type="text" id="kkc-breed-search" placeholder="견종 이름 또는 원산지를 입력해 주세요..." />
+            </div>
+            <div class="kkc-group-filters">
+                <button class="kkc-filter-btn active" data-group="all">전체 견종</button>
+                <button class="kkc-filter-btn" data-origin="독일">독일</button>
+                <button class="kkc-filter-btn" data-origin="미국">미국</button>
+                <button class="kkc-filter-btn" data-origin="영국">영국</button>
+                <button class="kkc-filter-btn" data-origin="일본">일본</button>
+                <button class="kkc-filter-btn" data-origin="프랑스">프랑스</button>
+            </div>
+        </div>
+
+        <!-- 🔄 로딩 스피너 -->
+        <div id="kkc-breed-loading" class="kkc-loading-spinner">
+            <div class="spinner-circle"></div>
+            <p>신선한 견종 데이터 사전 로딩 중...</p>
+        </div>
+
+        <!-- 🐾 메인 견종 카드 그리드 (한 페이지에 아름답게 정렬) -->
+        <div id="kkc-breed-grid" class="kkc-breed-grid-layout" style="display:none;"></div>
+
+        <!-- 🚫 검색 결과 없음 안내 -->
+        <div id="kkc-breed-no-results" class="kkc-no-results-alert" style="display:none;">
+            <span>🐕</span>
+            <p>검색 결과와 매칭되는 견종이 없습니다. 철자를 확인해 주세요!</p>
+        </div>
+
+        <!-- 🖼️ 프리미엄 모달 팝업창 (동일 페이지에서 상세 보기 완벽 작동!) -->
+        <div id="kkc-breed-modal" class="kkc-glass-modal" style="display:none;">
+            <div class="kkc-modal-overlay" onclick="kkcCloseBreedModal()"></div>
+            <div class="kkc-modal-content">
+                <button class="kkc-modal-close-btn" onclick="kkcCloseBreedModal()">&times;</button>
+                <div class="kkc-modal-body-wrap">
+                    <div class="kkc-modal-header-img">
+                        <div class="kkc-avatar-silhouette">🐾</div>
+                    </div>
+                    <div class="kkc-modal-main-detail">
+                        <h2 id="modal-dog-title" class="modal-title-text">견종 이름</h2>
+                        <div class="kkc-meta-badges">
+                            <span id="modal-dog-origin" class="meta-badge-item origin-badge">원산지</span>
+                            <span id="modal-dog-group" class="meta-badge-item group-badge">그룹</span>
+                        </div>
+                        
+                        <div class="kkc-spec-grid">
+                            <div class="spec-card">
+                                <span class="spec-label">표준 체고(키)</span>
+                                <strong id="modal-dog-height" class="spec-value">- cm</strong>
+                            </div>
+                            <div class="spec-card">
+                                <span class="spec-label">표준 체중(몸무게)</span>
+                                <strong id="modal-dog-weight" class="spec-value">- kg</strong>
+                            </div>
+                        </div>
+
+                        <hr class="modal-divider" />
+                        <h3 class="section-subtitle">📖 견종 사전 및 성격 특징</h3>
+                        <div id="modal-dog-description" class="modal-description-content">
+                            여기에 상세 사전 설명글이 들어갑니다.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🎨 프리미엄 스타일링 (Vanilla CSS) -->
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+    
+    .kkc-breed-portal-wrap {
+        font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px 10px;
+    }
+
+    /* 필터 영역 */
+    .kkc-filter-section {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 30px;
+        background: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    .kkc-search-box-wrap {
+        position: relative;
+        width: 100%;
+    }
+    .kkc-search-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 18px;
+        color: #888;
+    }
+    #kkc-breed-search {
+        width: 100%;
+        padding: 14px 14px 14px 45px;
+        border: 2px solid #eef2f5;
+        border-radius: 12px;
+        font-size: 15px;
+        outline: none;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }
+    #kkc-breed-search:focus {
+        border-color: #2196f3;
+        box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.15);
+    }
+    .kkc-group-filters {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .kkc-filter-btn {
+        padding: 8px 16px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        border-radius: 30px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        font-weight: 500;
+        color: #4a5568;
+    }
+    .kkc-filter-btn:hover {
+        background: #f7fafc;
+        border-color: #cbd5e0;
+    }
+    .kkc-filter-btn.active {
+        background: #2196f3;
+        color: #fff;
+        border-color: #2196f3;
+        box-shadow: 0 4px 14px rgba(33, 150, 243, 0.3);
+    }
+
+    /* 그리드 레이아웃 */
+    .kkc-breed-grid-layout {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 20px;
+    }
+    
+    /* 견종 카드 */
+    .kkc-breed-card {
+        background: #fff;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid #edf2f7;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+    }
+    .kkc-breed-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border-color: rgba(33, 150, 243, 0.2);
+    }
+    .kkc-card-img-wrap {
+        height: 140px;
+        background: linear-gradient(135deg, #f6f8fb 0%, #eef2f7 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    .kkc-card-placeholder {
+        font-size: 38px;
+        filter: grayscale(0.2);
+        animation: pulse 2s infinite ease-in-out;
+    }
+    .kkc-card-info {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+    .kkc-card-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: #1a202c;
+        margin: 0 0 4px 0;
+    }
+    .kkc-card-sub {
+        font-size: 12px;
+        color: #718096;
+        margin: 0 0 12px 0;
+        font-style: italic;
+    }
+    .kkc-card-bottom {
+        margin-top: auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid #edf2f7;
+        padding-top: 12px;
+        font-size: 11px;
+        color: #a0aec0;
+    }
+    .kkc-card-origin {
+        background: #edf2f7;
+        color: #4a5568;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+
+    /* 로딩 및 에러 알림 */
+    .kkc-loading-spinner {
+        text-align: center;
+        padding: 50px 0;
+        color: #718096;
+    }
+    .spinner-circle {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #e2e8f0;
+        border-top-color: #2196f3;
+        border-radius: 50%;
+        margin: 0 auto 15px auto;
+        animation: spin 1s infinite linear;
+    }
+    .kkc-no-results-alert {
+        text-align: center;
+        padding: 50px 0;
+        color: #a0aec0;
+    }
+    .kkc-no-results-alert span {
+        font-size: 50px;
+    }
+
+    /* 🖼️ 프리미엄 글래스모피즘 모달창 */
+    .kkc-glass-modal {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    .kkc-modal-overlay {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(8px);
+    }
+    .kkc-modal-content {
+        position: relative;
+        background: rgba(255, 255, 255, 0.95);
+        width: 100%;
+        max-width: 650px;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
+    }
+    .kkc-modal-close-btn {
+        position: absolute;
+        right: 15px;
+        top: 15px;
+        background: rgba(0, 0, 0, 0.05);
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        font-size: 22px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        transition: all 0.2s ease;
+    }
+    .kkc-modal-close-btn:hover {
+        background: rgba(0, 0, 0, 0.1);
+        transform: rotate(90deg);
+    }
+    .kkc-modal-body-wrap {
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    .kkc-modal-header-img {
+        height: 160px;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .kkc-avatar-silhouette {
+        font-size: 60px;
+        color: rgba(255, 255, 255, 0.8);
+        animation: float 3s infinite ease-in-out;
+    }
+    .kkc-modal-main-detail {
+        padding: 30px;
+    }
+    .modal-title-text {
+        font-size: 26px;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 10px 0;
+    }
+    .kkc-meta-badges {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 25px;
+    }
+    .meta-badge-item {
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .origin-badge {
+        background: #e0f2fe;
+        color: #0369a1;
+    }
+    .group-badge {
+        background: #fef3c7;
+        color: #b45309;
+    }
+    
+    /* 규격 그리드 */
+    .kkc-spec-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+    .spec-card {
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        padding: 15px;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+    }
+    .spec-label {
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 4px;
+    }
+    .spec-value {
+        font-size: 16px;
+        color: #0f172a;
+        font-weight: 700;
+    }
+
+    .modal-divider {
+        border: 0;
+        border-top: 1px solid #edf2f7;
+        margin: 20px 0;
+    }
+    .section-subtitle {
+        font-size: 16px;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 12px 0;
+    }
+    .modal-description-content {
+        font-size: 14.5px;
+        color: #334155;
+        line-height: 1.7;
+        max-height: 250px;
+        overflow-y: auto;
+        padding-right: 8px;
+    }
+
+    /* Keyframes */
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.08); opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    </style>
+
+    <!-- ⚡ 실시간 고성능 비동기 자바스크립트 -->
+    <script>
+    let kkcAllBreeds = [];
+
+    document.addEventListener("DOMContentLoaded", function() {
+        kkcLoadBreedCatalog();
+
+        // 실시간 타이핑 검색 바인딩
+        const searchInput = document.getElementById("kkc-breed-search");
+        if (searchInput) {
+            searchInput.addEventListener("input", function(e) {
+                kkcRenderBreedGrid(e.target.value);
+            });
+        }
+
+        // 퀵 필터 버튼 바인딩
+        const filterBtns = document.querySelectorAll(".kkc-filter-btn");
+        filterBtns.forEach(btn => {
+            btn.addEventListener("click", function() {
+                filterBtns.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                
+                const origin = btn.getAttribute("data-origin");
+                if (origin) {
+                    document.getElementById("kkc-breed-search").value = "";
+                    kkcRenderBreedGrid(origin);
+                } else {
+                    document.getElementById("kkc-breed-search").value = "";
+                    kkcRenderBreedGrid("");
+                }
+            });
+        });
+    });
+
+    // 🚀 REST API로부터 121종 실시간 로딩
+    function kkcLoadBreedCatalog() {
+        const loadingEl = document.getElementById("kkc-breed-loading");
+        const gridEl = document.getElementById("kkc-breed-grid");
+        
+        fetch("<?php echo admin_url('admin-ajax.php'); ?>?action=kkc_get_public_breeds")
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    kkcAllBreeds = res.data;
+                    loadingEl.style.display = "none";
+                    gridEl.style.display = "grid";
+                    kkcRenderBreedGrid("");
+                } else {
+                    loadingEl.innerHTML = "<p style='color:red;'>데이터를 가져오는데 실패했습니다.</p>";
+                }
+            })
+            .catch(err => {
+                loadingEl.innerHTML = "<p style='color:red;'>네트워크 오류 발생: " + err.message + "</p>";
+            });
+    }
+
+    // 🎨 견종 그리드 동적 생성 및 필터링
+    function kkcRenderBreedGrid(keyword) {
+        const gridEl = document.getElementById("kkc-breed-grid");
+        const noResultsEl = document.getElementById("kkc-breed-no-results");
+        gridEl.innerHTML = "";
+
+        const cleanKeyword = keyword.trim().toLowerCase();
+        
+        // 검색 필터 적용
+        const filtered = kkcAllBreeds.filter(item => {
+            if (!cleanKeyword) return true;
+            return (
+                item.dog_kor_name.toLowerCase().includes(cleanKeyword) ||
+                item.dog_eng_name.toLowerCase().includes(cleanKeyword) ||
+                item.dog_origin.toLowerCase().includes(cleanKeyword)
+            );
+        });
+
+        if (filtered.length === 0) {
+            gridEl.style.display = "none";
+            noResultsEl.style.display = "block";
+            return;
+        }
+
+        gridEl.style.display = "grid";
+        noResultsEl.style.display = "none";
+
+        filtered.forEach(item => {
+            const card = document.createElement("div");
+            card.className = "kkc-breed-card";
+            card.onclick = () => kkcOpenBreedModal(item);
+
+            const displayEng = item.dog_eng_name ? item.dog_eng_name : "Unknown Breed";
+            const displayOrigin = item.dog_origin ? item.dog_origin : "미지정";
+            const displayGroup = item.dog_group ? (item.dog_group.length > 5 ? item.dog_group.substring(0, 5) : item.dog_group) : "일반";
+
+            card.innerHTML = `
+                <div class="kkc-card-img-wrap">
+                    <div class="kkc-card-placeholder">🐾</div>
+                </div>
+                <div class="kkc-card-info">
+                    <h3 class="kkc-card-title">${item.dog_kor_name}</h3>
+                    <p class="kkc-card-sub">${displayEng}</p>
+                    <div class="kkc-card-bottom">
+                        <span class="kkc-card-origin">${displayOrigin}</span>
+                        <span>그룹: ${displayGroup}</span>
+                    </div>
+                </div>
+            `;
+            gridEl.appendChild(card);
+        });
+    }
+
+    // 🖼️ 모달 팝업 열기 (동일 페이지에서 상세 보기 완벽 처리)
+    function kkcOpenBreedModal(item) {
+        const modal = document.getElementById("kkc-breed-modal");
+        
+        document.getElementById("modal-dog-title").innerText = item.dog_kor_name + (item.dog_eng_name ? " (" + item.dog_eng_name + ")" : "");
+        document.getElementById("modal-dog-origin").innerText = "📍 원산지: " + (item.dog_origin ? item.dog_origin : "미지정");
+        document.getElementById("modal-dog-group").innerText = "🐾 분류그룹: " + (item.dog_group ? item.dog_group : "일반견");
+        
+        const hMin = item.dog_height1 ? item.dog_height1 + " cm" : "";
+        const hMax = item.dog_height2 ? " ~ " + item.dog_height2 + " cm" : "";
+        document.getElementById("modal-dog-height").innerText = (hMin || hMax) ? hMin + hMax : "정보 준비중";
+
+        const wMin = item.dog_weight1 ? item.dog_weight1 + " kg" : "";
+        const wMax = item.dog_weight2 ? " ~ " + item.dog_weight2 + " kg" : "";
+        document.getElementById("modal-dog-weight").innerText = (wMin || wMax) ? wMin + wMax : "정보 준비중";
+
+        const descEl = document.getElementById("modal-dog-description");
+        if (item.content1 && item.content1.trim() !== "") {
+            descEl.innerHTML = item.content1;
+        } else {
+            descEl.innerHTML = "<p style='color:#a0aec0; font-style:italic;'>등록된 견종 사전 설명 본문이 없습니다. 최신 정보 수집 중입니다.</p>";
+        }
+
+        modal.style.display = "flex";
+        document.body.style.overflow = "hidden"; // 배경 스크롤 방지
+    }
+
+    // 🖼️ 모달 팝업 닫기
+    function kkcCloseBreedModal() {
+        document.getElementById("kkc-breed-modal").style.display = "none";
+        document.body.style.overflow = "auto";
+    }
+    </script>
+    <?php
+    return ob_get_clean();
+}
