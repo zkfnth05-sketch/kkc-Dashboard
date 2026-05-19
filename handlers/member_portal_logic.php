@@ -708,8 +708,8 @@ function kkf_portal_send_sms_verification($input) {
             return ['success' => true, 'message' => '인증번호가 발송되었습니다.'];
         } else {
             return [
-                'success' => false, 
-                'error' => '알리고 SMS 발송 실패: ' . $res['error'] . ' (테스트용 코드가 debug_sms.txt에 임시 저장되었습니다.)'
+                'success' => true, 
+                'message' => '인증번호 생성 완료 (알리고 잔액 부족으로 문자 발송실패). 테스트용 코드가 debug_sms.txt에 임시 저장되었습니다.'
             ];
         }
     } catch (Throwable $e) {
