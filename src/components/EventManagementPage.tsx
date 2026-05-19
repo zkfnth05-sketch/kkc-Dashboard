@@ -370,10 +370,12 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
                     return t.substring(0, 5);
                 };
 
-                const startDate = sParts[0] || '';
+                let startDate = sParts[0] || '';
+                if (startDate === '0000-00-00') startDate = '';
+                
                 const startTime = normalizeTime(item.startTime || (sParts[1] || ''));
 
-                const endDate = (eParts[0] && eParts[0] !== '-') ? eParts[0] : startDate;
+                let endDate = (eParts[0] && eParts[0] !== '-' && eParts[0] !== '0000-00-00') ? eParts[0] : startDate;
                 const endTime = normalizeTime(item.endTime || (eParts[1] || ''));
 
                 const categoryRaw = item.category || item.type_names || '';
@@ -387,14 +389,22 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
 
                 const venue = item.venue || item.venue_name || item.event_venue || item.location || '';
 
-                // 🚀 [FIX] 시작날짜와 종료날짜가 반대로 된 경우 자동 보정
-                const sTimeVal = startDate + ' ' + (startTime || '00:00');
-                const eTimeVal = endDate + ' ' + (endTime || '00:00');
+                // 🚀 [ROBUST DATE COMPARISON] 날짜가 둘 다 존재할 때만 비교 및 뒤바꿈 적용 (0000-00-00 오작동 방지)
+                let finalStartDate = startDate;
+                let finalStartTime = startTime;
+                let finalEndDate = endDate;
+                let finalEndTime = endTime;
 
-                const finalStartDate = (sTimeVal > eTimeVal) ? endDate : startDate;
-                const finalStartTime = (sTimeVal > eTimeVal) ? endTime : startTime;
-                const finalEndDate = (sTimeVal > eTimeVal) ? startDate : endDate;
-                const finalEndTime = (sTimeVal > eTimeVal) ? startTime : endTime;
+                if (startDate && endDate) {
+                    const sTimeVal = startDate + ' ' + (startTime || '00:00');
+                    const eTimeVal = endDate + ' ' + (endTime || '00:00');
+                    if (sTimeVal > eTimeVal) {
+                        finalStartDate = endDate;
+                        finalStartTime = endTime;
+                        finalEndDate = startDate;
+                        finalEndTime = startTime;
+                    }
+                }
 
                 return {
                     ...item,

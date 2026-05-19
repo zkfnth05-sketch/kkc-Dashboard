@@ -552,20 +552,36 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
         const sParts = sDt.split(' ');
         const eParts = eDt.split(' ');
         const normalizeTime = (t: string) => (!t || t.trim() === '' || t.substring(0, 5) === '00:00') ? '' : t.substring(0, 5);
-        const startDate = sParts[0] || '';
+        let startDate = sParts[0] || '';
+        if (startDate === '0000-00-00') startDate = '';
+        
         const startTime = normalizeTime(item.startTime || (sParts[1] || ''));
-        const endDate = (eParts[0] && eParts[0] !== '-') ? eParts[0] : startDate;
+        
+        let endDate = (eParts[0] && eParts[0] !== '-' && eParts[0] !== '0000-00-00') ? eParts[0] : startDate;
         const endTime = normalizeTime(item.endTime || (eParts[1] || ''));
+        
         const venueRaw = item.venue || item.venue_name || '';
         const venue = (venueRaw && !venueRaw.includes('미지정')) ? venueRaw : '';
         const organizerRaw = item.organizer || item.organizer_name || item.event_organizer || '';
         const organizer = (organizerRaw && !organizerRaw.includes('미지정') && !organizerRaw.includes('KKC')) ? organizerRaw : '(사)한국애견협회';
-        const sTimeVal = startDate + ' ' + (startTime || '00:00');
-        const eTimeVal = endDate + ' ' + (endTime || '00:00');
-        const finalStartDate = (sTimeVal > eTimeVal) ? endDate : startDate;
-        const finalStartTime = (sTimeVal > eTimeVal) ? endTime : startTime;
-        const finalEndDate = (sTimeVal > eTimeVal) ? startDate : endDate;
-        const finalEndTime = (sTimeVal > eTimeVal) ? startTime : endTime;
+        
+        // 🛡️ [ROBUST DATE COMPARISON] 날짜가 둘 다 존재할 때만 비교 및 뒤바꿈 적용 (0000-00-00 오작동 방지)
+        let finalStartDate = startDate;
+        let finalStartTime = startTime;
+        let finalEndDate = endDate;
+        let finalEndTime = endTime;
+        
+        if (startDate && endDate) {
+          const sTimeVal = startDate + ' ' + (startTime || '00:00');
+          const eTimeVal = endDate + ' ' + (endTime || '00:00');
+          if (sTimeVal > eTimeVal) {
+            finalStartDate = endDate;
+            finalStartTime = endTime;
+            finalEndDate = startDate;
+            finalEndTime = startTime;
+          }
+        }
+        
         return { ...item, startDate: finalStartDate, startTime: finalStartTime, endDate: finalEndDate, endTime: finalEndTime, venue, organizer };
       }).sort((a: any, b: any) => {
         const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
