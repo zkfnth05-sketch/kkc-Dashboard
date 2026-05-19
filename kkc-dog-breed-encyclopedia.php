@@ -168,21 +168,54 @@ function kkc_dog_breed_migration_page() {
     echo '</div>';
 }
 
-// 🚀 4. 퍼블릭용 실시간 AJAX 데이터 조회 API 등록
+
+// 🚀 4. 퍼블릭용 실시간 AJAX 데이터 조회 API 등록 (정식 CPT 기반 이미지 포함 조회)
 add_action('wp_ajax_kkc_get_public_breeds', 'kkc_ajax_get_public_breeds');
 add_action('wp_ajax_nopriv_kkc_get_public_breeds', 'kkc_ajax_get_public_breeds');
 function kkc_ajax_get_public_breeds() {
-    global $wpdb;
-    $results = $wpdb->get_results("SELECT * FROM dog_info ORDER BY dog_kor_name ASC", ARRAY_A);
+    $args = [
+        'post_type'      => 'dog_breed',
+        'posts_per_page' => -1,
+        'post_status'    => 'publish',
+        'orderby'        => 'title',
+        'order'          => 'ASC'
+    ];
+    $query = new WP_Query($args);
+    $breeds = [];
     
-    // 데이터 가공 및 클렌징
-    foreach ($results as &$r) {
-        $r['dog_kor_name'] = trim($r['dog_kor_name']);
-        $r['dog_eng_name'] = trim($r['dog_eng_name']);
-        $r['dog_origin'] = trim($r['dog_origin']);
-        $r['content1'] = trim($r['content1']);
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            $post_id = get_the_ID();
+            $img_url = get_the_post_thumbnail_url($post_id, 'medium'); // 대표 이미지(특성 이미지) URL 가져오기
+            
+            $idx = get_post_meta($post_id, '__legacy_breed_idx', true);
+            $kor_name = get_post_meta($post_id, 'dog_kor_name', true);
+            $eng_name = get_post_meta($post_id, 'dog_eng_name', true);
+            $origin = get_post_meta($post_id, 'dog_origin', true);
+            $group = get_post_meta($post_id, 'dog_group', true);
+            $h_min = get_post_meta($post_id, 'dog_height_min', true);
+            $h_max = get_post_meta($post_id, 'dog_height_max', true);
+            $w_min = get_post_meta($post_id, 'dog_weight_min', true);
+            $w_max = get_post_meta($post_id, 'dog_weight_max', true);
+            
+            $breeds[] = [
+                'idx'          => $idx,
+                'dog_kor_name' => $kor_name ? trim($kor_name) : get_the_title(),
+                'dog_eng_name' => $eng_name ? trim($eng_name) : '',
+                'dog_origin'   => $origin ? trim($origin) : '미지정',
+                'dog_group'    => $group ? trim($group) : '일반',
+                'dog_height1'  => $h_min,
+                'dog_height2'  => $h_max,
+                'dog_weight1'  => $w_min,
+                'dog_weight2'  => $w_max,
+                'content1'     => get_the_content(),
+                'img_url'      => $img_url ? esc_url($img_url) : '' // 대표 이미지 주입
+            ];
+        }
+        wp_reset_postdata();
     }
-    wp_send_json_success($results);
+    wp_send_json_success($breeds);
 }
 
 // 🚀 5. [kkc_dog_breed_catalog] 숏코드 등록 (원페이지 명품 견종도감)
@@ -228,7 +261,7 @@ function kkc_dog_breed_catalog_shortcode() {
             <div class="kkc-modal-content">
                 <button class="kkc-modal-close-btn" onclick="kkcCloseBreedModal()">&times;</button>
                 <div class="kkc-modal-body-wrap">
-                    <div class="kkc-modal-header-img">
+                    <div id="modal-header-image-container" class="kkc-modal-header-img">
                         <div class="kkc-avatar-silhouette">🐾</div>
                     </div>
                     <div class="kkc-modal-main-detail">
@@ -362,12 +395,22 @@ function kkc_dog_breed_catalog_shortcode() {
         border-color: rgba(33, 150, 243, 0.2);
     }
     .kkc-card-img-wrap {
-        height: 140px;
+        height: 160px;
         background: linear-gradient(135deg, #f6f8fb 0%, #eef2f7 100%);
         display: flex;
         align-items: center;
         justify-content: center;
         position: relative;
+        overflow: hidden;
+    }
+    .kkc-card-img-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: all 0.5s ease;
+    }
+    .kkc-breed-card:hover .kkc-card-img-wrap img {
+        transform: scale(1.08);
     }
     .kkc-card-placeholder {
         font-size: 38px;
@@ -473,7 +516,7 @@ function kkc_dog_breed_catalog_shortcode() {
         position: absolute;
         right: 15px;
         top: 15px;
-        background: rgba(0, 0, 0, 0.05);
+        background: rgba(0, 0, 0, 0.25);
         border: none;
         width: 36px;
         height: 36px;
@@ -484,10 +527,11 @@ function kkc_dog_breed_catalog_shortcode() {
         align-items: center;
         justify-content: center;
         z-index: 10;
+        color: #fff;
         transition: all 0.2s ease;
     }
     .kkc-modal-close-btn:hover {
-        background: rgba(0, 0, 0, 0.1);
+        background: rgba(0, 0, 0, 0.4);
         transform: rotate(90deg);
     }
     .kkc-modal-body-wrap {
@@ -496,11 +540,18 @@ function kkc_dog_breed_catalog_shortcode() {
         flex-direction: column;
     }
     .kkc-modal-header-img {
-        height: 160px;
+        height: 240px;
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         display: flex;
         align-items: center;
         justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .kkc-modal-header-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
     .kkc-avatar-silhouette {
         font-size: 60px;
@@ -681,9 +732,14 @@ function kkc_dog_breed_catalog_shortcode() {
             const displayOrigin = item.dog_origin ? item.dog_origin : "미지정";
             const displayGroup = item.dog_group ? (item.dog_group.length > 5 ? item.dog_group.substring(0, 5) : item.dog_group) : "일반";
 
+            // 대표 이미지가 있으면 보여주고, 없으면 발자국 아이콘 표시
+            const imageHtml = item.img_url 
+                ? `<img src="${item.img_url}" alt="${item.dog_kor_name}" />`
+                : `<div class="kkc-card-placeholder">🐾</div>`;
+
             card.innerHTML = `
                 <div class="kkc-card-img-wrap">
-                    <div class="kkc-card-placeholder">🐾</div>
+                    ${imageHtml}
                 </div>
                 <div class="kkc-card-info">
                     <h3 class="kkc-card-title">${item.dog_kor_name}</h3>
@@ -714,6 +770,14 @@ function kkc_dog_breed_catalog_shortcode() {
         const wMax = item.dog_weight2 ? " ~ " + item.dog_weight2 + " kg" : "";
         document.getElementById("modal-dog-weight").innerText = (wMin || wMax) ? wMin + wMax : "정보 준비중";
 
+        // 모달 헤더 이미지 설정 (대표 이미지 있으면 적용, 없으면 발자국 아이콘)
+        const headerImgContainer = document.getElementById("modal-header-image-container");
+        if (item.img_url) {
+            headerImgContainer.innerHTML = `<img src="${item.img_url}" alt="${item.dog_kor_name}" />`;
+        } else {
+            headerImgContainer.innerHTML = `<div class="kkc-avatar-silhouette">🐾</div>`;
+        }
+
         const descEl = document.getElementById("modal-dog-description");
         if (item.content1 && item.content1.trim() !== "") {
             descEl.innerHTML = item.content1;
@@ -734,3 +798,4 @@ function kkc_dog_breed_catalog_shortcode() {
     <?php
     return ob_get_clean();
 }
+
