@@ -575,6 +575,14 @@ function kkf_portal_update_my_data($input) {
 }
 
 /**
+ * 🔒 [Portal] 디버그 모드 설정 (true: debug_sms.txt 에 인증코드 기록, false: 기록 안함)
+ * 실서비스(정식 오픈) 시 아래 값을 false로 변경하고 기존 debug_sms.txt 파일을 서버에서 삭제해 주세요.
+ */
+if (!defined('KKC_SMS_DEBUG')) {
+    define('KKC_SMS_DEBUG', true);
+}
+
+/**
  * 🔒 [Portal] 자체 Transient(만료기능 임시 저장소) 구현 (워드프레스 비종속)
  */
 function kkc_init_transient_table($conn) {
@@ -700,9 +708,11 @@ function kkf_portal_send_sms_verification($input) {
         $res = kkf_portal_send_aligo_sms($hp_clean, $msg);
 
         // 📝 알리고 잔액 충전 전에도 테스트가 가능하도록 debug_sms.txt 에 인증코드 기록
-        $debug_msg = "[" . date('Y-m-d H:i:s') . "] 수신: $hp_clean, 내용: $msg (코드: $code)\n";
-        @file_put_contents(dirname(__FILE__) . '/../debug_sms.txt', $debug_msg);
-        @file_put_contents(dirname(__FILE__) . '/debug_sms.txt', $debug_msg);
+        if (defined('KKC_SMS_DEBUG') && KKC_SMS_DEBUG) {
+            $debug_msg = "[" . date('Y-m-d H:i:s') . "] 수신: $hp_clean, 내용: $msg (코드: $code)\n";
+            @file_put_contents(dirname(__FILE__) . '/../debug_sms.txt', $debug_msg);
+            @file_put_contents(dirname(__FILE__) . '/debug_sms.txt', $debug_msg);
+        }
 
         if ($res['success']) {
             return ['success' => true, 'message' => '인증번호가 발송되었습니다.'];
@@ -795,9 +805,11 @@ function kkf_portal_find_pw_send_sms($input) {
         $sms_res = kkf_portal_send_aligo_sms($hp_clean, $msg);
 
         // 📝 알리고 잔액 충전 전에도 테스트가 가능하도록 debug_sms.txt 에 인증코드 기록
-        $debug_msg = "[" . date('Y-m-d H:i:s') . "] 수신: $hp_clean, 내용: $msg (코드: $code)\n";
-        @file_put_contents(dirname(__FILE__) . '/../debug_sms.txt', $debug_msg);
-        @file_put_contents(dirname(__FILE__) . '/debug_sms.txt', $debug_msg);
+        if (defined('KKC_SMS_DEBUG') && KKC_SMS_DEBUG) {
+            $debug_msg = "[" . date('Y-m-d H:i:s') . "] 수신: $hp_clean, 내용: $msg (코드: $code)\n";
+            @file_put_contents(dirname(__FILE__) . '/../debug_sms.txt', $debug_msg);
+            @file_put_contents(dirname(__FILE__) . '/debug_sms.txt', $debug_msg);
+        }
 
         if ($sms_res['success']) {
             return ['success' => true, 'step' => 'sms_sent', 'message' => '회원님의 휴대폰으로 인증번호가 발송되었습니다.'];
