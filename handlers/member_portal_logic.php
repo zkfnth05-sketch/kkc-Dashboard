@@ -579,7 +579,7 @@ function kkf_portal_update_my_data($input) {
  * 실서비스(정식 오픈) 시 아래 값을 false로 변경하고 기존 debug_sms.txt 파일을 서버에서 삭제해 주세요.
  */
 if (!defined('KKC_SMS_DEBUG')) {
-    define('KKC_SMS_DEBUG', true);
+    define('KKC_SMS_DEBUG', false);
 }
 
 /**
@@ -718,8 +718,8 @@ function kkf_portal_send_sms_verification($input) {
             return ['success' => true, 'message' => '인증번호가 발송되었습니다.'];
         } else {
             return [
-                'success' => true, 
-                'message' => '인증번호 생성 완료 (알리고 잔액 부족으로 문자 발송실패). 테스트용 코드가 debug_sms.txt에 임시 저장되었습니다.'
+                'success' => false, 
+                'error' => '알리고 SMS 발송 실패: ' . $res['error']
             ];
         }
     } catch (Throwable $e) {
@@ -815,9 +815,8 @@ function kkf_portal_find_pw_send_sms($input) {
             return ['success' => true, 'step' => 'sms_sent', 'message' => '회원님의 휴대폰으로 인증번호가 발송되었습니다.'];
         } else {
             return [
-                'success' => true, 
-                'step' => 'sms_sent', 
-                'message' => '본인 확인 성공(알리고 잔액 부족으로 문자 발송실패). 테스트용 코드가 debug_sms.txt에 임시 저장되었습니다.'
+                'success' => false, 
+                'error' => '인증번호 발송 실패: ' . $sms_res['error']
             ];
         }
 
