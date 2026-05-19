@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { UserPlus, User, Lock, Phone, Mail, ArrowLeft, Loader2, CheckCircle2, MapPin, Calendar, Smartphone, Globe } from 'lucide-react';
-import { portalRegister, portalCheckId } from '../services/portalService';
+import React, { useState, useEffect } from 'react';
+import { UserPlus, User, Lock, Phone, Mail, ArrowLeft, Loader2, CheckCircle2, MapPin, Calendar, Smartphone, Globe, Check } from 'lucide-react';
+import { portalRegister, portalCheckId, portalSendSmsVerification, portalVerifySmsCode } from '../services/portalService';
 import DaumPostcode from 'react-daum-postcode';
 
 interface PortalRegisterProps {
@@ -19,6 +19,56 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
   const [error, setError] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [postcodeTarget, setPostcodeTarget] = useState<'main' | 'dm' | null>(null);
+
+  // 📱 휴대폰 SMS 인증 상태
+  const [smsCode, setSmsCode] = useState('');
+  const [isSmsSent, setIsSmsSent] = useState(false);
+  const [isHpVerified, setIsHpVerified] = useState(false);
+  const [smsTimer, setSmsTimer] = useState(0);
+
+  useEffect(() => {
+    if (smsTimer > 0) {
+      const t = setTimeout(() => setSmsTimer(smsTimer - 1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [smsTimer]);
+
+  const handleSendSms = async () => {
+    if (!formData.hp) return setError('휴대폰 번호를 입력해주세요.');
+    setIsLoading(true);
+    setError('');
+    try {
+      const res = await portalSendSmsVerification(formData.hp);
+      if (res.success) {
+        setIsSmsSent(true);
+        setSmsTimer(180); // 3분
+        alert(res.message);
+      } else {
+        setError(res.error || '인증번호 발송 실패');
+      }
+    } catch (err: any) {
+      setError(err.message || '인증번호 발송 오류');
+    }
+    setIsLoading(false);
+  };
+
+  const handleVerifySms = async () => {
+    if (!smsCode) return setError('인증번호를 입력해주세요.');
+    setIsLoading(true);
+    setError('');
+    try {
+      const res = await portalVerifySmsCode(formData.hp, smsCode);
+      if (res.success) {
+        setIsHpVerified(true);
+        alert(res.message);
+      } else {
+        setError(res.error || '인증번호가 올바르지 않습니다.');
+      }
+    } catch (err: any) {
+      setError(err.message || '인증 오류');
+    }
+    setIsLoading(false);
+  };
 
   const handleCheckId = async () => {
     if (!formData.id) return setError('아이디를 입력해주세요.');
@@ -61,6 +111,7 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
       return setError('필수 항목(*)을 모두 입력해주세요.');
     }
     if (!isIdChecked) return setError('아이디 중복 확인이 필요합니다.');
+    if (!isHpVerified) return setError('휴대폰 번호 인증이 필요합니다.');
     if (formData.passwd !== formData.confirmPasswd) return setError('비밀번호가 일치하지 않습니다.');
     
     setIsLoading(true);
@@ -224,18 +275,60 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
           {/* 3. 연락처 정보 섹션 */}
           <Section icon={<Smartphone size={20}/>} title="연락처 정보">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
+              <div className="md:col-span-2">
                 <InputLabel label="휴대폰 번호 *" />
-                <div className="relative">
-                  <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                  <input
-                    type="tel" required
-                    value={formData.hp}
-                    onChange={(e) => setFormData({ ...formData, hp: e.target.value })}
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl transition-all outline-none font-bold placeholder:text-slate-300"
-                    placeholder="010-0000-0000"
-                  />
+                <div className="flex gap-2 mb-3">
+                  <div className="relative flex-1">
+                    <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                    <input
+                      type="tel" required disabled={isHpVerified}
+                      value={formData.hp}
+                      onChange={(e) => setFormData({ ...formData, hp: e.target.value })}
+                      className={`w-full pl-12 pr-4 py-4 bg-slate-50 border-2 rounded-2xl transition-all outline-none font-bold placeholder:text-slate-300 ${isHpVerified ? 'border-green-500 bg-green-50 text-slate-500' : 'border-transparent focus:border-blue-500 focus:bg-white'}`}
+                      placeholder="010-0000-0000"
+                    />
+                  </div>
+                  <button 
+                    type="button" disabled={isHpVerified || isLoading}
+                    onClick={handleSendSms}
+                    className={`px-6 rounded-2xl font-black transition-all shadow-sm text-sm shrink-0 ${isHpVerified ? 'bg-green-500 !text-white' : 'bg-slate-900 !text-white hover:bg-black active:scale-95'}`}
+                  >
+                    {isHpVerified ? (
+                      <span className="flex items-center gap-1 justify-center"><Check size={16} /> 인증 완료</span>
+                    ) : isSmsSent ? (
+                      '재발송'
+                    ) : (
+                      '인증번호 발송'
+                    )}
+                  </button>
                 </div>
+
+                {isSmsSent && !isHpVerified && (
+                  <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
+                    <div className="relative flex-1">
+                      <input
+                        type="text" required
+                        value={smsCode}
+                        onChange={(e) => setSmsCode(e.target.value)}
+                        maxLength={6}
+                        className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl transition-all outline-none font-bold placeholder:text-slate-300 text-center tracking-[0.2em]"
+                        placeholder="인증번호 6자리 입력"
+                      />
+                      {smsTimer > 0 && (
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-red-500">
+                          {Math.floor(smsTimer / 60)}:{(smsTimer % 60).toString().padStart(2, '0')}
+                        </div>
+                      )}
+                    </div>
+                    <button 
+                      type="button" disabled={isLoading}
+                      onClick={handleVerifySms}
+                      className="px-6 py-2 rounded-2xl font-black bg-blue-600 !text-white hover:bg-blue-700 active:scale-95 shadow-sm text-sm shrink-0"
+                    >
+                      인증 확인
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
                 <InputLabel label="일반 전화 (선택)" />

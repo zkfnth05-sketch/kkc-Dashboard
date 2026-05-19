@@ -55,6 +55,16 @@ try {
         $output = kkf_portal_membership_application_action($input);
     } else if ($mode === 'portal_update_my_data') {
         $output = kkf_portal_update_my_data($input);
+    } else if ($mode === 'portal_send_sms_verification') {
+        $output = kkf_portal_send_sms_verification($input);
+    } else if ($mode === 'portal_verify_sms_code') {
+        $output = kkf_portal_verify_sms_code($input);
+    } else if ($mode === 'portal_find_pw_send_sms') {
+        $output = kkf_portal_find_pw_send_sms($input);
+    } else if ($mode === 'portal_find_pw_verify_sms') {
+        $output = kkf_portal_find_pw_verify_sms($input);
+    } else if ($mode === 'portal_find_pw_reset') {
+        $output = kkf_portal_find_pw_reset($input);
     } else {
         $output['error'] = '모드 없음: ' . $mode;
     }

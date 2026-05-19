@@ -316,7 +316,16 @@ function kkf_portal_register($input) {
         $email = $conn->real_escape_string(trim($src['email'] ?? ''));
         
         if (empty($id) || empty($pw) || empty($name)) {
+            $conn->close();
             return ['success' => false, 'error' => '필수 항목이 누락되었습니다.'];
+        }
+
+        // 🔒 휴대폰 번호 인증 확인 (개발자/테스트 환경이나 실서버 모두 보안 우회 방지)
+        $hp_clean = str_replace('-', '', $hp);
+        $verified_key = 'kkf_sms_verified_' . $hp_clean;
+        if (!get_transient($verified_key)) {
+            $conn->close();
+            return ['success' => false, 'error' => '휴대폰 번호 인증이 완료되지 않았습니다.'];
         }
 
         // 🧬 [DYNAMIC COLUMN DETECTION] - memTab의 컬럼 존재 여부 확인
@@ -361,8 +370,12 @@ function kkf_portal_register($input) {
         $res = $conn->query($sql);
         $conn->close();
 
-        if ($res) return ['success' => true, 'message' => '회원 가입이 완료되었습니다.'];
-        else return ['success' => false, 'error' => 'DB 저장 실패'];
+        if ($res) {
+            delete_transient($verified_key);
+            return ['success' => true, 'message' => '회원 가입이 완료되었습니다.'];
+        } else {
+            return ['success' => false, 'error' => 'DB 저장 실패'];
+        }
 
     } catch (Throwable $e) {
         return ['success' => false, 'error' => '회원 가입 중 오류: ' . $e->getMessage()];
@@ -560,3 +573,361 @@ function kkf_portal_update_my_data($input) {
         return ['success' => false, 'error' => '정보 수정 중 오류: ' . $e->getMessage()];
     }
 }
+
+/**
+ * 🔒 [Portal] 자체 Transient(만료기능 임시 저장소) 구현 (워드프레스 비종속)
+ */
+function kkc_init_transient_table($conn) {
+    $sql = "CREATE TABLE IF NOT EXISTS kkc_transients (
+        t_key VARCHAR(100) PRIMARY KEY,
+        t_value TEXT NOT NULL,
+        expires INT NOT NULL,
+        INDEX (expires)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8";
+    $conn->query($sql);
+}
+
+if (!function_exists('set_transient')) {
+    function set_transient($key, $value, $duration) {
+        try {
+            $conn = get_kkc_portal_db();
+            kkc_init_transient_table($conn);
+            $key_esc = $conn->real_escape_string($key);
+            $val_esc = $conn->real_escape_string($value);
+            $expires = time() + intval($duration);
+            
+            $sql = "INSERT INTO kkc_transients (t_key, t_value, expires) 
+                    VALUES ('$key_esc', '$val_esc', $expires) 
+                    ON DUPLICATE KEY UPDATE t_value = '$val_esc', expires = $expires";
+            $conn->query($sql);
+            $conn->close();
+            return true;
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+}
+
+if (!function_exists('get_transient')) {
+    function get_transient($key) {
+        try {
+            $conn = get_kkc_portal_db();
+            kkc_init_transient_table($conn);
+            $key_esc = $conn->real_escape_string($key);
+            $now = time();
+            
+            // 1% 확률로 만료 데이터 청소
+            if (mt_rand(1, 100) === 1) {
+                $conn->query("DELETE FROM kkc_transients WHERE expires < $now");
+            }
+            
+            $sql = "SELECT t_value FROM kkc_transients WHERE t_key = '$key_esc' AND expires >= $now LIMIT 1";
+            $res = $conn->query($sql);
+            $row = $res ? $res->fetch_assoc() : null;
+            $conn->close();
+            
+            return $row ? $row['t_value'] : false;
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+}
+
+if (!function_exists('delete_transient')) {
+    function delete_transient($key) {
+        try {
+            $conn = get_kkc_portal_db();
+            kkc_init_transient_table($conn);
+            $key_esc = $conn->real_escape_string($key);
+            $sql = "DELETE FROM kkc_transients WHERE t_key = '$key_esc'";
+            $conn->query($sql);
+            $conn->close();
+            return true;
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+}
+
+/**
+ * 📱 알리고 SMS 전송 헬퍼 함수
+ */
+function kkf_portal_send_aligo_sms($receiver, $msg) {
+    $api_url = "https://apis.aligo.in/send/";
+    
+    $post_data = [
+        'key' => '0igka2rc8xvodn3dfaa1trcit0egkjai',
+        'userid' => 'kkcdog',
+        'sender' => '010-9999-3349',
+        'receiver' => str_replace('-', '', $receiver),
+        'msg' => $msg,
+        'msg_type' => 'SMS'
+    ];
+
+    $ch = curl_init($api_url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post_data));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    
+    $res = curl_exec($ch);
+    curl_close($ch);
+
+    $json = json_decode($res, true);
+    if ($json && intval($json['result_code'] ?? 0) === 1) {
+        return ['success' => true, 'data' => $json];
+    } else {
+        $err = $json['message'] ?? '알리고 API 전송 응답 오류';
+        return ['success' => false, 'error' => $err];
+    }
+}
+
+/**
+ * 📱 [Portal] 회원가입용 SMS 인증번호 발송
+ */
+function kkf_portal_send_sms_verification($input) {
+    try {
+        $hp = trim($input['hp'] ?? '');
+        $hp_clean = str_replace('-', '', $hp);
+        if (empty($hp_clean) || strlen($hp_clean) < 10) {
+            return ['success' => false, 'error' => '올바른 휴대폰 번호를 입력해 주세요.'];
+        }
+
+        $code = sprintf("%06d", mt_rand(100000, 999999));
+        set_transient('kkf_sms_reg_' . $hp_clean, $code, 180);
+
+        $msg = "[KKC 한국애견협회] 본인인증 번호는 [" . $code . "] 입니다. (3분 이내 입력)";
+        $res = kkf_portal_send_aligo_sms($hp_clean, $msg);
+
+        // 📝 알리고 잔액 충전 전에도 테스트가 가능하도록 debug_sms.txt 에 인증코드 기록
+        $debug_msg = "[" . date('Y-m-d H:i:s') . "] 수신: $hp_clean, 내용: $msg (코드: $code)\n";
+        @file_put_contents(dirname(__FILE__) . '/../debug_sms.txt', $debug_msg);
+        @file_put_contents(dirname(__FILE__) . '/debug_sms.txt', $debug_msg);
+
+        if ($res['success']) {
+            return ['success' => true, 'message' => '인증번호가 발송되었습니다.'];
+        } else {
+            return [
+                'success' => false, 
+                'error' => '알리고 SMS 발송 실패: ' . $res['error'] . ' (테스트용 코드가 debug_sms.txt에 임시 저장되었습니다.)'
+            ];
+        }
+    } catch (Throwable $e) {
+        return ['success' => false, 'error' => '인증번호 발송 중 오류: ' . $e->getMessage()];
+    }
+}
+
+/**
+ * 📱 [Portal] 회원가입용 SMS 인증번호 검증
+ */
+function kkf_portal_verify_sms_code($input) {
+    try {
+        $hp = trim($input['hp'] ?? '');
+        $hp_clean = str_replace('-', '', $hp);
+        $code = trim($input['code'] ?? '');
+
+        if (empty($hp_clean) || empty($code)) {
+            return ['success' => false, 'error' => '휴대폰 번호와 인증번호를 모두 입력해 주세요.'];
+        }
+
+        $saved_code = get_transient('kkf_sms_reg_' . $hp_clean);
+        if (!$saved_code) {
+            return ['success' => false, 'error' => '인증 코드가 만료되었거나 발송 내역이 없습니다.'];
+        }
+
+        if ($saved_code === $code) {
+            set_transient('kkf_sms_verified_' . $hp_clean, 'Y', 600);
+            delete_transient('kkf_sms_reg_' . $hp_clean);
+            return ['success' => true, 'message' => '휴대폰 인증이 성공적으로 완료되었습니다.'];
+        } else {
+            return ['success' => false, 'error' => '인증번호가 일치하지 않습니다. 다시 확인해 주세요.'];
+        }
+    } catch (Throwable $e) {
+        return ['success' => false, 'error' => '인증번호 확인 중 오류: ' . $e->getMessage()];
+    }
+}
+
+/**
+ * 🔒 [Portal] 비밀번호 찾기 (이름, 생년월일, 연락처 체크 후 SMS 인증번호 발송)
+ */
+function kkf_portal_find_pw_send_sms($input) {
+    try {
+        $conn = get_kkc_portal_db();
+        $conn->query("SET NAMES 'binary'");
+
+        $name = kkc_convert(trim($input['name'] ?? ''), 'EUC-KR', false);
+        $hp = trim($input['hp'] ?? '');
+        $birth = trim($input['birth'] ?? '');
+
+        $name_esc = $conn->real_escape_string($name);
+        $hp_esc = $conn->real_escape_string($hp);
+        $birth_esc = $conn->real_escape_string($birth);
+
+        if (empty($name_esc) || empty($hp_esc) || empty($birth_esc)) {
+            $conn->close();
+            return ['success' => false, 'error' => '이름, 연락처, 생년월일을 모두 입력해 주세요.'];
+        }
+
+        $birth_cond = "birth = '$birth_esc'";
+        if (strlen($birth_esc) === 8) {
+            $birth_6 = substr($birth_esc, 2);
+            $birth_cond = "(birth = '$birth_esc' OR birth = '$birth_6')";
+        } else if (strlen($birth_esc) === 6) {
+            $birth_cond = "(birth = '$birth_esc' OR birth LIKE '%$birth_esc')";
+        }
+
+        $hp_clean = str_replace('-', '', $hp_esc);
+        $hp_cond = "(REPLACE(hp, '-', '') = '$hp_clean' OR REPLACE(phone, '-', '') = '$hp_clean')";
+
+        $sql = "SELECT id, hp FROM memTab WHERE name = '$name_esc' AND $birth_cond AND $hp_cond LIMIT 1";
+        $res = $conn->query($sql);
+        $user = $res ? $res->fetch_assoc() : null;
+        $conn->close();
+
+        if (!$user) {
+            return ['success' => false, 'error' => '일치하는 회원 정보가 없습니다. 이름, 생년월일, 연락처를 다시 확인해 주세요.'];
+        }
+
+        $code = sprintf("%06d", mt_rand(100000, 999999));
+        set_transient('kkf_sms_reset_' . $hp_clean, $code, 180);
+
+        $msg = "[KKC 한국애견협회] 비밀번호 변경 인증번호는 [" . $code . "] 입니다. (3분 이내 입력)";
+        $sms_res = kkf_portal_send_aligo_sms($hp_clean, $msg);
+
+        // 📝 알리고 잔액 충전 전에도 테스트가 가능하도록 debug_sms.txt 에 인증코드 기록
+        $debug_msg = "[" . date('Y-m-d H:i:s') . "] 수신: $hp_clean, 내용: $msg (코드: $code)\n";
+        @file_put_contents(dirname(__FILE__) . '/../debug_sms.txt', $debug_msg);
+        @file_put_contents(dirname(__FILE__) . '/debug_sms.txt', $debug_msg);
+
+        if ($sms_res['success']) {
+            return ['success' => true, 'step' => 'sms_sent', 'message' => '회원님의 휴대폰으로 인증번호가 발송되었습니다.'];
+        } else {
+            return [
+                'success' => true, 
+                'step' => 'sms_sent', 
+                'message' => '본인 확인 성공(알리고 잔액 부족으로 문자 발송실패). 테스트용 코드가 debug_sms.txt에 임시 저장되었습니다.'
+            ];
+        }
+
+    } catch (Throwable $e) {
+        return ['success' => false, 'error' => '본인 정보 확인 중 오류: ' . $e->getMessage()];
+    }
+}
+
+/**
+ * 🔒 [Portal] 비밀번호 찾기 SMS 인증 확인
+ */
+function kkf_portal_find_pw_verify_sms($input) {
+    try {
+        $name = trim($input['name'] ?? '');
+        $hp = trim($input['hp'] ?? '');
+        $birth = trim($input['birth'] ?? '');
+        $code = trim($input['code'] ?? '');
+
+        $hp_clean = str_replace('-', '', $hp);
+
+        if (empty($hp_clean) || empty($code)) {
+            return ['success' => false, 'error' => '휴대폰 번호와 인증번호를 모두 입력해 주세요.'];
+        }
+
+        $saved_code = get_transient('kkf_sms_reset_' . $hp_clean);
+        if (!$saved_code) {
+            return ['success' => false, 'error' => '인증 코드가 만료되었거나 발송 내역이 없습니다.'];
+        }
+
+        if ($saved_code === $code) {
+            $conn = get_kkc_portal_db();
+            $conn->query("SET NAMES 'binary'");
+
+            $name_esc = $conn->real_escape_string(kkc_convert($name, 'EUC-KR', false));
+            $birth_esc = $conn->real_escape_string($birth);
+            
+            $birth_cond = "birth = '$birth_esc'";
+            if (strlen($birth_esc) === 8) {
+                $birth_6 = substr($birth_esc, 2);
+                $birth_cond = "(birth = '$birth_esc' OR birth = '$birth_6')";
+            }
+
+            $hp_cond = "(REPLACE(hp, '-', '') = '$hp_clean' OR REPLACE(phone, '-', '') = '$hp_clean')";
+            $sql = "SELECT id FROM memTab WHERE name = '$name_esc' AND $birth_cond AND $hp_cond LIMIT 1";
+            $res = $conn->query($sql);
+            $user = $res ? $res->fetch_assoc() : null;
+            $conn->close();
+
+            if (!$user) {
+                return ['success' => false, 'error' => '회원 정보를 다시 조회할 수 없습니다. 처음부터 다시 진행해 주세요.'];
+            }
+
+            $found_id = $user['id'];
+
+            set_transient('kkf_sms_reset_verified_' . $hp_clean, 'Y', 600);
+            delete_transient('kkf_sms_reset_' . $hp_clean);
+
+            return [
+                'success' => true, 
+                'step' => 'verified', 
+                'id' => $found_id, 
+                'message' => '인증에 성공하였습니다.'
+            ];
+        } else {
+            return ['success' => false, 'error' => '인증번호가 일치하지 않습니다.'];
+        }
+    } catch (Throwable $e) {
+        return ['success' => false, 'error' => '인증번호 확인 중 오류: ' . $e->getMessage()];
+    }
+}
+
+/**
+ * 🔒 [Portal] 비밀번호 실제 변경 실행
+ */
+function kkf_portal_find_pw_reset($input) {
+    try {
+        $conn = get_kkc_portal_db();
+        $conn->query("SET NAMES 'binary'");
+
+        $name = kkc_convert(trim($input['name'] ?? ''), 'EUC-KR', false);
+        $hp = trim($input['hp'] ?? '');
+        $birth = trim($input['birth'] ?? '');
+        $new_pw = trim($input['new_pw'] ?? '');
+
+        $hp_clean = str_replace('-', '', $hp);
+
+        $verified_key = 'kkf_sms_reset_verified_' . $hp_clean;
+        if (!get_transient($verified_key)) {
+            $conn->close();
+            return ['success' => false, 'error' => '휴대폰 본인 인증 유효 시간이 만료되었습니다. 처음부터 다시 인증해 주세요.'];
+        }
+
+        if (empty($new_pw)) {
+            $conn->close();
+            return ['success' => false, 'error' => '새로운 비밀번호를 입력해 주세요.'];
+        }
+
+        $name_esc = $conn->real_escape_string($name);
+        $birth_esc = $conn->real_escape_string($birth);
+        $new_pw_esc = $conn->real_escape_string($new_pw);
+
+        $birth_cond = "birth = '$birth_esc'";
+        if (strlen($birth_esc) === 8) {
+            $birth_6 = substr($birth_esc, 2);
+            $birth_cond = "(birth = '$birth_esc' OR birth = '$birth_6')";
+        }
+
+        $hp_cond = "(REPLACE(hp, '-', '') = '$hp_clean' OR REPLACE(phone, '-', '') = '$hp_clean')";
+
+        $sql = "UPDATE memTab SET passwd = '$new_pw_esc' WHERE name = '$name_esc' AND $birth_cond AND $hp_cond";
+        $res = $conn->query($sql);
+        $conn->close();
+
+        if ($res) {
+            delete_transient($verified_key);
+            return ['success' => true, 'message' => '비밀번호가 성공적으로 변경되었습니다.'];
+        } else {
+            return ['success' => false, 'error' => '비밀번호 변경 실패'];
+        }
+
+    } catch (Throwable $e) {
+        return ['success' => false, 'error' => '비밀번호 변경 중 오류: ' . $e->getMessage()];
+    }
+}
+

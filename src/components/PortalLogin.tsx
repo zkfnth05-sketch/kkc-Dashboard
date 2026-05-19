@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { User, Lock, ArrowRight, Loader2, X, Calendar, Smartphone, ShieldAlert, Award, ArrowLeft } from 'lucide-react';
-import { portalLogin, portalFindPw } from '../services/portalService';
+import React, { useState, useEffect } from 'react';
+import { User, Lock, ArrowRight, Loader2, X, Calendar, Smartphone, ShieldAlert, Award, ArrowLeft, Check } from 'lucide-react';
+import { portalLogin, portalFindPwSendSms, portalFindPwVerifySms, portalFindPwReset } from '../services/portalService';
 
 interface PortalLoginProps {
   onLoginSuccess: (userData: any) => void;
@@ -160,33 +160,95 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ onLoginSuccess, onSwit
 };
 
 const FindPwModal = ({ isLegacyMode, onClose }: { isLegacyMode: boolean, onClose: () => void }) => {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1); // 1: 본인 정보 입력 및 SMS 인증, 2: 새 비밀번호 입력
   const [formData, setFormData] = useState({ name: '', hp: '', birth: '', new_pw: '' });
   const [foundId, setFoundId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleApply = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // 📱 SMS 인증 관련 상태
+  const [smsCode, setSmsCode] = useState('');
+  const [isSmsSent, setIsSmsSent] = useState(false);
+  const [smsTimer, setSmsTimer] = useState(0);
+
+  useEffect(() => {
+    if (smsTimer > 0) {
+      const t = setTimeout(() => setSmsTimer(smsTimer - 1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [smsTimer]);
+
+  // 1. 인증번호 받기
+  const handleSendSms = async () => {
+    if (!formData.name || !formData.hp || !formData.birth) {
+      return setError('이름, 생년월일, 휴대폰 번호를 모두 입력해주세요.');
+    }
     setIsLoading(true);
     setError('');
+    try {
+      const res = await portalFindPwSendSms({
+        name: formData.name,
+        hp: formData.hp,
+        birth: formData.birth
+      });
+      if (res.success) {
+        setIsSmsSent(true);
+        setSmsTimer(180);
+        alert(res.message || '인증번호가 발송되었습니다.');
+      } else {
+        setError(res.error || '본인 확인 실패');
+      }
+    } catch (err: any) {
+      setError(err.message || '인증번호 발송 오류');
+    }
+    setIsLoading(false);
+  };
 
-    if (step === 1) {
-      const res = await portalFindPw({ name: formData.name, hp: formData.hp, birth: formData.birth });
+  // 2. 인증번호 확인 후 Step 2로 이동
+  const handleVerifySms = async () => {
+    if (!smsCode) return setError('인증번호를 입력해주세요.');
+    setIsLoading(true);
+    setError('');
+    try {
+      const res = await portalFindPwVerifySms({
+        name: formData.name,
+        hp: formData.hp,
+        birth: formData.birth,
+        code: smsCode
+      });
       if (res.success) {
         setFoundId(res.id);
         setStep(2);
       } else {
-        setError(res.error);
+        setError(res.error || '인증번호가 올바르지 않습니다.');
       }
-    } else {
-      const res = await portalFindPw({ ...formData });
+    } catch (err: any) {
+      setError(err.message || '인증 오류');
+    }
+    setIsLoading(false);
+  };
+
+  // 3. 새 비밀번호 설정 완료
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.new_pw) return setError('새 비밀번호를 입력해주세요.');
+    setIsLoading(true);
+    setError('');
+    try {
+      const res = await portalFindPwReset({
+        name: formData.name,
+        hp: formData.hp,
+        birth: formData.birth,
+        new_pw: formData.new_pw
+      });
       if (res.success) {
         alert('비밀번호가 성공적으로 변경되었습니다. 새로운 비밀번호로 로그인해주세요.');
         onClose();
       } else {
-        setError(res.error);
+        setError(res.error || '비밀번호 변경 실패');
       }
+    } catch (err: any) {
+      setError(err.message || '비밀번호 변경 중 에러');
     }
     setIsLoading(false);
   };
@@ -196,7 +258,7 @@ const FindPwModal = ({ isLegacyMode, onClose }: { isLegacyMode: boolean, onClose
       <div className="bg-white rounded-[32px] w-full max-w-[420px] shadow-2xl relative animate-in zoom-in-95 duration-300 overflow-hidden">
         <div className="p-8 pb-4 flex justify-between items-center">
             <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              {isLegacyMode ? "기존 회원 환영 및 비밀번호 설정" : "비밀번호 찾기 / 재설정"}
+              {isLegacyMode ? "기존 회원 비밀번호 재설정" : "비밀번호 찾기 / 재설정"}
             </h2>
             <button onClick={onClose} className="p-2 bg-slate-50 text-slate-400 hover:text-red-500 rounded-full transition-colors">
               <X size={20} />
@@ -204,65 +266,109 @@ const FindPwModal = ({ isLegacyMode, onClose }: { isLegacyMode: boolean, onClose
         </div>
 
         <div className="px-8 pb-8">
-            <div className={`p-5 rounded-2xl border mb-8 ${isLegacyMode ? 'bg-orange-50 border-orange-100' : 'bg-blue-50 border-blue-100'}`}>
+            <div className={`p-5 rounded-2xl border mb-6 ${isLegacyMode ? 'bg-orange-50 border-orange-100' : 'bg-blue-50 border-blue-100'}`}>
                <p className={`text-xs font-bold leading-relaxed ${isLegacyMode ? 'text-orange-600' : 'text-blue-600'}`}>
                   {isLegacyMode && step === 1 ? (
-                    "사단법인 한국애견협회 회원님, 반갑습니다! 30만 원본 데이터와 연동됩니다. 가입 시 성함, 연락처, 생년월일을 입력해 주시면 즉시 본인 확인 후 새로운 비밀번호 설정을 도와드립니다."
+                    "사단법인 한국애견협회 회원님, 반갑습니다! 30만 원본 데이터와 연동됩니다. 이름, 생년월일, 연락처를 입력해 인증번호를 받으신 뒤, 새로운 비밀번호를 설정할 수 있습니다."
                   ) : step === 1 ? (
-                    "가입 시 등록한 이름, 생년월일, 연락처를 입력해 주세요. 일치할 경우 새로운 비밀번호를 설정할 수 있습니다."
+                    "가입 시 등록한 이름, 생년월일, 연락처를 입력해 주세요. 일치할 경우 휴대폰으로 전송된 인증번호를 통해 새로운 비밀번호를 재설정할 수 있습니다."
                   ) : (
-                    `본인 인증에 성공하였습니다! 회원님의 아이디는 [${foundId}] 입니다. 포털에서 사용할 새로운 비밀번호를 입력해 주세요.`
+                    `본인 인증에 성공하였습니다! 회원님의 아이디는 [${foundId}] 입니다. 사용할 새로운 비밀번호를 입력해 주세요.`
                   )}
                </p>
             </div>
 
-            <form onSubmit={handleApply} className="space-y-5">
-              {step === 1 ? (
-                <>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">이름</label>
-                    <div className="relative">
-                      <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                      <input 
-                        type="text" 
-                        required
-                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all"
-                        placeholder="실명을 입력하세요"
-                        value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      />
-                    </div>
+            {step === 1 ? (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">이름</label>
+                  <div className="relative">
+                    <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                    <input 
+                      type="text" 
+                      required
+                      className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all text-sm"
+                      placeholder="실명을 입력하세요"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">생년월일 (8자리)</label>
-                    <div className="relative">
-                      <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                      <input 
-                        type="text" 
-                        required
-                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all"
-                        placeholder="예: 19900101"
-                        value={formData.birth}
-                        onChange={(e) => setFormData({...formData, birth: e.target.value})}
-                      />
-                    </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">생년월일 (8자리)</label>
+                  <div className="relative">
+                    <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                    <input 
+                      type="text" 
+                      required
+                      className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all text-sm"
+                      placeholder="예: 19900101"
+                      value={formData.birth}
+                      onChange={(e) => setFormData({...formData, birth: e.target.value})}
+                    />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">휴대폰 번호</label>
-                    <div className="relative">
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">휴대폰 번호</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
                       <Smartphone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
                       <input 
                         type="text" 
                         required
-                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all"
-                        placeholder="숫자만 입력해 주세요"
+                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all text-sm"
+                        placeholder="숫자만 입력"
                         value={formData.hp}
                         onChange={(e) => setFormData({...formData, hp: e.target.value})}
                       />
                     </div>
+                    <button 
+                      type="button"
+                      disabled={isLoading}
+                      onClick={handleSendSms}
+                      className="px-4 py-2 bg-slate-900 !text-white text-xs font-black rounded-2xl hover:bg-black active:scale-95 transition-all shrink-0"
+                    >
+                      {isSmsSent ? '재발송' : '인증번호 발송'}
+                    </button>
                   </div>
-                </>
-              ) : (
+                </div>
+
+                {isSmsSent && (
+                  <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">인증번호 입력</label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input 
+                          type="text" 
+                          required
+                          maxLength={6}
+                          className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all text-center tracking-[0.2em] text-sm"
+                          placeholder="6자리 인증번호"
+                          value={smsCode}
+                          onChange={(e) => setSmsCode(e.target.value)}
+                        />
+                        {smsTimer > 0 && (
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-red-500">
+                            {Math.floor(smsTimer / 60)}:{(smsTimer % 60).toString().padStart(2, '0')}
+                          </div>
+                        )}
+                      </div>
+                      <button 
+                        type="button"
+                        disabled={isLoading}
+                        onClick={handleVerifySms}
+                        className="px-4 py-2 bg-blue-600 !text-white text-xs font-black rounded-2xl hover:bg-blue-700 active:scale-95 transition-all shrink-0"
+                      >
+                        인증 확인
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <form onSubmit={handleResetPassword} className="space-y-5">
                 <div className="space-y-1.5">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">새로운 비밀번호</label>
                   <div className="relative">
@@ -270,7 +376,7 @@ const FindPwModal = ({ isLegacyMode, onClose }: { isLegacyMode: boolean, onClose
                     <input 
                       type="password" 
                       required
-                      className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all"
+                      className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all text-sm"
                       placeholder="4자 이상 입력해 주세요"
                       value={formData.new_pw}
                       onChange={(e) => setFormData({...formData, new_pw: e.target.value})}
@@ -278,28 +384,28 @@ const FindPwModal = ({ isLegacyMode, onClose }: { isLegacyMode: boolean, onClose
                     />
                   </div>
                 </div>
-              )}
 
-              {error && (
-                <div className="flex items-start gap-2 p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100">
-                    <ShieldAlert size={14} className="shrink-0 mt-0.5" />
-                    <span className="text-[11px] font-bold leading-tight">{error}</span>
-                </div>
-              )}
+                <button 
+                  type="submit"
+                  disabled={isLoading}
+                  className={`w-full py-4 text-white rounded-2xl font-black text-sm shadow-xl hover:scale-[1.02] transition-all active:scale-95 flex items-center justify-center gap-3 ${isLegacyMode ? 'bg-orange-600 shadow-orange-200' : 'bg-slate-900 shadow-slate-200'}`}
+                >
+                  {isLoading ? <Loader2 className="animate-spin" size={18} /> : (
+                    <>
+                      비밀번호 설정 완료
+                      <ArrowRight size={18} />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
 
-              <button 
-                type="submit"
-                disabled={isLoading}
-                className={`w-full py-4 text-white rounded-2xl font-black text-sm shadow-xl hover:scale-[1.02] transition-all active:scale-95 flex items-center justify-center gap-3 ${isLegacyMode ? 'bg-orange-600 shadow-orange-200' : 'bg-slate-900 shadow-slate-200'}`}
-              >
-                {isLoading ? <Loader2 className="animate-spin" size={18} /> : (
-                  <>
-                    {step === 1 ? "본인 정보 확인하기" : "비밀번호 설정 완료"}
-                    <ArrowRight size={18} />
-                  </>
-                )}
-              </button>
-            </form>
+            {error && (
+              <div className="flex items-start gap-2 p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 mt-4 animate-shake">
+                  <ShieldAlert size={14} className="shrink-0 mt-0.5" />
+                  <span className="text-[11px] font-bold leading-tight">{error}</span>
+              </div>
+            )}
         </div>
       </div>
     </div>

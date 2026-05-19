@@ -41,8 +41,11 @@ export const portalCheckId = async (id: string) => {
   return await portalFetch('portal_check_id', { id });
 };
 
-export const portalFindPw = (data: { name: string, hp: string, birth: string, new_pw?: string }) => 
-  portalFetch('portal_find_pw', data);
+export const portalSendSmsVerification = (hp: string) => portalFetch('portal_send_sms_verification', { hp });
+export const portalVerifySmsCode = (hp: string, code: string) => portalFetch('portal_verify_sms_code', { hp, code });
+export const portalFindPwSendSms = (data: { name: string, hp: string, birth: string }) => portalFetch('portal_find_pw_send_sms', data);
+export const portalFindPwVerifySms = (data: { name: string, hp: string, birth: string, code: string }) => portalFetch('portal_find_pw_verify_sms', data);
+export const portalFindPwReset = (data: { name: string, hp: string, birth: string, new_pw: string }) => portalFetch('portal_find_pw_reset', data);
 
 // 🏛️ 관리자 전용: 신청 내역 목록 및 삭제
 export const portalFetchMembershipApplications = (page: number, search: string, status: string) => 
