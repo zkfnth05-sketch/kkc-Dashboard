@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { PostCategory, Notice } from '../types';
 import { createPost, updatePost, uploadImage, uploadFile, BRIDGE_URL, SECRET_KEY } from '../services/memberService';
-import { Loader2, CheckCircle2, Type, AlertTriangle, Zap, Eye, X } from 'lucide-react';
+import { Loader2, CheckCircle2, Type, AlertTriangle, Zap, Eye, X, Paperclip, Trash2, FileText, Plus } from 'lucide-react';
 import { CustomEditor } from './EventManagementPage';
 
 interface NoticeFormProps {
@@ -12,6 +12,63 @@ interface NoticeFormProps {
   onCancel: () => void;
 }
 
+interface AttachmentFile {
+  name: string;
+  url: string;
+}
+
+const parseAttachments = (html: string): { cleanContent: string, files: AttachmentFile[] } => {
+  const startTag = '<!-- kkc-attachments-start -->';
+  const endTag = '<!-- kkc-attachments-end -->';
+  const startIndex = html.indexOf(startTag);
+  const endIndex = html.indexOf(endTag);
+  
+  if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+    const cleanContent = html.substring(0, startIndex).trim();
+    const attachmentPart = html.substring(startIndex + startTag.length, endIndex);
+    
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(attachmentPart, 'text/html');
+    const links = doc.querySelectorAll('a');
+    const files: AttachmentFile[] = [];
+    links.forEach(link => {
+      const url = link.getAttribute('href') || '';
+      const name = link.getAttribute('data-name') || link.textContent?.trim() || '첨부파일';
+      if (url) {
+        files.push({ name, url });
+      }
+    });
+    
+    return { cleanContent, files };
+  }
+  
+  return { cleanContent: html, files: [] };
+};
+
+const generateAttachmentsHtml = (files: AttachmentFile[]): string => {
+  if (files.length === 0) return '';
+  
+  const listItems = files.map(file => {
+    return `    <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+      <span style="color: #6b7280; font-size: 14px;">📄</span>
+      <a href="${file.url}" download="${file.name}" data-name="${file.name}" style="color: #2563eb; text-decoration: none; font-weight: 500; font-size: 14px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+        ${file.name}
+      </a>
+    </li>`;
+  }).join('\n');
+
+  return `\n<!-- kkc-attachments-start -->
+<div class="kkc-attachments" style="margin-top: 30px; padding: 16px 20px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: #f9fafb; font-family: sans-serif;">
+  <div style="font-weight: 700; font-size: 14px; margin-bottom: 12px; color: #374151; display: flex; align-items: center; gap: 6px;">
+    <span>📁</span> 첨부파일 (${files.length})
+  </div>
+  <ul style="list-style: none; padding-left: 0; margin: 0;">
+${listItems}
+  </ul>
+</div>
+<!-- kkc-attachments-end -->`;
+};
+
 export const NoticeForm: React.FC<NoticeFormProps> = ({ initialData, categories, tableName, onSave, onCancel }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -19,15 +76,25 @@ export const NoticeForm: React.FC<NoticeFormProps> = ({ initialData, categories,
   const [thumbnailId, setThumbnailId] = useState<number | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [attachments, setAttachments] = useState<AttachmentFile[]>([]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (initialData) {
       setTitle(initialData.title);
-      setContent(initialData.content || '');
+      const { cleanContent, files } = parseAttachments(initialData.content || '');
+      setContent(cleanContent);
+      setAttachments(files);
       setStatus(initialData.status || 'publish');
+    } else {
+      setTitle('');
+      setContent('');
+      setAttachments([]);
+      setStatus('publish');
     }
   }, [initialData]);
 
@@ -47,6 +114,41 @@ export const NoticeForm: React.FC<NoticeFormProps> = ({ initialData, categories,
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setError('');
+    try {
+      const newAttachments: AttachmentFile[] = [...attachments];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const res = await uploadFile(file);
+        if (res && res.success) {
+          newAttachments.push({
+            name: file.name,
+            url: res.url
+          });
+        } else {
+          setError(`"${file.name}" 업로드에 실패했습니다.`);
+        }
+      }
+      setAttachments(newAttachments);
+    } catch (err: any) {
+      setError(err.message || '파일 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveAttachment = (idx: number) => {
+    setAttachments(attachments.filter((_, i) => i !== idx));
   };
 
   const targetCategory = useMemo(() => {
@@ -71,8 +173,13 @@ export const NoticeForm: React.FC<NoticeFormProps> = ({ initialData, categories,
         }
       }
 
+      // 첨부파일 HTML 생성 및 본문 결합
+      const finalContent = content + generateAttachmentsHtml(attachments);
+
       const postData: any = {
-        title, content, status,
+        title,
+        content: finalContent,
+        status,
         category_id: targetCategory?.id || 0,
         thumbnail_id: finalThumbnailId
       };
@@ -131,6 +238,66 @@ export const NoticeForm: React.FC<NoticeFormProps> = ({ initialData, categories,
           />
         </div>
 
+        {/* 📁 첨부파일 섹션 */}
+        <div className="border border-gray-200 rounded-lg p-5 bg-gray-50/50">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+              <Paperclip size={18} className="text-blue-600" />
+              첨부파일 목록 ({attachments.length})
+            </h3>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="px-3 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded border border-blue-200 hover:bg-blue-100 disabled:opacity-50 transition-colors flex items-center gap-1.5"
+            >
+              <Plus size={14} /> 파일 추가
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleAttachmentUpload}
+              multiple
+              className="hidden"
+            />
+          </div>
+
+          {attachments.length === 0 ? (
+            <div className="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-lg bg-white">
+              첨부된 파일이 없습니다. (PDF, HWP, Word, Excel, ZIP 등 업로드 가능)
+            </div>
+          ) : (
+            <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+              {attachments.map((file, idx) => (
+                <div key={idx} className="flex justify-between items-center p-3 text-sm">
+                  <div className="flex items-center gap-2.5 overflow-hidden">
+                    <FileText size={18} className="text-gray-400 shrink-0" />
+                    <span className="font-medium text-gray-700 truncate">{file.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3 ml-4 shrink-0">
+                    <a
+                      href={file.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:underline font-bold"
+                    >
+                      다운로드
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAttachment(idx)}
+                      className="text-red-500 hover:text-red-700 transition-colors"
+                      title="삭제"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="flex justify-end pt-6 space-x-3 border-t border-gray-100 mb-10">
           <button type="submit" disabled={isSaving || isUploading} className="px-14 py-3 bg-blue-600 text-white text-sm font-black rounded hover:bg-blue-700 disabled:bg-blue-300 flex items-center shadow-xl transition-all active:scale-95">
             {isSaving ? <Loader2 size={18} className="animate-spin mr-2" /> : (initialData ? '수정 완료' : '작성 완료')}
@@ -148,6 +315,25 @@ export const NoticeForm: React.FC<NoticeFormProps> = ({ initialData, categories,
             <div className="flex-1 overflow-y-auto p-10 bg-white">
               <h1 className="text-3xl font-black text-gray-900 mb-6 border-b-2 border-gray-100 pb-4">{title || '제목 없음'}</h1>
               <div className="prose prose-blue max-w-none prose-img:rounded-lg" dangerouslySetInnerHTML={{ __html: content }} />
+              
+              {/* 첨부파일 미리보기 */}
+              {attachments.length > 0 && (
+                <div className="kkc-attachments" style={{ marginTop: '30px', padding: '16px 20px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb', fontFamily: 'sans-serif' }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: '#374151', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>📁</span> 첨부파일 ({attachments.length})
+                  </div>
+                  <ul style={{ listStyle: 'none', paddingLeft: 0, margin: 0 }}>
+                    {attachments.map((file, idx) => (
+                      <li key={idx} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ color: '#6b7280', fontSize: 14 }}>📄</span>
+                        <a href={file.url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 500, fontSize: 14 }}>
+                          {file.name}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
               <button onClick={() => setShowPreviewModal(false)} className="px-6 py-2 bg-gray-800 text-white font-bold rounded text-sm">닫기</button>
