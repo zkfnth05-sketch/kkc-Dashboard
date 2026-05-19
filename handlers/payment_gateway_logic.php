@@ -68,7 +68,7 @@ function kkc_pg_register($input) {
             'supply_value' => 0
         ],
         'trade_id' => $trade_id,
-        'site_url' => 'https://kkc-admin-dashboard.vercel.app',
+        'site_url' => $base_domain,
         'ok_url' => $ok_url,
         'fail_url' => $fail_url,
         'close_url' => $close_url,
