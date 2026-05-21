@@ -252,41 +252,41 @@ export const PublicCompetitionPage: React.FC = () => {
 
             {/* 📋 Competition Detail Modal (Original Style Restored) */}
             {selectedComp && (
-                <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 lg:p-12">
+                <div className="fixed inset-0 z-[600] flex items-center justify-center p-2 md:p-6 lg:p-12">
                     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xl animate-in fade-in duration-500" onClick={() => setSelectedComp(null)} />
-                    <div className="relative bg-white w-full max-w-6xl max-h-[90vh] rounded-[50px] shadow-[0_40px_120px_rgb(0,0,0,0.3)] overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
-                        <div className="p-10 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
+                    <div className="relative bg-white w-full max-w-6xl max-h-[95vh] md:max-h-[90vh] rounded-[24px] md:rounded-[50px] shadow-[0_40px_120px_rgb(0,0,0,0.3)] overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
+                        <div className="p-5 md:p-10 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
                             <div className="flex items-center gap-4">
                                 <span className="px-3 py-1 bg-indigo-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest">{selectedComp.category}</span>
-                                <h3 className="text-2xl font-black text-slate-900 tracking-tight">대회 인사이트</h3>
+                                <h3 className="text-lg md:text-2xl font-black text-slate-900 tracking-tight">대회 상세 정보</h3>
                             </div>
                             <button
                                 onClick={() => setSelectedComp(null)}
-                                className="w-12 h-12 bg-white border border-slate-200 hover:bg-slate-50 rounded-full transition-all flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm"
+                                className="w-10 h-10 md:w-12 md:h-12 bg-white border border-slate-200 hover:bg-slate-50 rounded-full transition-all flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm"
                             >
-                                <X size={24} />
+                                <X size={20} />
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-10 lg:p-20">
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-20">
-                                <div className="lg:col-span-5 space-y-12">
+                        <div className="flex-1 overflow-y-auto p-4 md:p-10 lg:p-20">
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-20">
+                                <div className="lg:col-span-5 space-y-6 md:space-y-12">
                                     {selectedComp.thumbnail_url && (
-                                        <div className="!aspect-square rounded-[40px] overflow-hidden bg-slate-100 border-8 border-slate-50 shadow-2xl relative group !min-w-[300px]">
+                                        <div className="aspect-square rounded-[20px] md:rounded-[40px] overflow-hidden bg-slate-100 border-4 md:border-8 border-slate-50 shadow-2xl relative group w-full">
                                             <div className="absolute inset-0 bg-gradient-to-tr from-teal-500/20 to-transparent mix-blend-multiply opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                                             <img src={selectedComp.thumbnail_url} className="!w-full !h-full !object-cover transition-transform duration-1000 group-hover:scale-110" alt={selectedComp.title} />
                                         </div>
                                     )}
 
                                     <div className="space-y-6">
-                                        <div className="p-8 bg-slate-50/50 rounded-[40px] border border-slate-100 space-y-8">
-                                            <div className="flex items-center gap-5">
-                                                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg text-indigo-500">
-                                                    <Calendar size={20} />
+                                        <div className="p-4 md:p-8 bg-slate-50/50 rounded-[20px] md:rounded-[40px] border border-slate-100 space-y-4 md:space-y-8">
+                                            <div className="flex items-center gap-4 md:gap-5">
+                                                <div className="w-10 h-10 md:w-14 md:h-14 bg-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-md text-indigo-500">
+                                                    <Calendar size={18} />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">대회 일시</p>
-                                                    <p className="text-[15px] font-black text-slate-800 leading-tight">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">대회 일시</p>
+                                                    <p className="text-[13px] md:text-[15px] font-black text-slate-800 leading-tight">
                                                         {selectedComp.startDate} ({selectedComp.startTime})
                                                         <br />
                                                         <span className="text-slate-300 mx-auto block my-1">~</span>
@@ -295,13 +295,13 @@ export const PublicCompetitionPage: React.FC = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-5 border-t border-slate-100/50 pt-8">
-                                                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg text-teal-500">
-                                                    <Clock size={24} />
+                                            <div className="flex items-center gap-4 md:gap-5 border-t border-slate-100/50 pt-4 md:pt-8">
+                                                <div className="w-10 h-10 md:w-14 md:h-14 bg-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-md text-teal-500">
+                                                    <Clock size={18} />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">접수 기간</p>
-                                                    <p className="text-[15px] font-black text-slate-800 leading-tight">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">접수 기간</p>
+                                                    <p className="text-[13px] md:text-[15px] font-black text-slate-800 leading-tight">
                                                         {selectedComp.reg_start_date || '미정'} ~
                                                         <br />
                                                         {selectedComp.reg_end_date || '미정'}
@@ -309,23 +309,23 @@ export const PublicCompetitionPage: React.FC = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-5 border-t border-slate-100/50 pt-8">
-                                                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg text-rose-500">
-                                                    <MapPin size={24} />
+                                            <div className="flex items-center gap-4 md:gap-5 border-t border-slate-100/50 pt-4 md:pt-8">
+                                                <div className="w-10 h-10 md:w-14 md:h-14 bg-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-md text-rose-500">
+                                                    <MapPin size={18} />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">장소</p>
-                                                    <p className="text-[15px] font-black text-slate-800">{selectedComp.venue}</p>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">장소</p>
+                                                    <p className="text-[13px] md:text-[15px] font-black text-slate-800">{selectedComp.venue}</p>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-5 border-t border-slate-100/50 pt-8">
-                                                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg text-amber-500">
-                                                    <Trophy size={24} />
+                                            <div className="flex items-center gap-4 md:gap-5 border-t border-slate-100/50 pt-4 md:pt-8">
+                                                <div className="w-10 h-10 md:w-14 md:h-14 bg-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-md text-amber-500">
+                                                    <Trophy size={18} />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">심사의원</p>
-                                                    <p className="text-[15px] font-black text-slate-800">{selectedComp.judges || '심사위원 추후 공지'}</p>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">심사의원</p>
+                                                    <p className="text-[13px] md:text-[15px] font-black text-slate-800">{selectedComp.judges || '심사위원 추후 공지'}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -333,21 +333,21 @@ export const PublicCompetitionPage: React.FC = () => {
                                 </div>
 
                                 <div className="lg:col-span-7">
-                                    <div className="flex flex-col h-full bg-white rounded-[40px] border-2 border-slate-100 p-12 overflow-hidden relative">
-                                        <div className="absolute top-0 right-10 -translate-y-1/2">
+                                    <div className="flex flex-col h-full bg-white rounded-[20px] md:rounded-[40px] border border-slate-100 md:border-2 p-5 md:p-12 overflow-hidden relative">
+                                        <div className="absolute top-0 right-10 -translate-y-1/2 hidden md:block">
                                             <div className="px-6 py-2 bg-slate-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/40">Overview</div>
                                         </div>
-                                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-4 leading-tight">{selectedComp.title}</h2>
-                                        {selectedComp.subtitle && <p className="text-lg font-bold text-slate-400 mb-10">{selectedComp.subtitle}</p>}
+                                        <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tighter mb-2 md:mb-4 leading-tight">{selectedComp.title}</h2>
+                                        {selectedComp.subtitle && <p className="text-sm md:text-lg font-bold text-slate-400 mb-6 md:mb-10">{selectedComp.subtitle}</p>}
 
-                                        <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
-                                            <div className="prose prose-slate prose-lg max-w-none text-slate-600 font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedComp.content }} />
+                                        <div className="flex-1 overflow-y-auto pr-2 md:pr-4 custom-scrollbar">
+                                            <div className="prose prose-slate prose-sm md:prose-lg max-w-none text-slate-600 font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedComp.content }} />
                                         </div>
 
-                                        <div className="mt-12 pt-8 border-t border-slate-100 flex items-center justify-between">
+                                        <div className="mt-6 md:mt-12 pt-4 md:pt-8 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                             <div className="space-y-1">
                                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Organized By</p>
-                                                <p className="text-[14px] font-[900] text-slate-900">{selectedComp.organizer}</p>
+                                                <p className="text-[13px] md:text-[14px] font-[900] text-slate-900">{selectedComp.organizer}</p>
                                             </div>
                                             <button
                                                 onClick={() => {
@@ -355,7 +355,7 @@ export const PublicCompetitionPage: React.FC = () => {
                                                         handleMembershipValidation(selectedComp, selectedComp.category || '');
                                                     }
                                                 }}
-                                                className="px-10 py-5 bg-teal-500 text-white rounded-[24px] text-[13px] font-[900] uppercase tracking-[0.2em] shadow-2xl shadow-teal-500/30 hover:bg-teal-600 transition-all flex items-center gap-4 group"
+                                                className="w-full sm:w-auto px-6 md:px-10 py-4 md:py-5 bg-teal-500 text-white rounded-xl md:rounded-[24px] text-xs md:text-[13px] font-[900] uppercase tracking-[0.2em] shadow-2xl shadow-teal-500/30 hover:bg-teal-600 transition-all flex items-center justify-center gap-4 group"
                                             >
                                                 신청하기
                                                 <ArrowRight size={18} className="translate-x-0 group-hover:translate-x-1 transition-transform" />
