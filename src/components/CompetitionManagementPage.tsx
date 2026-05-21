@@ -1041,20 +1041,20 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
         let extra: any = {};
         try { extra = viewDetailComp.ds_etc ? JSON.parse(viewDetailComp.ds_etc) : {}; } catch (err) { }
         return (
-          <div className="fixed inset-0 z-[450] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 lg:p-10 animate-in fade-in duration-300">
-            <div className="w-full max-w-6xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-500">
-              <div className="p-8 border-b flex justify-between items-center bg-slate-50/50">
-                <div className="flex items-center gap-4"><span className="px-4 py-1.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black tracking-widest uppercase">{viewDetailComp.category}</span><h3 className="text-xl font-black text-slate-900 tracking-tight">대회 상세 정보</h3></div>
-                <button onClick={() => setViewDetailComp(null)} className="p-3 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 transition-all text-slate-400 hover:text-slate-900"><X size={24} /></button>
+          <div className="fixed inset-0 z-[450] bg-black/80 backdrop-blur-xl flex items-center justify-center p-2 md:p-4 lg:p-10 animate-in fade-in duration-300">
+            <div className="w-full max-w-6xl bg-white rounded-[24px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] md:max-h-[90vh] animate-in zoom-in-95 duration-500">
+              <div className="p-5 md:p-8 border-b flex justify-between items-center bg-slate-50/50">
+                <div className="flex items-center gap-4"><span className="px-4 py-1.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black tracking-widest uppercase">{viewDetailComp.category}</span><h3 className="text-lg md:text-xl font-black text-slate-900 tracking-tight">대회 상세 정보</h3></div>
+                <button onClick={() => setViewDetailComp(null)} className="p-2 md:p-3 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 transition-all text-slate-400 hover:text-slate-900"><X size={24} /></button>
               </div>
-              <div className="flex-1 overflow-y-auto p-8 lg:p-12">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                  <div className="lg:col-span-4 space-y-8">
+              <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12">
+                  <div className="lg:col-span-4 space-y-6 md:space-y-8">
                     <div className="rounded-3xl overflow-hidden shadow-xl aspect-square bg-slate-100 relative group">
                       {viewDetailComp.thumbnail_url ? <img src={viewDetailComp.thumbnail_url} className="!w-full !h-full !object-cover" alt={viewDetailComp.title} /> : <div className="w-full h-full flex items-center justify-center text-slate-200"><ImageIcon size={64} /></div>}
                     </div>
                     <div className="space-y-6">
-                      <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 space-y-6">
+                      <div className="p-4 md:p-6 bg-slate-50 rounded-[20px] md:rounded-[32px] border border-slate-100 space-y-4 md:space-y-6">
                         <div className="flex items-center gap-4"><div className="p-4 bg-indigo-50 rounded-2xl shadow-sm text-indigo-600"><Clock size={22} strokeWidth={2.5} /></div><div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">대회 일시</p><p className="text-sm font-black text-slate-800 leading-tight">{viewDetailComp.startDate} {viewDetailComp.startTime && `(${viewDetailComp.startTime})`} <br /> <span className="text-slate-300 mx-auto block my-1">~</span> {viewDetailComp.endDate || viewDetailComp.startDate} {viewDetailComp.endTime && `(${viewDetailComp.endTime})`}</p></div></div>
                         <div className="flex items-center gap-4 border-t border-slate-100 pt-4"><div className="p-3 bg-white rounded-xl shadow-sm text-rose-400"><MapPin size={18} /></div><div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">장소</p><p className="text-xs font-black text-slate-800">{viewDetailComp.venue || '장소 추후 공지'}</p></div></div>
                         <div className="flex items-center gap-4 border-t border-slate-100 pt-4"><div className="p-3 bg-white rounded-xl shadow-sm text-blue-400"><Building2 size={18} /></div><div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">주최</p><p className="text-xs font-black text-slate-800">{viewDetailComp.organizer || '(사)한국애견협회'}</p></div></div>
@@ -1062,13 +1062,13 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
                       </div>
                     </div>
                   </div>
-                  <div className="lg:col-span-8 space-y-8">
-                    <div className="space-y-4">{viewDetailComp.subtitle && <p className="text-sm font-black text-indigo-500 uppercase tracking-[0.2em]">{viewDetailComp.subtitle}</p>}<h2 className="text-3xl lg:text-4xl font-black text-slate-900 leading-tight tracking-tight">{viewDetailComp.title}</h2></div>
-                    <div className="prose prose-indigo max-w-none text-slate-600 border-t border-slate-50 pt-8" dangerouslySetInnerHTML={{ __html: viewDetailComp.content }} />
+                  <div className="lg:col-span-8 space-y-6 md:space-y-8">
+                    <div className="space-y-4">{viewDetailComp.subtitle && <p className="text-sm font-black text-indigo-500 uppercase tracking-[0.2em]">{viewDetailComp.subtitle}</p>}<h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-slate-900 leading-tight tracking-tight">{viewDetailComp.title}</h2></div>
+                    <div className="prose prose-indigo max-w-none text-slate-600 border-t border-slate-100 pt-6 md:pt-8" dangerouslySetInnerHTML={{ __html: viewDetailComp.content }} />
                   </div>
                 </div>
               </div>
-              <div className="p-8 border-t bg-slate-50/50 flex justify-end gap-3"><button onClick={() => { const item = viewDetailComp; setViewDetailComp(null); setSelectedComp(item); setViewMode('form'); }} className="px-8 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl text-[11px] font-black hover:bg-slate-50 transition-all uppercase tracking-widest">수정하기</button><button onClick={() => setViewDetailComp(null)} className="px-10 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black hover:bg-black transition-all shadow-xl uppercase tracking-widest">닫기</button></div>
+              <div className="p-4 md:p-8 border-t bg-slate-50/50 flex justify-end gap-3"><button onClick={() => { const item = viewDetailComp; setViewDetailComp(null); setSelectedComp(item); setViewMode('form'); }} className="px-6 md:px-8 py-3 md:py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl text-[11px] font-black hover:bg-slate-50 transition-all uppercase tracking-widest">수정하기</button><button onClick={() => setViewDetailComp(null)} className="px-8 md:px-10 py-3 md:py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black hover:bg-black transition-all shadow-xl uppercase tracking-widest">닫기</button></div>
             </div>
           </div>
         );
