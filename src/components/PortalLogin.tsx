@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Lock, ArrowRight, Loader2, X, Calendar, Smartphone, ShieldAlert, Award, ArrowLeft, Check } from 'lucide-react';
-import { portalLogin, portalFindPwSendSms, portalFindPwVerifySms, portalFindPwReset } from '../services/portalService';
+import { portalLogin, portalFindPwSendSms, portalFindPwVerifySms, portalFindPwReset, portalGetNiceAuthUrl, portalNiceFindPwVerify } from '../services/portalService';
+
 
 interface PortalLoginProps {
   onLoginSuccess: (userData: any) => void;
@@ -166,6 +167,9 @@ const FindPwModal = ({ isLegacyMode, onClose }: { isLegacyMode: boolean, onClose
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // 📱 본인인증 방식 선택 ('sms' | 'ipin')
+  const [authMethod, setAuthMethod] = useState<'sms' | 'ipin'>('sms');
+
   // 📱 SMS 인증 관련 상태
   const [smsCode, setSmsCode] = useState('');
   const [isSmsSent, setIsSmsSent] = useState(false);
@@ -177,6 +181,63 @@ const FindPwModal = ({ isLegacyMode, onClose }: { isLegacyMode: boolean, onClose
       return () => clearTimeout(t);
     }
   }, [smsTimer]);
+
+  // 📱 NICE 아이핀 팝업 성공 postMessage 수신 리스너
+  useEffect(() => {
+    const handlePostMessage = async (e: MessageEvent) => {
+      if (e.data && e.data.type === 'NICE_AUTH_SUCCESS') {
+        const { web_transaction_id } = e.data;
+        setIsLoading(true);
+        setError('');
+        try {
+          const res = await portalNiceFindPwVerify(web_transaction_id);
+          if (res.success) {
+            setFormData(prev => ({
+              ...prev,
+              name: res.name || prev.name,
+              hp: res.hp || prev.hp,
+              birth: res.birth || prev.birth
+            }));
+            setFoundId(res.id);
+            setStep(2);
+            alert(`아이핀 인증 성공: 회원님의 아이디는 [${res.id}] 입니다.`);
+          } else {
+            setError(res.error || '아이핀 인증 결과 확인 실패');
+          }
+        } catch (err: any) {
+          setError(err.message || '아이핀 인증 처리 중 오류');
+        }
+        setIsLoading(false);
+      }
+    };
+
+    window.addEventListener('message', handlePostMessage);
+    return () => window.removeEventListener('message', handlePostMessage);
+  }, []);
+
+  const handleIpinAuth = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const res = await portalGetNiceAuthUrl();
+      if (res.success && res.data && res.data.auth_url) {
+        const width = 480;
+        const height = 812;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        window.open(
+          res.data.auth_url,
+          'niceAuth',
+          `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no`
+        );
+      } else {
+        setError(res.error || '아이핀 인증 요청 실패');
+      }
+    } catch (err: any) {
+      setError(err.message || '아이핀 인증 요청 오류');
+    }
+    setIsLoading(false);
+  };
 
   // 1. 인증번호 받기
   const handleSendSms = async () => {
@@ -280,90 +341,128 @@ const FindPwModal = ({ isLegacyMode, onClose }: { isLegacyMode: boolean, onClose
 
             {step === 1 ? (
               <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">이름</label>
-                  <div className="relative">
-                    <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input 
-                      type="text" 
-                      required
-                      className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all text-sm"
-                      placeholder="실명을 입력하세요"
-                      value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">생년월일 (8자리)</label>
-                  <div className="relative">
-                    <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input 
-                      type="text" 
-                      required
-                      className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all text-sm"
-                      placeholder="예: 19900101"
-                      value={formData.birth}
-                      onChange={(e) => setFormData({...formData, birth: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">휴대폰 번호</label>
+                <div className="space-y-1.5 mb-4">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">인증 방식 선택</label>
                   <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Smartphone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                      <input 
-                        type="text" 
-                        required
-                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all text-sm"
-                        placeholder="숫자만 입력"
-                        value={formData.hp}
-                        onChange={(e) => setFormData({...formData, hp: e.target.value})}
-                      />
-                    </div>
-                    <button 
+                    <button
                       type="button"
-                      disabled={isLoading}
-                      onClick={handleSendSms}
-                      className="px-4 py-2 bg-slate-900 !text-white text-xs font-black rounded-2xl hover:bg-black active:scale-95 transition-all shrink-0"
+                      onClick={() => setAuthMethod('sms')}
+                      className={`flex-1 py-3 px-4 rounded-xl font-bold text-xs transition-all border ${authMethod === 'sms' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
                     >
-                      {isSmsSent ? '재발송' : '인증번호 발송'}
+                      휴대폰 간편 인증
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthMethod('ipin')}
+                      className={`flex-1 py-3 px-4 rounded-xl font-bold text-xs transition-all border ${authMethod === 'ipin' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+                    >
+                      아이핀(i-PIN) 인증
                     </button>
                   </div>
                 </div>
 
-                {isSmsSent && (
-                  <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">인증번호 입력</label>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
+                {authMethod === 'sms' ? (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">이름</label>
+                      <div className="relative">
+                        <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
                         <input 
                           type="text" 
                           required
-                          maxLength={6}
-                          className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all text-center tracking-[0.2em] text-sm"
-                          placeholder="6자리 인증번호"
-                          value={smsCode}
-                          onChange={(e) => setSmsCode(e.target.value)}
+                          className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all text-sm"
+                          placeholder="실명을 입력하세요"
+                          value={formData.name}
+                          onChange={(e) => setFormData({...formData, name: e.target.value})}
                         />
-                        {smsTimer > 0 && (
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-red-500">
-                            {Math.floor(smsTimer / 60)}:{(smsTimer % 60).toString().padStart(2, '0')}
-                          </div>
-                        )}
                       </div>
-                      <button 
-                        type="button"
-                        disabled={isLoading}
-                        onClick={handleVerifySms}
-                        className="px-4 py-2 bg-blue-600 !text-white text-xs font-black rounded-2xl hover:bg-blue-700 active:scale-95 transition-all shrink-0"
-                      >
-                        인증 확인
-                      </button>
                     </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">생년월일 (8자리)</label>
+                      <div className="relative">
+                        <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                        <input 
+                          type="text" 
+                          required
+                          className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all text-sm"
+                          placeholder="예: 19900101"
+                          value={formData.birth}
+                          onChange={(e) => setFormData({...formData, birth: e.target.value})}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">휴대폰 번호</label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Smartphone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <input 
+                            type="text" 
+                            required
+                            className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all text-sm"
+                            placeholder="숫자만 입력"
+                            value={formData.hp}
+                            onChange={(e) => setFormData({...formData, hp: e.target.value})}
+                          />
+                        </div>
+                        <button 
+                          type="button"
+                          disabled={isLoading}
+                          onClick={handleSendSms}
+                          className="px-4 py-2 bg-slate-900 !text-white text-xs font-black rounded-2xl hover:bg-black active:scale-95 transition-all shrink-0"
+                        >
+                          {isSmsSent ? '재발송' : '인증번호 발송'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {isSmsSent && (
+                      <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">인증번호 입력</label>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <input 
+                              type="text" 
+                              required
+                              maxLength={6}
+                              className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold text-slate-900 transition-all text-center tracking-[0.2em] text-sm"
+                              placeholder="6자리 인증번호"
+                              value={smsCode}
+                              onChange={(e) => setSmsCode(e.target.value)}
+                            />
+                            {smsTimer > 0 && (
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-red-500">
+                                {Math.floor(smsTimer / 60)}:{(smsTimer % 60).toString().padStart(2, '0')}
+                              </div>
+                            )}
+                          </div>
+                          <button 
+                            type="button"
+                            disabled={isLoading}
+                            onClick={handleVerifySms}
+                            className="px-4 py-2 bg-blue-600 !text-white text-xs font-black rounded-2xl hover:bg-blue-700 active:scale-95 transition-all shrink-0"
+                          >
+                            인증 확인
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="py-6 text-center">
+                    <p className="text-xs text-slate-500 font-medium mb-4">
+                      아이핀 인증 버튼을 누르면 본인 확인용 팝업 창이 열립니다.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={isLoading}
+                      onClick={handleIpinAuth}
+                      className="w-full py-4 bg-blue-600 hover:bg-blue-700 !text-white font-bold rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? <Loader2 className="animate-spin" size={18} /> : '아이핀 인증하기'}
+                    </button>
                   </div>
                 )}
               </div>

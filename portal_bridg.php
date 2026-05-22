@@ -18,11 +18,16 @@ define('KKF_PORTAL', true);
 try {
     $current_dir = dirname(__FILE__);
     $logic_file = $current_dir . '/handlers/member_portal_logic.php';
+    $ipin_file = $current_dir . '/handlers/nice_ipin_logic.php';
 
     if (file_exists($logic_file)) {
         require_once $logic_file;
     } else {
         throw new Exception("로직 파일을 찾을 수 없습니다: " . $logic_file);
+    }
+
+    if (file_exists($ipin_file)) {
+        require_once $ipin_file;
     }
 
     $raw_input = file_get_contents('php://input');
@@ -35,6 +40,14 @@ try {
     if (!$input) $input = array_merge($_GET, $_POST);
 
     $mode = trim($input['mode'] ?? '');
+
+    // 📱 NICE i-PIN HTML 팝업 / 콜백 처리 (JSON 대신 HTML 출력 후 종료)
+    if ($mode === 'nice_callback') {
+        kkf_portal_handle_nice_callback($input);
+    } else if ($mode === 'nice_mock_popup') {
+        kkf_portal_render_nice_mock_popup($input);
+    }
+
     $output = ['success' => false, 'error' => '올바르지 않은 요청입니다.'];
 
     if ($mode === 'portal_login') {
@@ -65,6 +78,12 @@ try {
         $output = kkf_portal_find_pw_verify_sms($input);
     } else if ($mode === 'portal_find_pw_reset') {
         $output = kkf_portal_find_pw_reset($input);
+    } else if ($mode === 'portal_get_nice_auth_url') {
+        $output = kkf_portal_get_nice_auth_url($input);
+    } else if ($mode === 'portal_nice_get_verified_data') {
+        $output = kkf_portal_nice_get_verified_data($input);
+    } else if ($mode === 'portal_nice_find_pw_verify') {
+        $output = kkf_portal_nice_find_pw_verify($input);
     } else {
         $output['error'] = '모드 없음: ' . $mode;
     }

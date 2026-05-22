@@ -47,6 +47,12 @@ export const portalFindPwSendSms = (data: { name: string, hp: string, birth: str
 export const portalFindPwVerifySms = (data: { name: string, hp: string, birth: string, code: string }) => portalFetch('portal_find_pw_verify_sms', data);
 export const portalFindPwReset = (data: { name: string, hp: string, birth: string, new_pw: string }) => portalFetch('portal_find_pw_reset', data);
 
+export const portalGetNiceAuthUrl = () => portalFetch('portal_get_nice_auth_url');
+export const portalNiceGetVerifiedData = (web_transaction_id: string, hp?: string) => portalFetch('portal_nice_get_verified_data', { web_transaction_id, hp });
+export const portalNiceFindPwVerify = (web_transaction_id: string) => portalFetch('portal_nice_find_pw_verify', { web_transaction_id });
+
+
+
 // 🏛️ 관리자 전용: 신청 내역 목록 및 삭제
 export const portalFetchMembershipApplications = (page: number, search: string, status: string) => 
   portalFetch('portal_membership_applications_list', { page, search, status });
