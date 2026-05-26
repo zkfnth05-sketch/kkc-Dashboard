@@ -8,8 +8,8 @@ if (!defined('KKF_PORTAL')) exit;
 /**
  * 📱 [Portal] NICE 아이핀 연동 설정
  */
-if (!defined('NICE_CLIENT_ID')) define('NICE_CLIENT_ID', '');
-if (!defined('NICE_CLIENT_SECRET')) define('NICE_CLIENT_SECRET', '');
+if (!defined('NICE_CLIENT_ID')) define('NICE_CLIENT_ID', 'NI9690428a-4a82-4a5e-ae88-dccdb1602ef2');
+if (!defined('NICE_CLIENT_SECRET')) define('NICE_CLIENT_SECRET', 'NWNlZTJiMGEtM2M4Yy00OTY3LTljNTctZTc4NDg2YTkyZjM5MUU4NkU5OTVDNjc4OUNFRjA0Qzg0REY0');
 
 /**
  * 📱 [Portal] NICE 인증 URL 취득 (아이핀 svc_types => ['I'])
