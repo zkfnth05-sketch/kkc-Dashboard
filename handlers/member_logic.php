@@ -37,8 +37,26 @@ function kkc_handle_member_list($input) {
         
         $sub = [];
         foreach ($fields as $f) { 
-            // 🛡️ 한글 데이터가 포함된 binary 세션에서 UPPER() 사용은 데이터 망실 위험이 있어 제거
-            $sub[] = "`$f` LIKE CONCAT('%', UNHEX('$q_hex'), '%')"; 
+            if ($f === 'birth') {
+                // 🗓️ 생년월일 포맷 통합 검색 (890917, 19890917, 89-09-17, 1989-09-17, 8909, 198909 등 혼용 검색 완벽 대응)
+                $clean_q = preg_replace('/[^0-9]/', '', $q);
+                if (!empty($clean_q)) {
+                    $sub[] = "(
+                        REPLACE(`birth`, '-', '') LIKE '%{$clean_q}%'
+                        OR (LENGTH(REPLACE(`birth`, '-', '')) = 8 AND SUBSTRING(REPLACE(`birth`, '-', ''), 3) LIKE '%{$clean_q}%')
+                        OR (
+                            ('{$clean_q}' LIKE '19%' OR '{$clean_q}' LIKE '20%') AND (
+                                REPLACE(`birth`, '-', '') LIKE CONCAT('%', SUBSTRING('{$clean_q}', 3), '%')
+                            )
+                        )
+                    )";
+                } else {
+                    $sub[] = "`birth` LIKE CONCAT('%', UNHEX('$q_hex'), '%')";
+                }
+            } else {
+                // 🛡️ 한글 데이터가 포함된 binary 세션에서 UPPER() 사용은 데이터 망실 위험이 있어 제거
+                $sub[] = "`$f` LIKE CONCAT('%', UNHEX('$q_hex'), '%')"; 
+            }
         }
         $where[] = "(" . implode(" OR ", $sub) . ")";
     }
