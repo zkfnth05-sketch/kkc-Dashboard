@@ -139,24 +139,24 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (type === 'shepherd') {
       fieldsHtml = `
         <!-- 본견 기본 정보 -->
-        <div class="field" style="left: 34mm; top: 31.0mm; font-weight: bold; font-size: 1.05em;">${pedigree.fullName || pedigree.name || '-'}</div>
+        <div class="field" style="left: 21.5mm; top: 32.5mm; font-weight: bold; font-size: 1.05em;">${pedigree.fullName || pedigree.name || '-'}</div>
         
-        <div class="field" style="left: 34mm; top: 41.5mm; font-size: 0.95em;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
-        <div class="field" style="left: 92.0mm; top: 41.5mm; font-size: 0.95em;">${pedigree.coatType || 'stock hair'}</div>
+        <div class="field" style="left: 21.5mm; top: 42.0mm; font-size: 0.95em;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
+        <div class="field" style="left: 80.0mm; top: 42.0mm; font-size: 0.95em;">${pedigree.coatType || 'stock hair'}</div>
         
-        <div class="field" style="left: 34mm; top: 52.0mm; font-size: 0.95em;">${pedigree.color || '-'}</div>
+        <div class="field" style="left: 21.5mm; top: 51.5mm; font-size: 0.95em;">${pedigree.color || '-'}</div>
         
-        <div class="field" style="left: 34mm; top: 62.5mm; font-size: 0.95em;">${formatDateKr(pedigree.birthDate)}</div>
-        <div class="field" style="left: 92.0mm; top: 62.5mm; font-size: 0.95em;">${pedigree.joinDate || '-'}</div>
+        <div class="field" style="left: 21.5mm; top: 61.0mm; font-size: 0.95em;">${formatDateKr(pedigree.birthDate)}</div>
+        <div class="field" style="left: 80.0mm; top: 61.0mm; font-size: 0.95em;">${pedigree.joinDate || '-'}</div>
         
-        <div class="field" style="left: 92.0mm; top: 73.0mm; font-size: 0.95em;">${ownerHistory[0]?.change_date || '-'}</div>
+        <div class="field" style="left: 80.0mm; top: 71.0mm; font-size: 0.95em;">${ownerHistory[0]?.change_date || '-'}</div>
 
         <!-- 번식자/소유자 정보 (좌측 상단에 위치) -->
-        <div class="field" style="left: 34mm; top: 73.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.breeder || '-'}</div>
-        <div class="field" style="left: 34mm; top: 77.5mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.breederAddr || '-'}</div>
+        <div class="field" style="left: 21.5mm; top: 71.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.breeder || '-'}</div>
+        <div class="field" style="left: 21.5mm; top: 75.0mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.breederAddr || '-'}</div>
         
-        <div class="field" style="left: 34mm; top: 85.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.owner || '-'}</div>
-        <div class="field" style="left: 34mm; top: 89.5mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.ownerAddr || '-'}</div>
+        <div class="field" style="left: 21.5mm; top: 82.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.owner || '-'}</div>
+        <div class="field" style="left: 21.5mm; top: 86.0mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.ownerAddr || '-'}</div>
 
         <!-- 중앙 회색 박스 등록번호 정보 -->
         <div class="field" style="left: 146mm; top: 43.5mm; font-weight: bold; color: #1e3a8a; font-size: 1.0em;">${pedigree.regNo || '-'}</div>
@@ -166,42 +166,42 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
         <!-- 4대 혈통도 계보 (30 Ancestors) -->
         <!-- 1대 (Parents) -->
-        ${renderShepherdAncestor(2, '18mm', '89.0mm', '50mm', '13mm')} <!-- 부견 -->
-        ${renderShepherdAncestor(3, '18mm', '146.0mm', '50mm', '13mm')} <!-- 모견 -->
+        ${renderShepherdAncestor(2, '18mm', '92.0mm', '50mm', '13mm')} <!-- 부견 -->
+        ${renderShepherdAncestor(3, '18mm', '149.0mm', '50mm', '13mm')} <!-- 모견 -->
 
         <!-- 2대 (Grandparents) -->
-        ${renderShepherdAncestor(4, '74mm', '79.0mm', '50mm', '11mm')}
-        ${renderShepherdAncestor(5, '74mm', '107.0mm', '50mm', '11mm')}
-        ${renderShepherdAncestor(6, '74mm', '136.0mm', '50mm', '11mm')}
-        ${renderShepherdAncestor(7, '74mm', '164.0mm', '50mm', '11mm')}
+        ${renderShepherdAncestor(4, '74mm', '81.5mm', '50mm', '11mm')}
+        ${renderShepherdAncestor(5, '74mm', '109.5mm', '50mm', '11mm')}
+        ${renderShepherdAncestor(6, '74mm', '138.5mm', '50mm', '11mm')}
+        ${renderShepherdAncestor(7, '74mm', '166.5mm', '50mm', '11mm')}
 
         <!-- 3대 (Great-grandparents) -->
-        ${renderShepherdAncestor(8, '132mm', '72.5mm', '50mm', '9mm', true)}
-        ${renderShepherdAncestor(9, '132mm', '86.5mm', '50mm', '9mm', true)}
-        ${renderShepherdAncestor(10, '132mm', '100.5mm', '50mm', '9mm', true)}
-        ${renderShepherdAncestor(11, '132mm', '114.5mm', '50mm', '9mm', true)}
-        ${renderShepherdAncestor(12, '132mm', '129.0mm', '50mm', '9mm', true)}
-        ${renderShepherdAncestor(13, '132mm', '143.0mm', '50mm', '9mm', true)}
-        ${renderShepherdAncestor(14, '132mm', '157.0mm', '50mm', '9mm', true)}
-        ${renderShepherdAncestor(15, '132mm', '171.0mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(8, '133mm', '74.5mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(9, '133mm', '88.5mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(10, '133mm', '102.5mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(11, '133mm', '116.5mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(12, '133mm', '131.0mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(13, '133mm', '145.0mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(14, '133mm', '159.0mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(15, '133mm', '173.0mm', '50mm', '9mm', true)}
 
         <!-- 4대 (Great-great-grandparents) -->
-        ${renderShepherdAncestor(16, '188mm', '70.0mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(17, '188mm', '76.8mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(18, '188mm', '83.6mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(19, '188mm', '90.4mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(20, '188mm', '97.2mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(21, '188mm', '104.0mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(22, '188mm', '110.8mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(23, '188mm', '117.6mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(24, '188mm', '124.4mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(25, '188mm', '131.2mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(26, '188mm', '138.0mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(27, '188mm', '144.8mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(28, '188mm', '151.6mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(29, '188mm', '158.4mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(30, '188mm', '165.2mm', '50mm', '6.8mm', true)}
-        ${renderShepherdAncestor(31, '188mm', '172.0mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(16, '189mm', '71.5mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(17, '189mm', '78.3mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(18, '189mm', '85.1mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(19, '189mm', '91.9mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(20, '189mm', '98.7mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(21, '189mm', '105.5mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(22, '189mm', '112.3mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(23, '189mm', '119.1mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(24, '189mm', '125.9mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(25, '189mm', '132.7mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(26, '189mm', '139.5mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(27, '189mm', '146.3mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(28, '189mm', '153.1mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(29, '189mm', '159.9mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(30, '189mm', '166.7mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(31, '189mm', '173.5mm', '50mm', '6.8mm', true)}
 
         <!-- 우측 상단 평가 및 출생 통계 정보 -->
         <div class="field" style="left: 210.5mm; top: 16.5mm; font-size: 0.85em;">${pedigree.okDate || '-'}</div>
