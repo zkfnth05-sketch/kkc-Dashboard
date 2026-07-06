@@ -179,6 +179,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       
       return `
         <div class="ancestor-box" 
+             data-key="ancestor_${nodeId}"
              data-real-name="${name}" data-real-reg="${reg}" data-real-extra="${extra || ''}"
              data-sample-name="${s.name}" data-sample-reg="${s.reg}" data-sample-extra="${s.extra || ''}"
              style="left: ${left}; top: ${top}; width: ${width}; height: ${height}; line-height: 1.0; display: flex; flex-direction: column; justify-content: flex-start; gap: 0.5px;">
@@ -192,30 +193,30 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (type === 'shepherd') {
       fieldsHtml = `
         <!-- 본견 기본 정보 -->
-        <div class="field" data-real="${pedigree.fullName || pedigree.name || '-'}" data-sample="Xamo vom Grafenbrunn" style="left: 34.0mm; top: 31.0mm; font-weight: bold; font-size: 1.05em;">${pedigree.fullName || pedigree.name || '-'}</div>
+        <div class="field" data-key="dog_name" data-real="${pedigree.fullName || pedigree.name || '-'}" data-sample="Xamo vom Grafenbrunn" style="left: 34.0mm; top: 31.0mm; font-weight: bold; font-size: 1.05em;">${pedigree.fullName || pedigree.name || '-'}</div>
         
-        <div class="field" data-real="${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}" data-sample="MALE (수컷)" style="left: 34.0mm; top: 41.5mm; font-size: 0.95em;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
-        <div class="field" data-real="${pedigree.coatType || 'stock hair'}" data-sample="stock hair" style="left: 92.0mm; top: 41.5mm; font-size: 0.95em;">${pedigree.coatType || 'stock hair'}</div>
+        <div class="field" data-key="dog_gender" data-real="${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}" data-sample="MALE (수컷)" style="left: 34.0mm; top: 41.5mm; font-size: 0.95em;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
+        <div class="field" data-key="dog_coat" data-real="${pedigree.coatType || 'stock hair'}" data-sample="stock hair" style="left: 92.0mm; top: 41.5mm; font-size: 0.95em;">${pedigree.coatType || 'stock hair'}</div>
         
-        <div class="field" data-real="${pedigree.color || '-'}" data-sample="schwarz braun" style="left: 34.0mm; top: 52.0mm; font-size: 0.95em;">${pedigree.color || '-'}</div>
+        <div class="field" data-key="dog_color" data-real="${pedigree.color || '-'}" data-sample="schwarz braun" style="left: 34.0mm; top: 52.0mm; font-size: 0.95em;">${pedigree.color || '-'}</div>
         
-        <div class="field" data-real="${formatDateKr(pedigree.birthDate)}" data-sample="2012년 11월 28일" style="left: 34.0mm; top: 62.5mm; font-size: 0.95em;">${formatDateKr(pedigree.birthDate)}</div>
-        <div class="field" data-real="${pedigree.joinDate || '-'}" data-sample="2012-11-28" style="left: 92.0mm; top: 62.5mm; font-size: 0.95em;">${pedigree.joinDate || '-'}</div>
+        <div class="field" data-key="dog_birth" data-real="${formatDateKr(pedigree.birthDate)}" data-sample="2012년 11월 28일" style="left: 34.0mm; top: 62.5mm; font-size: 0.95em;">${formatDateKr(pedigree.birthDate)}</div>
+        <div class="field" data-key="dog_join" data-real="${pedigree.joinDate || '-'}" data-sample="2012-11-28" style="left: 92.0mm; top: 62.5mm; font-size: 0.95em;">${pedigree.joinDate || '-'}</div>
         
-        <div class="field" data-real="${ownerHistory[0]?.change_date || '-'}" data-sample="2025-10-19" style="left: 92.0mm; top: 73.0mm; font-size: 0.95em;">${ownerHistory[0]?.change_date || '-'}</div>
+        <div class="field" data-key="dog_owner_change" data-real="${ownerHistory[0]?.change_date || '-'}" data-sample="2025-10-19" style="left: 92.0mm; top: 73.0mm; font-size: 0.95em;">${ownerHistory[0]?.change_date || '-'}</div>
 
         <!-- 번식자/소유자 정보 (좌측 상단에 위치) -->
-        <div class="field" data-real="${pedigree.breeder || '-'}" data-sample="Dirk Scheerer" style="left: 34.0mm; top: 73.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.breeder || '-'}</div>
-        <div class="field" data-real="${pedigree.breederAddr || '-'}" data-sample="Bergweg 3, 56179 Vallendar" style="left: 34.0mm; top: 77.5mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.breederAddr || '-'}</div>
+        <div class="field" data-key="dog_breeder" data-real="${pedigree.breeder || '-'}" data-sample="Dirk Scheerer" style="left: 34.0mm; top: 73.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.breeder || '-'}</div>
+        <div class="field" data-key="dog_breeder_addr" data-real="${pedigree.breederAddr || '-'}" data-sample="Bergweg 3, 56179 Vallendar" style="left: 34.0mm; top: 77.5mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.breederAddr || '-'}</div>
         
-        <div class="field" data-real="${pedigree.owner || '-'}" data-sample="김기원" style="left: 34.0mm; top: 85.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.owner || '-'}</div>
-        <div class="field" data-real="${pedigree.ownerAddr || '-'}" data-sample="경남 김해시 삼계동" style="left: 34.0mm; top: 89.5mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.ownerAddr || '-'}</div>
+        <div class="field" data-key="dog_owner" data-real="${pedigree.owner || '-'}" data-sample="김기원" style="left: 34.0mm; top: 85.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.owner || '-'}</div>
+        <div class="field" data-key="dog_owner_addr" data-real="${pedigree.ownerAddr || '-'}" data-sample="경남 김해시 삼계동" style="left: 34.0mm; top: 89.5mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.ownerAddr || '-'}</div>
 
         <!-- 중앙 회색 박스 등록번호 정보 -->
-        <div class="field" data-real="${pedigree.regNo || '-'}" data-sample="KSZ-C40386" style="left: 146mm; top: 43.5mm; font-weight: bold; color: #1e3a8a; font-size: 1.0em;">${pedigree.regNo || '-'}</div>
-        <div class="field" data-real="${pedigree.microchip || '-'}" data-sample="410160010795337" style="left: 146mm; top: 54.0mm; font-weight: bold; font-size: 1.0em;">${pedigree.microchip || '-'}</div>
-        <div class="field" data-real="${pedigree.foreignNo || pedigree.domesticNo || '-'}" data-sample="SZ-2385565 SZ-독일세퍼드협회 전용 코드" style="left: 146mm; top: 64.5mm; font-size: 0.95em;">${pedigree.foreignNo || pedigree.domesticNo || '-'}</div>
-        <div class="field" data-real="${pedigree.dongtaeNo || '-'}" data-sample="Xamo sb / KSZ-C40386" style="left: 146mm; top: 75.0mm; font-size: 0.9em; max-width: 42mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.dongtaeNo || '-'}</div>
+        <div class="field" data-key="reg_no" data-real="${pedigree.regNo || '-'}" data-sample="KSZ-C40386" style="left: 146mm; top: 43.5mm; font-weight: bold; color: #1e3a8a; font-size: 1.0em;">${pedigree.regNo || '-'}</div>
+        <div class="field" data-key="microchip" data-real="${pedigree.microchip || '-'}" data-sample="410160010795337" style="left: 146mm; top: 54.0mm; font-weight: bold; font-size: 1.0em;">${pedigree.microchip || '-'}</div>
+        <div class="field" data-key="foreign_no" data-real="${pedigree.foreignNo || pedigree.domesticNo || '-'}" data-sample="SZ-2385565 SZ-독일세퍼드협회 전용 코드" style="left: 146mm; top: 64.5mm; font-size: 0.95em;">${pedigree.foreignNo || pedigree.domesticNo || '-'}</div>
+        <div class="field" data-key="dongtae_no" data-real="${pedigree.dongtaeNo || '-'}" data-sample="Xamo sb / KSZ-C40386" style="left: 146mm; top: 75.0mm; font-size: 0.9em; max-width: 42mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.dongtaeNo || '-'}</div>
 
         <!-- 4대 혈통도 계보 (30 Ancestors) -->
         <!-- 1대 (Parents) -->
@@ -257,14 +258,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         ${renderShepherdAncestor(31, '188mm', '169.0mm', '50mm', '6.8mm', 4)}
 
         <!-- 우측 상단 평가 및 출생 통계 정보 -->
-        <div class="field" data-real="${pedigree.okDate || '-'}" data-sample="2025-04 ~ 2027-04" style="left: 210.5mm; top: 13.5mm; font-size: 0.85em;">${pedigree.okDate || '-'}</div>
-        <div class="field" data-real="Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}" data-sample="Male: 2 / Female: 3" style="left: 228mm; top: 41.5mm; font-size: 0.85em;">Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}</div>
-        <div class="field" data-real="${getLitterValue('birth_count') || '1'}" data-sample="1" style="left: 228mm; top: 49.0mm; font-size: 0.85em;">${getLitterValue('birth_count') || '1'}</div>
-        <div class="field" data-real="0" data-sample="0" style="left: 228mm; top: 56.5mm; font-size: 0.85em;">0</div>
-        <div class="field" data-real="Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}" data-sample="Male: 2 / Female: 3" style="left: 228mm; top: 64.0mm; font-size: 0.85em;">Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}</div>
+        <div class="field" data-key="ok_date" data-real="${pedigree.okDate || '-'}" data-sample="2025-04 ~ 2027-04" style="left: 210.5mm; top: 13.5mm; font-size: 0.85em;">${pedigree.okDate || '-'}</div>
+        <div class="field" data-key="birth_litter" data-real="Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}" data-sample="Male: 2 / Female: 3" style="left: 228mm; top: 41.5mm; font-size: 0.85em;">Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}</div>
+        <div class="field" data-key="birth_count" data-real="${getLitterValue('birth_count') || '1'}" data-sample="1" style="left: 228mm; top: 49.0mm; font-size: 0.85em;">${getLitterValue('birth_count') || '1'}</div>
+        <div class="field" data-key="dead_count" data-real="0" data-sample="0" style="left: 228mm; top: 56.5mm; font-size: 0.85em;">0</div>
+        <div class="field" data-key="reg_count" data-real="Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}" data-sample="Male: 2 / Female: 3" style="left: 228mm; top: 64.0mm; font-size: 0.85em;">Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}</div>
 
         <!-- 하단 발행일 정보 (협회 직인 근처) -->
-        <div class="field" data-real="${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}" data-sample="2026년 7월 6일" style="left: 140mm; top: 189mm; font-size: 1.1em; font-weight: bold;">
+        <div class="field" data-key="issue_date" data-real="${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}" data-sample="2026년 7월 6일" style="left: 140mm; top: 189mm; font-size: 1.1em; font-weight: bold;">
           ${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
         </div>
       `;
@@ -578,6 +579,22 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       color: #334155;
     }
     
+    /* 편집 모드 용 스타일 */
+    .field[data-key], .ancestor-box[data-key] {
+      cursor: default;
+      transition: outline 0.1s;
+    }
+    body.edit-active .field[data-key]:hover, 
+    body.edit-active .ancestor-box[data-key]:hover {
+      cursor: move;
+      outline: 1px dashed #fbbf24 !important;
+    }
+    .selected-field {
+      outline: 2px solid #3b82f6 !important;
+      outline-offset: 2px;
+      background-color: rgba(59, 130, 246, 0.1) !important;
+    }
+    
     @media print {
       body {
         background-color: transparent;
@@ -627,8 +644,13 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         <input type="checkbox" id="sampleMode">
         <label for="sampleMode" style="color: #60a5fa; cursor: pointer; font-weight: bold;">🎯 샘플 대조 모드</label>
       </div>
+      <div class="control-group" style="margin-left: 10px;">
+        <input type="checkbox" id="editMode">
+        <label for="editMode" style="color: #fbbf24; cursor: pointer; font-weight: bold;">🛠️ 드래그 편집</label>
+      </div>
       <button class="btn btn-secondary" onclick="resetOffsets()">기초 초기화</button>
       <button class="btn btn-primary" onclick="doPrint()">인쇄하기</button>
+      <button class="btn" id="copyCoordsBtn" style="background-color: #10b981; color: white; font-weight: bold; margin-left: 8px;">📋 최종 좌표 복사</button>
     </div>
   </div>
 
@@ -737,6 +759,156 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         guideBg.classList.remove('hidden');
       }
     }
+
+    /* 초정밀 보정 에디터 컨트롤 스크립트 */
+    let isEditing = false;
+    let activeElement = null;
+
+    editModeCheckbox.addEventListener('change', (e) => {
+      isEditing = e.target.checked;
+      if (isEditing) {
+        document.body.classList.add('edit-active');
+      } else {
+        document.body.classList.remove('edit-active');
+        if (activeElement) {
+          activeElement.classList.remove('selected-field');
+          activeElement = null;
+        }
+      }
+    });
+
+    document.addEventListener('mousedown', (e) => {
+      if (!isEditing) return;
+      const target = e.target.closest('[data-key]');
+      if (!target) return;
+
+      e.preventDefault();
+      if (activeElement) {
+        activeElement.classList.remove('selected-field');
+      }
+      activeElement = target;
+      activeElement.classList.add('selected-field');
+
+      const startX = e.clientX;
+      const startY = e.clientY;
+      
+      const container = document.querySelector('.page-container');
+      const containerWidth = container.clientWidth;
+      const pxToMm = 297 / containerWidth;
+
+      let baseLeft = parseFloat(activeElement.style.left) || 0;
+      let baseTop = parseFloat(activeElement.style.top) || 0;
+
+      function onMouseMove(moveEvent) {
+        const dx = (moveEvent.clientX - startX) * pxToMm;
+        const dy = (moveEvent.clientY - startY) * pxToMm;
+
+        activeElement.style.left = (baseLeft + dx).toFixed(2) + 'mm';
+        activeElement.style.top = (baseTop + dy).toFixed(2) + 'mm';
+      }
+
+      function onMouseUp() {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      }
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (!isEditing || !activeElement) return;
+
+      let step = 0.1;
+      if (e.shiftKey) step = 0.5;
+
+      let baseLeft = parseFloat(activeElement.style.left) || 0;
+      let baseTop = parseFloat(activeElement.style.top) || 0;
+      let moved = false;
+
+      if (e.key === 'ArrowLeft') {
+        activeElement.style.left = (baseLeft - step).toFixed(2) + 'mm';
+        moved = true;
+      } else if (e.key === 'ArrowRight') {
+        activeElement.style.left = (baseLeft + step).toFixed(2) + 'mm';
+        moved = true;
+      } else if (e.key === 'ArrowUp') {
+        activeElement.style.top = (baseTop - step).toFixed(2) + 'mm';
+        moved = true;
+      } else if (e.key === 'ArrowDown') {
+        activeElement.style.top = (baseTop + step).toFixed(2) + 'mm';
+        moved = true;
+      }
+
+      if (e.key === '[' || e.key === ']') {
+        e.preventDefault();
+        let currSizeStr = activeElement.style.fontSize;
+        let sizeVal = 1.0;
+        let unit = 'em';
+
+        if (currSizeStr) {
+          sizeVal = parseFloat(currSizeStr);
+          unit = currSizeStr.replace(/[0-9.]/g, '') || 'em';
+        } else {
+          if (activeElement.classList.contains('ancestor-box')) {
+            sizeVal = 1.0;
+            unit = 'em';
+          } else {
+            sizeVal = 0.95;
+            unit = 'em';
+          }
+        }
+
+        const sizeStep = e.shiftKey ? 0.05 : 0.01;
+        if (e.key === '[') {
+          sizeVal = Math.max(0.1, sizeVal - sizeStep);
+        } else {
+          sizeVal = sizeVal + sizeStep;
+        }
+
+        activeElement.style.fontSize = sizeVal.toFixed(2) + unit;
+        moved = true;
+      }
+
+      if (moved) {
+        e.preventDefault();
+      }
+    });
+
+    copyCoordsBtn.addEventListener('click', () => {
+      const coords = {};
+      document.querySelectorAll('[data-key]').forEach(el => {
+        const key = el.getAttribute('data-key');
+        coords[key] = {
+          left: el.style.left,
+          top: el.style.top,
+          fontSize: el.style.fontSize || ''
+        };
+      });
+
+      const jsonStr = JSON.stringify(coords, null, 2);
+      
+      const textarea = document.createElement('textarea');
+      textarea.value = jsonStr;
+      textarea.style.position = 'fixed';
+      document.body.appendChild(textarea);
+      textarea.select();
+      
+      try {
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (successful) {
+          alert('🎉 모든 좌표 및 글자 크기 데이터가 클립보드에 성공적으로 복사되었습니다!\\n\\n채팅창에 붙여넣기(Ctrl+V) 하여 제미나이에게 전송해주시면 영구 저장해 드립니다.');
+        } else {
+          throw new Error('copy failed');
+        }
+      } catch (err) {
+        prompt('클립보드 자동 복사에 실패했습니다. 아래 텍스트를 전체 선택(Ctrl+A) 후 복사(Ctrl+C)하여 전달해주세요:', jsonStr);
+        if (textarea.parentNode) {
+          document.body.removeChild(textarea);
+        }
+      }
+    });
   </script>
 </body>
 </html>
