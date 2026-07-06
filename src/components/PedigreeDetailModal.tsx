@@ -109,6 +109,39 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       }
     };
 
+    const shepherdSamples: Record<number, { name: string, reg: string, extra: string }> = {
+      2: { name: 'Tarzan z Lomeckeho polesi', reg: 'KSZ-C00647', extra: 'BH IGP1 / WLF GR' },
+      3: { name: 'C-Jessi vom Priapus', reg: 'KSZ-C10228', extra: 'BH / WLF GR' },
+      4: { name: 'Butsch von der Schiffslaeche', reg: 'KSZ-B60839', extra: 'HD' },
+      5: { name: 'Sharon von Der Schwarzen...', reg: 'KSZ-B80159', extra: 'V3 VA1 DNA HD ED AD' },
+      6: { name: 'Basko of Sunqsim Cas Ken...', reg: 'KSZ-B00250', extra: 'SG HD ED' },
+      7: { name: 'Hera of Dog School', reg: 'KSZ-A90045', extra: 'VA1(CH) V SG 6 BSZS HD ED' },
+      8: { name: 'Allegro ze Zdeneho mlyna', reg: '2', extra: '' },
+      9: { name: 'Perla z Vojanky', reg: 'SZ-2312796 IPO3 IGP3', extra: '' },
+      10: { name: 'Butsch von der Schiffslaeche', reg: 'KSZ-B60839', extra: '' },
+      11: { name: 'Sharon von Der Schwarzen...', reg: 'KSZ-B80159', extra: '' },
+      12: { name: 'Basko of Sunqsim Cas Ken...', reg: 'KSZ-B00250', extra: '' },
+      13: { name: 'Hera of Dog School', reg: 'KSZ-A90045', extra: '' },
+      14: { name: 'Zwack vom Holzwinkel', reg: 'SBCPA-197768 IPO1', extra: '' },
+      15: { name: 'Diva de Renaudloup', reg: 'SZ-2280805 ZB IPO1 IPO2', extra: '' },
+      16: { name: 'Fantom ze Stribrneho kam...', reg: '1', extra: '' },
+      17: { name: 'Baira Suche Lazce', reg: '0', extra: '' },
+      18: { name: 'Norbert Aritar Bastet', reg: '15', extra: '' },
+      19: { name: 'Luna z Vojanky', reg: 'VA HD ED', extra: '' },
+      20: { name: 'Mistr sveta WUSV *Bolle J...', reg: 'SZ-2292360 FI-45845/14', extra: '' },
+      21: { name: '*Gambana von der Schiffl...', reg: 'V3 VA1 DNA HD ED AD', extra: '' },
+      22: { name: 'Qvido Vepeden', reg: 'SBCPA-197768 IPO1', extra: '' },
+      23: { name: 'Kobra z Kraje Husitu', reg: 'SZ-2280805 ZB', extra: '' },
+      24: { name: 'Quasi vom Fuchsstein', reg: 'KSZ-A80905', extra: '' },
+      25: { name: 'Anka of 15 Kennel', reg: 'KSZ-A80751', extra: '' },
+      26: { name: 'Fyl du Triangle Magique', reg: 'KSZ-A60862', extra: '' },
+      27: { name: 'Diva vom Hermes', reg: 'KSZ-A70053', extra: '' },
+      28: { name: '*Javir vom Talka Marda', reg: 'SZ-2242016', extra: '' },
+      29: { name: 'Quixie vom Holzwinkel', reg: 'SZ-2258762', extra: '' },
+      30: { name: 'Como vom Rurdamm', reg: 'SBCPA-192325', extra: '' },
+      31: { name: 'Zaire de Renaudloup', reg: 'KSZ-B50938', extra: '' }
+    };
+
     const targetLayout = layouts[type];
     let fieldsHtml = '';
     
@@ -126,9 +159,13 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
     function renderShepherdAncestor(nodeId: number, left: string, top: string, width: string = '48mm', height: string = '12mm', isSmall: boolean = false) {
       const { name, reg, extra } = getDogDisplay(nodeId);
-      if (!name) return '';
+      const s = shepherdSamples[nodeId] || { name: '', reg: '', extra: '' };
+      
       return `
-        <div class="ancestor-box" style="left: ${left}; top: ${top}; width: ${width}; height: ${height}; line-height: 1.0; justify-content: flex-start;">
+        <div class="ancestor-box" 
+             data-real-name="${name}" data-real-reg="${reg}" data-real-extra="${extra || ''}"
+             data-sample-name="${s.name}" data-sample-reg="${s.reg}" data-sample-extra="${s.extra || ''}"
+             style="left: ${left}; top: ${top}; width: ${width}; height: ${height}; line-height: 1.0; justify-content: flex-start;">
           <div class="ancestor-name" style="${isSmall ? 'font-size: 0.85em; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' : 'font-size: 0.95em; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'}">${name}</div>
           <div class="ancestor-reg" style="font-size: 0.8em; margin-top: 1px;">${reg}</div>
           ${!isSmall && extra ? `<div class="ancestor-extra" style="font-size: 0.75em; margin-top: 1px; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${extra}</div>` : ''}
@@ -139,30 +176,30 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (type === 'shepherd') {
       fieldsHtml = `
         <!-- 본견 기본 정보 -->
-        <div class="field" style="left: 21.5mm; top: 32.5mm; font-weight: bold; font-size: 1.05em;">${pedigree.fullName || pedigree.name || '-'}</div>
+        <div class="field" data-real="${pedigree.fullName || pedigree.name || '-'}" data-sample="Xamo vom Grafenbrunn" style="left: 21.5mm; top: 32.5mm; font-weight: bold; font-size: 1.05em;">${pedigree.fullName || pedigree.name || '-'}</div>
         
-        <div class="field" style="left: 21.5mm; top: 42.0mm; font-size: 0.95em;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
-        <div class="field" style="left: 80.0mm; top: 42.0mm; font-size: 0.95em;">${pedigree.coatType || 'stock hair'}</div>
+        <div class="field" data-real="${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}" data-sample="MALE (수컷)" style="left: 21.5mm; top: 42.0mm; font-size: 0.95em;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
+        <div class="field" data-real="${pedigree.coatType || 'stock hair'}" data-sample="stock hair" style="left: 80.0mm; top: 42.0mm; font-size: 0.95em;">${pedigree.coatType || 'stock hair'}</div>
         
-        <div class="field" style="left: 21.5mm; top: 51.5mm; font-size: 0.95em;">${pedigree.color || '-'}</div>
+        <div class="field" data-real="${pedigree.color || '-'}" data-sample="schwarz braun" style="left: 21.5mm; top: 51.5mm; font-size: 0.95em;">${pedigree.color || '-'}</div>
         
-        <div class="field" style="left: 21.5mm; top: 61.0mm; font-size: 0.95em;">${formatDateKr(pedigree.birthDate)}</div>
-        <div class="field" style="left: 80.0mm; top: 61.0mm; font-size: 0.95em;">${pedigree.joinDate || '-'}</div>
+        <div class="field" data-real="${formatDateKr(pedigree.birthDate)}" data-sample="2012년 11월 28일" style="left: 21.5mm; top: 61.0mm; font-size: 0.95em;">${formatDateKr(pedigree.birthDate)}</div>
+        <div class="field" data-real="${pedigree.joinDate || '-'}" data-sample="2012-11-28" style="left: 80.0mm; top: 61.0mm; font-size: 0.95em;">${pedigree.joinDate || '-'}</div>
         
-        <div class="field" style="left: 80.0mm; top: 71.0mm; font-size: 0.95em;">${ownerHistory[0]?.change_date || '-'}</div>
+        <div class="field" data-real="${ownerHistory[0]?.change_date || '-'}" data-sample="2025-10-19" style="left: 80.0mm; top: 71.0mm; font-size: 0.95em;">${ownerHistory[0]?.change_date || '-'}</div>
 
         <!-- 번식자/소유자 정보 (좌측 상단에 위치) -->
-        <div class="field" style="left: 21.5mm; top: 71.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.breeder || '-'}</div>
-        <div class="field" style="left: 21.5mm; top: 75.0mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.breederAddr || '-'}</div>
+        <div class="field" data-real="${pedigree.breeder || '-'}" data-sample="Dirk Scheerer" style="left: 21.5mm; top: 71.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.breeder || '-'}</div>
+        <div class="field" data-real="${pedigree.breederAddr || '-'}" data-sample="Bergweg 3, 56179 Vallendar" style="left: 21.5mm; top: 75.0mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.breederAddr || '-'}</div>
         
-        <div class="field" style="left: 21.5mm; top: 82.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.owner || '-'}</div>
-        <div class="field" style="left: 21.5mm; top: 86.0mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.ownerAddr || '-'}</div>
+        <div class="field" data-real="${pedigree.owner || '-'}" data-sample="김기원" style="left: 21.5mm; top: 82.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.owner || '-'}</div>
+        <div class="field" data-real="${pedigree.ownerAddr || '-'}" data-sample="경남 김해시 삼계동" style="left: 21.5mm; top: 86.0mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.ownerAddr || '-'}</div>
 
         <!-- 중앙 회색 박스 등록번호 정보 -->
-        <div class="field" style="left: 146mm; top: 43.5mm; font-weight: bold; color: #1e3a8a; font-size: 1.0em;">${pedigree.regNo || '-'}</div>
-        <div class="field" style="left: 146mm; top: 54.0mm; font-weight: bold; font-size: 1.0em;">${pedigree.microchip || '-'}</div>
-        <div class="field" style="left: 146mm; top: 64.5mm; font-size: 0.95em;">${pedigree.foreignNo || pedigree.domesticNo || '-'}</div>
-        <div class="field" style="left: 146mm; top: 75.0mm; font-size: 0.9em; max-width: 42mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.dongtaeNo || '-'}</div>
+        <div class="field" data-real="${pedigree.regNo || '-'}" data-sample="KSZ-C40386" style="left: 146mm; top: 43.5mm; font-weight: bold; color: #1e3a8a; font-size: 1.0em;">${pedigree.regNo || '-'}</div>
+        <div class="field" data-real="${pedigree.microchip || '-'}" data-sample="410160010795337" style="left: 146mm; top: 54.0mm; font-weight: bold; font-size: 1.0em;">${pedigree.microchip || '-'}</div>
+        <div class="field" data-real="${pedigree.foreignNo || pedigree.domesticNo || '-'}" data-sample="SZ-2385565 SZ-독일세퍼드협회 전용 코드" style="left: 146mm; top: 64.5mm; font-size: 0.95em;">${pedigree.foreignNo || pedigree.domesticNo || '-'}</div>
+        <div class="field" data-real="${pedigree.dongtaeNo || '-'}" data-sample="Xamo sb / KSZ-C40386" style="left: 146mm; top: 75.0mm; font-size: 0.9em; max-width: 42mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.dongtaeNo || '-'}</div>
 
         <!-- 4대 혈통도 계보 (30 Ancestors) -->
         <!-- 1대 (Parents) -->
@@ -204,14 +241,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         ${renderShepherdAncestor(31, '189mm', '173.5mm', '50mm', '6.8mm', true)}
 
         <!-- 우측 상단 평가 및 출생 통계 정보 -->
-        <div class="field" style="left: 210.5mm; top: 16.5mm; font-size: 0.85em;">${pedigree.okDate || '-'}</div>
-        <div class="field" style="left: 228mm; top: 44.5mm; font-size: 0.85em;">Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}</div>
-        <div class="field" style="left: 228mm; top: 52.0mm; font-size: 0.85em;">${getLitterValue('birth_count') || '1'}</div>
-        <div class="field" style="left: 228mm; top: 59.5mm; font-size: 0.85em;">0</div>
-        <div class="field" style="left: 228mm; top: 67.0mm; font-size: 0.85em;">Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}</div>
+        <div class="field" data-real="${pedigree.okDate || '-'}" data-sample="2025-04 ~ 2027-04" style="left: 210.5mm; top: 16.5mm; font-size: 0.85em;">${pedigree.okDate || '-'}</div>
+        <div class="field" data-real="Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}" data-sample="Male: 2 / Female: 3" style="left: 228mm; top: 44.5mm; font-size: 0.85em;">Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}</div>
+        <div class="field" data-real="${getLitterValue('birth_count') || '1'}" data-sample="1" style="left: 228mm; top: 52.0mm; font-size: 0.85em;">${getLitterValue('birth_count') || '1'}</div>
+        <div class="field" data-real="0" data-sample="0" style="left: 228mm; top: 59.5mm; font-size: 0.85em;">0</div>
+        <div class="field" data-real="Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}" data-sample="Male: 2 / Female: 3" style="left: 228mm; top: 67.0mm; font-size: 0.85em;">Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}</div>
 
         <!-- 하단 발행일 정보 (협회 직인 근처) -->
-        <div class="field" style="left: 140mm; top: 192mm; font-size: 1.1em; font-weight: bold;">
+        <div class="field" data-real="${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}" data-sample="2026년 7월 6일" style="left: 140mm; top: 192mm; font-size: 1.1em; font-weight: bold;">
           ${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
         </div>
       `;
@@ -570,6 +607,10 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         <input type="checkbox" id="showGuide" checked>
         <label for="showGuide" style="color: white; cursor: pointer;">가이드 배경지 보기</label>
       </div>
+      <div class="control-group" style="margin-left: 10px;">
+        <input type="checkbox" id="sampleMode">
+        <label for="sampleMode" style="color: #60a5fa; cursor: pointer; font-weight: bold;">🎯 샘플 대조 모드</label>
+      </div>
       <button class="btn btn-secondary" onclick="resetOffsets()">기초 초기화</button>
       <button class="btn btn-primary" onclick="doPrint()">인쇄하기</button>
     </div>
@@ -591,6 +632,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     const fontScaleInput = document.getElementById('fontScale');
     const fontBoldInput = document.getElementById('fontBold');
     const showGuideCheckbox = document.getElementById('showGuide');
+    const sampleModeCheckbox = document.getElementById('sampleMode');
     const guideBg = document.getElementById('guideBg');
 
     function updateStyles() {
@@ -610,6 +652,37 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       localStorage.setItem(prefix + '_bold', boldVal);
     }
 
+    function updateSampleData() {
+      const useSample = sampleModeCheckbox ? sampleModeCheckbox.checked : false;
+      
+      // 1. 일반 필드 치환
+      document.querySelectorAll('[data-real]').forEach(el => {
+        el.textContent = useSample ? el.getAttribute('data-sample') : el.getAttribute('data-real');
+      });
+
+      // 2. 조상 박스 치환
+      document.querySelectorAll('[data-real-name]').forEach(el => {
+        const nameEl = el.querySelector('.ancestor-name');
+        const regEl = el.querySelector('.ancestor-reg');
+        const extraEl = el.querySelector('.ancestor-extra');
+        
+        if (nameEl) nameEl.textContent = useSample ? el.getAttribute('data-sample-name') : el.getAttribute('data-real-name');
+        if (regEl) regEl.textContent = useSample ? el.getAttribute('data-sample-reg') : el.getAttribute('data-real-reg');
+        
+        if (extraEl) {
+          const sampleExtra = el.getAttribute('data-sample-extra');
+          const realExtra = el.getAttribute('data-real-extra');
+          if (useSample) {
+            extraEl.textContent = sampleExtra;
+            extraEl.style.display = sampleExtra ? 'block' : 'none';
+          } else {
+            extraEl.textContent = realExtra;
+            extraEl.style.display = realExtra ? 'block' : 'none';
+          }
+        }
+      });
+    }
+
     offsetTopInput.addEventListener('input', updateStyles);
     offsetLeftInput.addEventListener('input', updateStyles);
     fontScaleInput.addEventListener('input', updateStyles);
@@ -622,6 +695,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         guideBg.classList.add('hidden');
       }
     });
+
+    if (sampleModeCheckbox) {
+      sampleModeCheckbox.addEventListener('change', updateSampleData);
+      updateSampleData();
+    }
 
     function resetOffsets() {
       offsetTopInput.value = '0';
