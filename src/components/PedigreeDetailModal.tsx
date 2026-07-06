@@ -157,36 +157,78 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       return { name, reg, extra };
     };
 
-    function renderShepherdAncestor(nodeId: number, left: string, top: string, width: string = '48mm', height: string = '12mm', gen: number = 1) {
+    function renderShepherdAncestor(nodeId: number, left: string, top: string, width: string = '48mm', height: string = '12mm', gen: number | boolean = 1) {
       const { name, reg, extra } = getDogDisplay(nodeId);
       const s = shepherdSamples[nodeId] || { name: '', reg: '', extra: '' };
       
+      let actualGen = 1;
+      if (typeof gen === 'boolean') {
+        actualGen = gen ? 4 : 1;
+      } else {
+        actualGen = gen;
+      }
+
       let nameSz = '0.9em';
       let regSz = '0.75em';
       let extraSz = '0.7em';
       
-      if (gen === 2) {
+      let regOffset = 4.5;
+      let extraOffset = 8.5;
+      
+      if (actualGen === 2) {
         nameSz = '0.83em';
         regSz = '0.72em';
         extraSz = '0.67em';
-      } else if (gen === 3) {
+        regOffset = 3.8;
+        extraOffset = 7.2;
+      } else if (actualGen === 3) {
         nameSz = '0.78em';
         regSz = '0.68em';
-      } else if (gen === 4) {
+        regOffset = 3.3;
+      } else if (actualGen === 4) {
         nameSz = '0.72em';
         regSz = '0.61em';
+        regOffset = 2.8;
       }
-      
+
+      const lVal = parseFloat(left) || 0;
+      const tVal = parseFloat(top) || 0;
+      const unit = 'mm';
+
+      const nameLeft = `${lVal}${unit}`;
+      const nameTop = `${tVal}${unit}`;
+      const regLeft = `${lVal}${unit}`;
+      const regTop = `${tVal + regOffset}${unit}`;
+      const extraLeft = `${lVal}${unit}`;
+      const extraTop = `${tVal + extraOffset}${unit}`;
+
       return `
-        <div class="ancestor-box" 
-             data-key="ancestor_${nodeId}"
-             data-real-name="${name}" data-real-reg="${reg}" data-real-extra="${extra || ''}"
-             data-sample-name="${s.name}" data-sample-reg="${s.reg}" data-sample-extra="${s.extra || ''}"
-             style="left: ${left}; top: ${top}; width: ${width}; height: ${height}; line-height: 1.0; display: flex; flex-direction: column; justify-content: flex-start; gap: 0.5px;">
-          <div class="ancestor-name" style="font-size: ${nameSz}; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${name}</div>
-          <div class="ancestor-reg" style="font-size: ${regSz}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${reg}</div>
-          ${gen <= 2 && extra ? `<div class="ancestor-extra" style="font-size: ${extraSz}; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${extra}</div>` : ''}
+        <!-- 조상 ${nodeId} 견명 -->
+        <div class="field" 
+             data-key="ancestor_${nodeId}_name"
+             data-real="${name}"
+             data-sample="${s.name}"
+             style="left: ${nameLeft}; top: ${nameTop}; font-size: ${nameSz}; font-weight: bold; width: ${width}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          ${name}
         </div>
+        <!-- 조상 ${nodeId} 등록번호 -->
+        <div class="field" 
+             data-key="ancestor_${nodeId}_reg"
+             data-real="${reg}"
+             data-sample="${s.reg}"
+             style="left: ${regLeft}; top: ${regTop}; font-size: ${regSz}; width: ${width}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          ${reg}
+        </div>
+        ${actualGen <= 2 && extra ? `
+        <!-- 조상 ${nodeId} 추가정보 -->
+        <div class="field" 
+             data-key="ancestor_${nodeId}_extra"
+             data-real="${extra}"
+             data-sample="${s.extra || ''}"
+             style="left: ${extraLeft}; top: ${extraTop}; font-size: ${extraSz}; color: #334155; width: ${width}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          ${extra}
+        </div>
+        ` : ''}
       `;
     }
 
@@ -692,32 +734,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
     function updateSampleData() {
       const useSample = sampleModeCheckbox ? sampleModeCheckbox.checked : false;
-      
-      // 1. 일반 필드 치환
       document.querySelectorAll('[data-real]').forEach(el => {
         el.textContent = useSample ? el.getAttribute('data-sample') : el.getAttribute('data-real');
-      });
-
-      // 2. 조상 박스 치환
-      document.querySelectorAll('[data-real-name]').forEach(el => {
-        const nameEl = el.querySelector('.ancestor-name');
-        const regEl = el.querySelector('.ancestor-reg');
-        const extraEl = el.querySelector('.ancestor-extra');
-        
-        if (nameEl) nameEl.textContent = useSample ? el.getAttribute('data-sample-name') : el.getAttribute('data-real-name');
-        if (regEl) regEl.textContent = useSample ? el.getAttribute('data-sample-reg') : el.getAttribute('data-real-reg');
-        
-        if (extraEl) {
-          const sampleExtra = el.getAttribute('data-sample-extra');
-          const realExtra = el.getAttribute('data-real-extra');
-          if (useSample) {
-            extraEl.textContent = sampleExtra;
-            extraEl.style.display = sampleExtra ? 'block' : 'none';
-          } else {
-            extraEl.textContent = realExtra;
-            extraEl.style.display = realExtra ? 'block' : 'none';
-          }
-        }
       });
     }
 
