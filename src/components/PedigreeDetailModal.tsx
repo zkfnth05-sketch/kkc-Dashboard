@@ -314,19 +314,19 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     } else if (type === 'jindo') {
       fieldsHtml = `
         <!-- 본견 기본 정보 -->
-        <div class="field" style="left: 45mm; top: 40mm; font-weight: bold;">${pedigree.fullName || pedigree.name || '-'}</div>
-        <div class="field" style="left: 145mm; top: 40mm; font-weight: bold;">${pedigree.regNo || '-'}</div>
+        <div class="field" data-key="dog_name" data-real="${pedigree.fullName || pedigree.name || '-'}" data-sample="백구" style="left: 45mm; top: 40mm; font-weight: bold;">${pedigree.fullName || pedigree.name || '-'}</div>
+        <div class="field" data-key="reg_no" data-real="${pedigree.regNo || '-'}" data-sample="KKC-12345" style="left: 145mm; top: 40mm; font-weight: bold;">${pedigree.regNo || '-'}</div>
         
-        <div class="field" style="left: 45mm; top: 47mm;">${pedigree.breed || '진돗개'}</div>
-        <div class="field" style="left: 145mm; top: 47mm;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
+        <div class="field" data-key="dog_breed" data-real="${pedigree.breed || '진돗개'}" data-sample="진돗개" style="left: 45mm; top: 47mm;">${pedigree.breed || '진돗개'}</div>
+        <div class="field" data-key="dog_gender" data-real="${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}" data-sample="MALE (수컷)" style="left: 145mm; top: 47mm;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
         
-        <div class="field" style="left: 45mm; top: 54mm;">${formatDateKr(pedigree.birthDate)}</div>
-        <div class="field" style="left: 145mm; top: 54mm;">${pedigree.color || '-'}</div>
+        <div class="field" data-key="dog_birth" data-real="${formatDateKr(pedigree.birthDate)}" data-sample="2020년 5월 5일" style="left: 45mm; top: 54mm;">${formatDateKr(pedigree.birthDate)}</div>
+        <div class="field" data-key="dog_color" data-real="${pedigree.color || '-'}" data-sample="황구" style="left: 145mm; top: 54mm;">${pedigree.color || '-'}</div>
         
-        <div class="field" style="left: 45mm; top: 61mm;">${pedigree.microchip || '-'}</div>
-        <div class="field" style="left: 145mm; top: 61mm;">${pedigree.indexNo || '-'}</div>
+        <div class="field" data-key="microchip" data-real="${pedigree.microchip || '-'}" data-sample="410160011223344" style="left: 45mm; top: 61mm;">${pedigree.microchip || '-'}</div>
+        <div class="field" data-key="index_no" data-real="${pedigree.indexNo || '-'}" data-sample="IND-999" style="left: 145mm; top: 61mm;">${pedigree.indexNo || '-'}</div>
         
-        <div class="field" style="left: 45mm; top: 68mm; width: 155mm; white-space: normal; line-height: 1.2; font-size: 0.85em;">
+        <div class="field" data-key="dog_litter" data-real="${fullLitterList}" data-sample="황구 3 / 백구 2" style="left: 45mm; top: 68mm; width: 155mm; white-space: normal; line-height: 1.2; font-size: 0.85em;">
           ${fullLitterList}
         </div>
 
@@ -370,32 +370,32 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         ${renderShepherdAncestor(31, '163mm', '210.5mm', '48mm', '8mm', true)}
 
         <!-- 번식자/소유자 정보 -->
-        <div class="field" style="left: 35mm; top: 236mm; font-weight: bold;">${pedigree.breeder || '-'}</div>
-        <div class="field" style="left: 35mm; top: 242mm; font-size: 0.85em;">${pedigree.breederAddr || '-'}</div>
+        <div class="field" data-key="dog_breeder" data-real="${pedigree.breeder || '-'}" data-sample="홍길동" style="left: 35mm; top: 236mm; font-weight: bold;">${pedigree.breeder || '-'}</div>
+        <div class="field" data-key="dog_breeder_addr" data-real="${pedigree.breederAddr || '-'}" data-sample="서울시 종로구" style="left: 35mm; top: 242mm; font-size: 0.85em;">${pedigree.breederAddr || '-'}</div>
         
-        <div class="field" style="left: 35mm; top: 255mm; font-weight: bold;">${pedigree.owner || '-'}</div>
-        <div class="field" style="left: 35mm; top: 261mm; font-size: 0.85em;">${pedigree.ownerAddr || '-'}</div>
+        <div class="field" data-key="dog_owner" data-real="${pedigree.owner || '-'}" data-sample="이몽룡" style="left: 35mm; top: 255mm; font-weight: bold;">${pedigree.owner || '-'}</div>
+        <div class="field" data-key="dog_owner_addr" data-real="${pedigree.ownerAddr || '-'}" data-sample="경기도 성남시" style="left: 35mm; top: 261mm; font-size: 0.85em;">${pedigree.ownerAddr || '-'}</div>
 
-        <div class="field" style="left: 140mm; top: 279mm; font-size: 1.1em; font-weight: bold;">
+        <div class="field" data-key="issue_date" data-real="${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}" data-sample="2026년 7월 6일" style="left: 140mm; top: 279mm; font-size: 1.1em; font-weight: bold;">
           ${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
         </div>
       `;
     } else {
       fieldsHtml = `
         <!-- 본견 기본 정보 -->
-        <div class="field" style="left: 45mm; top: 40mm; font-weight: bold;">${pedigree.fullName || pedigree.name || '-'}</div>
-        <div class="field" style="left: 145mm; top: 40mm; font-weight: bold;">${pedigree.regNo || '-'}</div>
+        <div class="field" data-key="dog_name" data-real="${pedigree.fullName || pedigree.name || '-'}" data-sample="해피" style="left: 45mm; top: 40mm; font-weight: bold;">${pedigree.fullName || pedigree.name || '-'}</div>
+        <div class="field" data-key="reg_no" data-real="${pedigree.regNo || '-'}" data-sample="KKC-56789" style="left: 145mm; top: 40mm; font-weight: bold;">${pedigree.regNo || '-'}</div>
         
-        <div class="field" style="left: 45mm; top: 47mm;">${pedigree.breed || '-'}</div>
-        <div class="field" style="left: 145mm; top: 47mm;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
+        <div class="field" data-key="dog_breed" data-real="${pedigree.breed || '-'}" data-sample="푸들" style="left: 45mm; top: 47mm;">${pedigree.breed || '-'}</div>
+        <div class="field" data-key="dog_gender" data-real="${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}" data-sample="FEMALE (암컷)" style="left: 145mm; top: 47mm;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
         
-        <div class="field" style="left: 45mm; top: 54mm;">${formatDateKr(pedigree.birthDate)}</div>
-        <div class="field" style="left: 145mm; top: 54mm;">${pedigree.color || '-'}</div>
+        <div class="field" data-key="dog_birth" data-real="${formatDateKr(pedigree.birthDate)}" data-sample="2021년 10월 10일" style="left: 45mm; top: 54mm;">${formatDateKr(pedigree.birthDate)}</div>
+        <div class="field" data-key="dog_color" data-real="${pedigree.color || '-'}" data-sample="갈색" style="left: 145mm; top: 54mm;">${pedigree.color || '-'}</div>
         
-        <div class="field" style="left: 45mm; top: 61mm;">${pedigree.microchip || '-'}</div>
-        <div class="field" style="left: 145mm; top: 61mm;">${pedigree.indexNo || '-'}</div>
+        <div class="field" data-key="microchip" data-real="${pedigree.microchip || '-'}" data-sample="410160022334455" style="left: 45mm; top: 61mm;">${pedigree.microchip || '-'}</div>
+        <div class="field" data-key="index_no" data-real="${pedigree.indexNo || '-'}" data-sample="IND-777" style="left: 145mm; top: 61mm;">${pedigree.indexNo || '-'}</div>
         
-        <div class="field" style="left: 45mm; top: 68mm; width: 155mm; white-space: normal; line-height: 1.2; font-size: 0.85em;">
+        <div class="field" data-key="dog_litter" data-real="${fullLitterList}" data-sample="갈색 2 / 흰색 1" style="left: 45mm; top: 68mm; width: 155mm; white-space: normal; line-height: 1.2; font-size: 0.85em;">
           ${fullLitterList}
         </div>
 
@@ -421,13 +421,13 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         ${renderShepherdAncestor(15, '138mm', '232mm')}
 
         <!-- 번식자/소유자 정보 -->
-        <div class="field" style="left: 35mm; top: 246mm; font-weight: bold;">${pedigree.breeder || '-'}</div>
-        <div class="field" style="left: 35mm; top: 251mm; font-size: 0.85em;">${pedigree.breederAddr || '-'}</div>
+        <div class="field" data-key="dog_breeder" data-real="${pedigree.breeder || '-'}" data-sample="박문수" style="left: 35mm; top: 246mm; font-weight: bold;">${pedigree.breeder || '-'}</div>
+        <div class="field" data-key="dog_breeder_addr" data-real="${pedigree.breederAddr || '-'}" data-sample="부산시 해운대구" style="left: 35mm; top: 251mm; font-size: 0.85em;">${pedigree.breederAddr || '-'}</div>
         
-        <div class="field" style="left: 35mm; top: 262mm; font-weight: bold;">${pedigree.owner || '-'}</div>
-        <div class="field" style="left: 35mm; top: 267mm; font-size: 0.85em;">${pedigree.ownerAddr || '-'}</div>
+        <div class="field" data-key="dog_owner" data-real="${pedigree.owner || '-'}" data-sample="성춘향" style="left: 35mm; top: 262mm; font-weight: bold;">${pedigree.owner || '-'}</div>
+        <div class="field" data-key="dog_owner_addr" data-real="${pedigree.ownerAddr || '-'}" data-sample="전라북도 남원시" style="left: 35mm; top: 267mm; font-size: 0.85em;">${pedigree.ownerAddr || '-'}</div>
 
-        <div class="field" style="left: 140mm; top: 279mm; font-size: 1.1em; font-weight: bold;">
+        <div class="field" data-key="issue_date" data-real="${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}" data-sample="2026년 7월 6일" style="left: 140mm; top: 279mm; font-size: 1.1em; font-weight: bold;">
           ${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
         </div>
       `;
