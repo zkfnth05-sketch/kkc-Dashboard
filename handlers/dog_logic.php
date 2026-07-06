@@ -48,14 +48,32 @@ function kkc_handle_pedigree_list($input) {
                         if ($f === 'uid') {
                             $sub[] = "`dogTab`.`$f` IN (" . implode(', ', $clean_ids) . ")";
                         } else {
-                            $sub[] = "CONVERT(`dogTab`.`$f` USING utf8mb4) IN (" . implode(', ', $clean_ids) . ")";
+                            if ($f === 'reg_no') {
+                                $sub[] = "(
+                                    CONVERT(`dogTab`.`reg_no` USING utf8mb4) IN (" . implode(', ', $clean_ids) . ")
+                                    OR CONVERT(`dogTab`.`foreign_no` USING utf8mb4) IN (" . implode(', ', $clean_ids) . ")
+                                    OR CONVERT(`dogTab`.`foreign_no2` USING utf8mb4) IN (" . implode(', ', $clean_ids) . ")
+                                    OR CONVERT(`dogTab`.`foreign100` USING utf8mb4) IN (" . implode(', ', $clean_ids) . ")
+                                )";
+                            } else {
+                                $sub[] = "CONVERT(`dogTab`.`$f` USING utf8mb4) IN (" . implode(', ', $clean_ids) . ")";
+                            }
                         }
                     }
                 } else {
                     if ($f === 'uid') {
                         $sub[] = "`dogTab`.`$f` = " . (int)$search_query;
                     } else {
-                        $sub[] = "CONVERT(`dogTab`.`$f` USING utf8mb4) = UNHEX('$q_utf8_hex')";
+                        if ($f === 'reg_no') {
+                            $sub[] = "(
+                                CONVERT(`dogTab`.`reg_no` USING utf8mb4) = UNHEX('$q_utf8_hex')
+                                OR CONVERT(`dogTab`.`foreign_no` USING utf8mb4) = UNHEX('$q_utf8_hex')
+                                OR CONVERT(`dogTab`.`foreign_no2` USING utf8mb4) = UNHEX('$q_utf8_hex')
+                                OR CONVERT(`dogTab`.`foreign100` USING utf8mb4) = UNHEX('$q_utf8_hex')
+                            )";
+                        } else {
+                            $sub[] = "CONVERT(`dogTab`.`$f` USING utf8mb4) = UNHEX('$q_utf8_hex')";
+                        }
                     }
                 }
             } else {

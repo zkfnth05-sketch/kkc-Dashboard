@@ -64,6 +64,8 @@ export const fetchPedigrees = async (t: string, p: number, q: string, f: string,
         dongtaeNo: row.dongtae_no,
         joinDate: row.reg_date,
         editDate: row.sign_date,    // 👈 sign_date 매핑
+        signdate: row.signdate?.toString(),
+        moddate: row.moddate?.toString(),
         photo: row.pix1,
         type: 'dog'
     }));

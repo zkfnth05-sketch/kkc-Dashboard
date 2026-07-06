@@ -1,6 +1,35 @@
 
 import ExcelJS from 'exceljs';
 
+export interface CatalogEntry {
+  entryNo: string | number;
+  dogName: string;
+  regNo: string;
+  birthDate: string;
+  sireName: string;
+  sireRegNo: string;
+  damName: string;
+  damRegNo: string;
+  breeder: string;
+  owner: string;
+  microchip?: string;
+}
+
+export interface CatalogClass {
+  className: string;
+  entries: CatalogEntry[];
+}
+
+export interface CatalogBreed {
+  breedName: string;
+  classes: CatalogClass[];
+}
+
+export interface CatalogGroup {
+  groupName: string;
+  breeds: CatalogBreed[];
+}
+
 export type CatalogType = 'default' | 'shepherd' | 'jindo';
 
 export const exportDogShowCatalog = async (title: string, groups: CatalogGroup[], type: CatalogType = 'default') => {
@@ -31,7 +60,7 @@ export const exportDogShowCatalog = async (title: string, groups: CatalogGroup[]
     ];
   }
 
-  const borderStyle: Partial<ExcelJS.Border> = {
+  const borderStyle: any = {
     top: { style: 'thin', color: { argb: 'FFE0E0E0' } },
     bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } }
   };

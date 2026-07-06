@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, Check, Trophy, Search } from 'lucide-react';
+import { X, Loader2, Check, Trophy, Search, Undo, Copy, Printer, ZoomIn, ZoomOut } from 'lucide-react';
 import { Pedigree, DongtaeInfo, ParentDogInfo, Evaluation, OwnerHistory } from '../types';
 import { fetchDogsByUids, fetchPointsByRegNo, fetchPrizesByRegNo, fetchOwnerHistory, deleteOwnerHistory, fetchBridge } from '../services/memberService';
 import { fetchDongtaeInfo } from '../services/dongtaeService'; // 👈 분리된 서비스 참조
 import { AlertCircle } from 'lucide-react';
+import { DEFAULT_PEDIGREE_LAYOUTS } from '../config/pedigreeConfig';
 
 const CustomConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "확인", cancelText = "취소", isDanger = false }: any) => {
   if (!isOpen) return null;
@@ -65,12 +66,40 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {}, isDanger: false });
   const [isPrinting, setIsPrinting] = useState(false);
 
+  // 🎯 혈통서 인쇄 정밀 보정 상태
+  const [activePrintType, setActivePrintType] = useState<'shepherd' | 'jindo' | 'general' | null>(null);
+  const [ancestorTree, setAncestorTree] = useState<Record<number, ParentDogInfo>>({});
+  const [fullLitterList, setFullLitterList] = useState<string>('');
+  const [selectedFieldKey, setSelectedFieldKey] = useState<string | null>(null);
+  const [isEditingCoords, setIsEditingCoords] = useState(true);
+  const [useSampleMode, setUseSampleMode] = useState(false);
+  const [showGuide, setShowGuide] = useState(true);
+  const [editorZoom, setEditorZoom] = useState(1.2);
+  const [gridSize, setGridSize] = useState<number>(0.5); // mm
+  const [editorCoords, setEditorCoords] = useState<Record<string, { left: number; top: number; fontSize?: number; width?: number }>>({});
+  
+  const [offsetTop, setOffsetTop] = useState<number>(0);
+  const [offsetLeft, setOffsetLeft] = useState<number>(0);
+  const [fontScale, setFontScale] = useState<number>(100);
+  const [fontBold, setFontBold] = useState<boolean>(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+
   const formatDateKr = (dateStr: string) => {
-    if (!dateStr || dateStr === '0000-00-00') return '-';
+    if (!dateStr || dateStr === '0000-00-00' || dateStr === '-') return '-';
     try {
-      const parts = dateStr.split('-');
+      const clean = dateStr.trim().split(' ')[0];
+      const parts = clean.split(/[-./]/);
       if (parts.length === 3) {
-        return `${parts[0]}년 ${parts[1]}월 ${parts[2]}일`;
+        const y = parts[0];
+        const m = parseInt(parts[1], 10).toString();
+        const d = parseInt(parts[2], 10).toString();
+        return `${y}년 ${m}월 ${d}일`;
+      }
+      if (clean.length === 8 && /^\d+$/.test(clean)) {
+        const y = clean.substring(0, 4);
+        const m = parseInt(clean.substring(4, 6), 10).toString();
+        const d = parseInt(clean.substring(6, 8), 10).toString();
+        return `${y}년 ${m}월 ${d}일`;
       }
     } catch (e) {}
     return dateStr;
@@ -92,378 +121,421 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     return color;
   };
 
-  const openPrintPreview = (type: 'shepherd' | 'jindo' | 'general', tree: Record<number, ParentDogInfo>, fullLitterList: string) => {
+  const shepherdSamples: Record<number, { name: string, reg: string, extra: string }> = {
+    2: { name: 'Tarzan z Lomeckeho polesi', reg: 'KSZ-C00647', extra: 'BH IGP1 / WLF GR' },
+    3: { name: 'C-Jessi vom Priapus', reg: 'KSZ-C10228', extra: 'BH / WLF GR' },
+    4: { name: 'Butsch von der Schiffslaeche', reg: 'KSZ-B60839', extra: 'HD' },
+    5: { name: 'Sharon von Der Schwarzen...', reg: 'KSZ-B80159', extra: 'V3 VA1 DNA HD ED AD' },
+    6: { name: 'Basko of Sunqsim Cas Ken...', reg: 'KSZ-B00250', extra: 'SG HD ED' },
+    7: { name: 'Hera of Dog School', reg: 'KSZ-A90045', extra: 'VA1(CH) V SG 6 BSZS HD ED' },
+    8: { name: 'Allegro ze Zdeneho mlyna', reg: '2', extra: '' },
+    9: { name: 'Perla z Vojanky', reg: 'SZ-2312796 IPO3 IGP3', extra: '' },
+    10: { name: 'Butsch von der Schiffslaeche', reg: 'KSZ-B60839', extra: '' },
+    11: { name: 'Sharon von Der Schwarzen...', reg: 'KSZ-B80159', extra: '' },
+    12: { name: 'Basko of Sunqsim Cas Ken...', reg: 'KSZ-B00250', extra: '' },
+    13: { name: 'Hera of Dog School', reg: 'KSZ-A90045', extra: '' },
+    14: { name: 'Zwack vom Holzwinkel', reg: 'SBCPA-197768 IPO1', extra: '' },
+    15: { name: 'Diva de Renaudloup', reg: 'SZ-2280805 ZB IPO1 IPO2', extra: '' },
+    16: { name: 'Fantom ze Stribrneho kam...', reg: '1', extra: '' },
+    17: { name: 'Baira Suche Lazce', reg: '0', extra: '' },
+    18: { name: 'Norbert Aritar Bastet', reg: '15', extra: '' },
+    19: { name: 'Luna z Vojanky', reg: 'VA HD ED', extra: '' },
+    20: { name: 'Mistr sveta WUSV *Bolle J...', reg: 'SZ-2292360 FI-45845/14', extra: '' },
+    21: { name: '*Gambana von der Schiffl...', reg: 'V3 VA1 DNA HD ED AD', extra: '' },
+    22: { name: 'Qvido Vepeden', reg: 'SBCPA-197768 IPO1', extra: '' },
+    23: { name: 'Kobra z Kraje Husitu', reg: 'SZ-2280805 ZB', extra: '' },
+    24: { name: 'Quasi vom Fuchsstein', reg: 'KSZ-A80905', extra: '' },
+    25: { name: 'Anka of 15 Kennel', reg: 'KSZ-A80751', extra: '' },
+    26: { name: 'Fyl du Triangle Magique', reg: 'KSZ-A60862', extra: '' },
+    27: { name: 'Diva vom Hermes', reg: 'KSZ-A70053', extra: '' },
+    28: { name: '*Javir vom Talka Marda', reg: 'SZ-2242016', extra: '' },
+    29: { name: 'Quixie vom Holzwinkel', reg: 'SZ-2258762', extra: '' },
+    30: { name: 'Como vom Rurdamm', reg: 'SBCPA-192325', extra: '' },
+    31: { name: 'Zaire de Renaudloup', reg: 'KSZ-B50938', extra: '' }
+  };
 
-    const layouts = {
-      shepherd: {
-        title: '저먼 셰퍼드 혈통서 인쇄',
-        bgImage: '/pedigree_templates/KakaoTalk_20260706_141939066.jpg',
-      },
-      jindo: {
-        title: '진돗개 혈통서 인쇄',
-        bgImage: '/pedigree_templates/KakaoTalk_20260706_141920649.jpg',
-      },
-      general: {
-        title: '일반/리트리버 혈통서 인쇄',
-        bgImage: '/pedigree_templates/KakaoTalk_20260706_141944995.jpg',
-      }
-    };
-
-    const shepherdSamples: Record<number, { name: string, reg: string, extra: string }> = {
-      2: { name: 'Tarzan z Lomeckeho polesi', reg: 'KSZ-C00647', extra: 'BH IGP1 / WLF GR' },
-      3: { name: 'C-Jessi vom Priapus', reg: 'KSZ-C10228', extra: 'BH / WLF GR' },
-      4: { name: 'Butsch von der Schiffslaeche', reg: 'KSZ-B60839', extra: 'HD' },
-      5: { name: 'Sharon von Der Schwarzen...', reg: 'KSZ-B80159', extra: 'V3 VA1 DNA HD ED AD' },
-      6: { name: 'Basko of Sunqsim Cas Ken...', reg: 'KSZ-B00250', extra: 'SG HD ED' },
-      7: { name: 'Hera of Dog School', reg: 'KSZ-A90045', extra: 'VA1(CH) V SG 6 BSZS HD ED' },
-      8: { name: 'Allegro ze Zdeneho mlyna', reg: '2', extra: '' },
-      9: { name: 'Perla z Vojanky', reg: 'SZ-2312796 IPO3 IGP3', extra: '' },
-      10: { name: 'Butsch von der Schiffslaeche', reg: 'KSZ-B60839', extra: '' },
-      11: { name: 'Sharon von Der Schwarzen...', reg: 'KSZ-B80159', extra: '' },
-      12: { name: 'Basko of Sunqsim Cas Ken...', reg: 'KSZ-B00250', extra: '' },
-      13: { name: 'Hera of Dog School', reg: 'KSZ-A90045', extra: '' },
-      14: { name: 'Zwack vom Holzwinkel', reg: 'SBCPA-197768 IPO1', extra: '' },
-      15: { name: 'Diva de Renaudloup', reg: 'SZ-2280805 ZB IPO1 IPO2', extra: '' },
-      16: { name: 'Fantom ze Stribrneho kam...', reg: '1', extra: '' },
-      17: { name: 'Baira Suche Lazce', reg: '0', extra: '' },
-      18: { name: 'Norbert Aritar Bastet', reg: '15', extra: '' },
-      19: { name: 'Luna z Vojanky', reg: 'VA HD ED', extra: '' },
-      20: { name: 'Mistr sveta WUSV *Bolle J...', reg: 'SZ-2292360 FI-45845/14', extra: '' },
-      21: { name: '*Gambana von der Schiffl...', reg: 'V3 VA1 DNA HD ED AD', extra: '' },
-      22: { name: 'Qvido Vepeden', reg: 'SBCPA-197768 IPO1', extra: '' },
-      23: { name: 'Kobra z Kraje Husitu', reg: 'SZ-2280805 ZB', extra: '' },
-      24: { name: 'Quasi vom Fuchsstein', reg: 'KSZ-A80905', extra: '' },
-      25: { name: 'Anka of 15 Kennel', reg: 'KSZ-A80751', extra: '' },
-      26: { name: 'Fyl du Triangle Magique', reg: 'KSZ-A60862', extra: '' },
-      27: { name: 'Diva vom Hermes', reg: 'KSZ-A70053', extra: '' },
-      28: { name: '*Javir vom Talka Marda', reg: 'SZ-2242016', extra: '' },
-      29: { name: 'Quixie vom Holzwinkel', reg: 'SZ-2258762', extra: '' },
-      30: { name: 'Como vom Rurdamm', reg: 'SBCPA-192325', extra: '' },
-      31: { name: 'Zaire de Renaudloup', reg: 'KSZ-B50938', extra: '' }
-    };
-
-    const targetLayout = layouts[type];
-    let fieldsHtml = '';
-    
-    const getDogDisplay = (nodeId: number) => {
-      const dog = tree[nodeId];
-      if (!dog) return { name: '', reg: '', extra: '' };
-      
-      const name = dog.fullname || dog.name || '';
-      const reg = dog.reg_no || '';
-      const extraList = [dog.spec_bone, dog.spec_train, getColorAbbr(dog.hair)].filter(Boolean);
-      const extra = extraList.join(' / ');
-      
-      return { name, reg, extra };
-    };
-
-    function renderShepherdAncestor(nodeId: number, left: string, top: string, width: string = '48mm', height: string = '12mm', gen: number | boolean = 1) {
-      const { name, reg, extra } = getDogDisplay(nodeId);
-      const s = shepherdSamples[nodeId] || { name: '', reg: '', extra: '' };
-      
-      let actualGen = 1;
-      if (typeof gen === 'boolean') {
-        actualGen = gen ? 4 : 1;
-      } else {
-        actualGen = gen;
-      }
-
-      let nameSz = '0.9em';
-      let regSz = '0.75em';
-      let extraSz = '0.7em';
-      
-      let regOffset = 4.5;
-      let extraOffset = 8.5;
-      
-      if (actualGen === 2) {
-        nameSz = '0.83em';
-        regSz = '0.72em';
-        extraSz = '0.67em';
-        regOffset = 3.8;
-        extraOffset = 7.2;
-      } else if (actualGen === 3) {
-        nameSz = '0.78em';
-        regSz = '0.68em';
-        regOffset = 3.3;
-      } else if (actualGen === 4) {
-        nameSz = '0.72em';
-        regSz = '0.61em';
-        regOffset = 2.8;
-      }
-
-      const lVal = parseFloat(left) || 0;
-      const tVal = parseFloat(top) || 0;
-      const unit = 'mm';
-
-      const nameLeft = `${lVal}${unit}`;
-      const nameTop = `${tVal}${unit}`;
-      const regLeft = `${lVal}${unit}`;
-      const regTop = `${tVal + regOffset}${unit}`;
-      const extraLeft = `${lVal}${unit}`;
-      const extraTop = `${tVal + extraOffset}${unit}`;
-
-      return `
-        <!-- 조상 ${nodeId} 견명 -->
-        <div class="field" 
-             data-key="ancestor_${nodeId}_name"
-             data-real="${name}"
-             data-sample="${s.name}"
-             style="left: ${nameLeft}; top: ${nameTop}; font-size: ${nameSz}; font-weight: bold; width: ${width}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-          ${name}
-        </div>
-        <!-- 조상 ${nodeId} 등록번호 -->
-        <div class="field" 
-             data-key="ancestor_${nodeId}_reg"
-             data-real="${reg}"
-             data-sample="${s.reg}"
-             style="left: ${regLeft}; top: ${regTop}; font-size: ${regSz}; width: ${width}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-          ${reg}
-        </div>
-        ${actualGen <= 2 && extra ? `
-        <!-- 조상 ${nodeId} 추가정보 -->
-        <div class="field" 
-             data-key="ancestor_${nodeId}_extra"
-             data-real="${extra}"
-             data-sample="${s.extra || ''}"
-             style="left: ${extraLeft}; top: ${extraTop}; font-size: ${extraSz}; color: #334155; width: ${width}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-          ${extra}
-        </div>
-        ` : ''}
-      `;
-    }
-
+  const getSampleValue = (key: string, type: string) => {
     if (type === 'shepherd') {
-      fieldsHtml = `
-        <!-- 본견 기본 정보 -->
-        <div class="field" data-key="dog_name" data-real="${pedigree.fullName || pedigree.name || '-'}" data-sample="Xamo vom Grafenbrunn" style="left: 34.0mm; top: 31.0mm; font-weight: bold; font-size: 1.05em;">${pedigree.fullName || pedigree.name || '-'}</div>
-        
-        <div class="field" data-key="dog_gender" data-real="${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}" data-sample="MALE (수컷)" style="left: 34.0mm; top: 41.5mm; font-size: 0.95em;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
-        <div class="field" data-key="dog_coat" data-real="${pedigree.coatType || 'stock hair'}" data-sample="stock hair" style="left: 92.0mm; top: 41.5mm; font-size: 0.95em;">${pedigree.coatType || 'stock hair'}</div>
-        
-        <div class="field" data-key="dog_color" data-real="${pedigree.color || '-'}" data-sample="schwarz braun" style="left: 34.0mm; top: 52.0mm; font-size: 0.95em;">${pedigree.color || '-'}</div>
-        
-        <div class="field" data-key="dog_birth" data-real="${formatDateKr(pedigree.birthDate)}" data-sample="2012년 11월 28일" style="left: 34.0mm; top: 62.5mm; font-size: 0.95em;">${formatDateKr(pedigree.birthDate)}</div>
-        <div class="field" data-key="dog_join" data-real="${pedigree.joinDate || '-'}" data-sample="2012-11-28" style="left: 92.0mm; top: 62.5mm; font-size: 0.95em;">${pedigree.joinDate || '-'}</div>
-        
-        <div class="field" data-key="dog_owner_change" data-real="${ownerHistory[0]?.change_date || '-'}" data-sample="2025-10-19" style="left: 92.0mm; top: 73.0mm; font-size: 0.95em;">${ownerHistory[0]?.change_date || '-'}</div>
-
-        <!-- 번식자/소유자 정보 (좌측 상단에 위치) -->
-        <div class="field" data-key="dog_breeder" data-real="${pedigree.breeder || '-'}" data-sample="Dirk Scheerer" style="left: 34.0mm; top: 73.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.breeder || '-'}</div>
-        <div class="field" data-key="dog_breeder_addr" data-real="${pedigree.breederAddr || '-'}" data-sample="Bergweg 3, 56179 Vallendar" style="left: 34.0mm; top: 77.5mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.breederAddr || '-'}</div>
-        
-        <div class="field" data-key="dog_owner" data-real="${pedigree.owner || '-'}" data-sample="김기원" style="left: 34.0mm; top: 85.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.owner || '-'}</div>
-        <div class="field" data-key="dog_owner_addr" data-real="${pedigree.ownerAddr || '-'}" data-sample="경남 김해시 삼계동" style="left: 34.0mm; top: 89.5mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.ownerAddr || '-'}</div>
-
-        <!-- 중앙 회색 박스 등록번호 정보 -->
-        <div class="field" data-key="reg_no" data-real="${pedigree.regNo || '-'}" data-sample="KSZ-C40386" style="left: 146mm; top: 43.5mm; font-weight: bold; color: #1e3a8a; font-size: 1.0em;">${pedigree.regNo || '-'}</div>
-        <div class="field" data-key="microchip" data-real="${pedigree.microchip || '-'}" data-sample="410160010795337" style="left: 146mm; top: 54.0mm; font-weight: bold; font-size: 1.0em;">${pedigree.microchip || '-'}</div>
-        <div class="field" data-key="foreign_no" data-real="${pedigree.foreignNo || pedigree.domesticNo || '-'}" data-sample="SZ-2385565 SZ-독일세퍼드협회 전용 코드" style="left: 146mm; top: 64.5mm; font-size: 0.95em;">${pedigree.foreignNo || pedigree.domesticNo || '-'}</div>
-        <div class="field" data-key="dongtae_no" data-real="${pedigree.dongtaeNo || '-'}" data-sample="Xamo sb / KSZ-C40386" style="left: 146mm; top: 75.0mm; font-size: 0.9em; max-width: 42mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.dongtaeNo || '-'}</div>
-
-        <!-- 4대 혈통도 계보 (30 Ancestors) -->
-        <!-- 1대 (Parents) -->
-        ${renderShepherdAncestor(2, '18mm', '86.0mm', '50mm', '13mm', 1)} <!-- 부견 -->
-        ${renderShepherdAncestor(3, '18mm', '143.0mm', '50mm', '13mm', 1)} <!-- 모견 -->
-
-        <!-- 2대 (Grandparents) -->
-        ${renderShepherdAncestor(4, '74mm', '76.0mm', '50mm', '11mm', 2)}
-        ${renderShepherdAncestor(5, '74mm', '104.0mm', '50mm', '11mm', 2)}
-        ${renderShepherdAncestor(6, '74mm', '133.0mm', '50mm', '11mm', 2)}
-        ${renderShepherdAncestor(7, '74mm', '161.0mm', '50mm', '11mm', 2)}
-
-        <!-- 3대 (Great-grandparents) -->
-        ${renderShepherdAncestor(8, '132mm', '69.5mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(9, '132mm', '83.5mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(10, '132mm', '97.5mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(11, '132mm', '111.5mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(12, '132mm', '126.0mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(13, '132mm', '140.0mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(14, '132mm', '154.0mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(15, '132mm', '168.0mm', '50mm', '9mm', 3)}
-
-        <!-- 4대 (Great-great-grandparents) -->
-        ${renderShepherdAncestor(16, '188mm', '67.0mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(17, '188mm', '73.8mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(18, '188mm', '80.6mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(19, '188mm', '87.4mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(20, '188mm', '94.2mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(21, '188mm', '101.0mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(22, '188mm', '107.8mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(23, '188mm', '114.6mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(24, '188mm', '121.4mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(25, '188mm', '128.2mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(26, '188mm', '135.0mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(27, '188mm', '141.8mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(28, '188mm', '148.6mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(29, '188mm', '155.4mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(30, '188mm', '162.2mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(31, '188mm', '169.0mm', '50mm', '6.8mm', 4)}
-
-        <!-- 우측 상단 평가 및 출생 통계 정보 -->
-        <div class="field" data-key="ok_date" data-real="${pedigree.okDate || '-'}" data-sample="2025-04 ~ 2027-04" style="left: 210.5mm; top: 13.5mm; font-size: 0.85em;">${pedigree.okDate || '-'}</div>
-        <div class="field" data-key="birth_litter" data-real="Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}" data-sample="Male: 2 / Female: 3" style="left: 228mm; top: 41.5mm; font-size: 0.85em;">Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}</div>
-        <div class="field" data-key="birth_count" data-real="${getLitterValue('birth_count') || '1'}" data-sample="1" style="left: 228mm; top: 49.0mm; font-size: 0.85em;">${getLitterValue('birth_count') || '1'}</div>
-        <div class="field" data-key="dead_count" data-real="0" data-sample="0" style="left: 228mm; top: 56.5mm; font-size: 0.85em;">0</div>
-        <div class="field" data-key="reg_count" data-real="Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}" data-sample="Male: 2 / Female: 3" style="left: 228mm; top: 64.0mm; font-size: 0.85em;">Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}</div>
-
-        <!-- 하단 발행일 정보 (협회 직인 근처) -->
-        <div class="field" data-key="issue_date" data-real="${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}" data-sample="2026년 7월 6일" style="left: 140mm; top: 189mm; font-size: 1.1em; font-weight: bold;">
-          ${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
-        </div>
-      `;
-    } else if (type === 'jindo') {
-      fieldsHtml = `
-        <!-- 본견 기본 정보 -->
-        <div class="field" data-key="dog_name" data-real="${pedigree.fullName || pedigree.name || '-'}" data-sample="백구" style="left: 45mm; top: 40mm; font-weight: bold;">${pedigree.fullName || pedigree.name || '-'}</div>
-        <div class="field" data-key="reg_no" data-real="${pedigree.regNo || '-'}" data-sample="KKC-12345" style="left: 145mm; top: 40mm; font-weight: bold;">${pedigree.regNo || '-'}</div>
-        
-        <div class="field" data-key="dog_breed" data-real="${pedigree.breed || '진돗개'}" data-sample="진돗개" style="left: 45mm; top: 47mm;">${pedigree.breed || '진돗개'}</div>
-        <div class="field" data-key="dog_gender" data-real="${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}" data-sample="MALE (수컷)" style="left: 145mm; top: 47mm;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
-        
-        <div class="field" data-key="dog_birth" data-real="${formatDateKr(pedigree.birthDate)}" data-sample="2020년 5월 5일" style="left: 45mm; top: 54mm;">${formatDateKr(pedigree.birthDate)}</div>
-        <div class="field" data-key="dog_color" data-real="${pedigree.color || '-'}" data-sample="황구" style="left: 145mm; top: 54mm;">${pedigree.color || '-'}</div>
-        
-        <div class="field" data-key="microchip" data-real="${pedigree.microchip || '-'}" data-sample="410160011223344" style="left: 45mm; top: 61mm;">${pedigree.microchip || '-'}</div>
-        <div class="field" data-key="index_no" data-real="${pedigree.indexNo || '-'}" data-sample="IND-999" style="left: 145mm; top: 61mm;">${pedigree.indexNo || '-'}</div>
-        
-        <div class="field" data-key="dog_litter" data-real="${fullLitterList}" data-sample="황구 3 / 백구 2" style="left: 45mm; top: 68mm; width: 155mm; white-space: normal; line-height: 1.2; font-size: 0.85em;">
-          ${fullLitterList}
-        </div>
-
-        <!-- 4대 혈통도 계보 (30 Ancestors) -->
-        <!-- 1대 (Parents) -->
-        ${renderShepherdAncestor(2, '15mm', '109mm')} <!-- 부견 -->
-        ${renderShepherdAncestor(3, '15mm', '180mm')} <!-- 모견 -->
-
-        <!-- 2대 (Grandparents) -->
-        ${renderShepherdAncestor(4, '65mm', '92mm')}
-        ${renderShepherdAncestor(5, '65mm', '126mm')}
-        ${renderShepherdAncestor(6, '65mm', '163mm')}
-        ${renderShepherdAncestor(7, '65mm', '197mm')}
-
-        <!-- 3대 (Great-grandparents) -->
-        ${renderShepherdAncestor(8, '115mm', '84mm')}
-        ${renderShepherdAncestor(9, '115mm', '101mm')}
-        ${renderShepherdAncestor(10, '115mm', '118mm')}
-        ${renderShepherdAncestor(11, '115mm', '135mm')}
-        ${renderShepherdAncestor(12, '115mm', '155mm')}
-        ${renderShepherdAncestor(13, '115mm', '172mm')}
-        ${renderShepherdAncestor(14, '115mm', '189mm')}
-        ${renderShepherdAncestor(15, '115mm', '206mm')}
-
-        <!-- 4대 (Great-great-grandparents) -->
-        ${renderShepherdAncestor(16, '163mm', '80mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(17, '163mm', '88.5mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(18, '163mm', '97mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(19, '163mm', '105.5mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(20, '163mm', '114mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(21, '163mm', '122.5mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(22, '163mm', '131mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(23, '163mm', '139.5mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(24, '163mm', '151mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(25, '163mm', '159.5mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(26, '163mm', '168mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(27, '163mm', '176.5mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(28, '163mm', '185mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(29, '163mm', '193.5mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(30, '163mm', '202mm', '48mm', '8mm', true)}
-        ${renderShepherdAncestor(31, '163mm', '210.5mm', '48mm', '8mm', true)}
-
-        <!-- 번식자/소유자 정보 -->
-        <div class="field" data-key="dog_breeder" data-real="${pedigree.breeder || '-'}" data-sample="홍길동" style="left: 35mm; top: 236mm; font-weight: bold;">${pedigree.breeder || '-'}</div>
-        <div class="field" data-key="dog_breeder_addr" data-real="${pedigree.breederAddr || '-'}" data-sample="서울시 종로구" style="left: 35mm; top: 242mm; font-size: 0.85em;">${pedigree.breederAddr || '-'}</div>
-        
-        <div class="field" data-key="dog_owner" data-real="${pedigree.owner || '-'}" data-sample="이몽룡" style="left: 35mm; top: 255mm; font-weight: bold;">${pedigree.owner || '-'}</div>
-        <div class="field" data-key="dog_owner_addr" data-real="${pedigree.ownerAddr || '-'}" data-sample="경기도 성남시" style="left: 35mm; top: 261mm; font-size: 0.85em;">${pedigree.ownerAddr || '-'}</div>
-
-        <div class="field" data-key="issue_date" data-real="${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}" data-sample="2026년 7월 6일" style="left: 140mm; top: 279mm; font-size: 1.1em; font-weight: bold;">
-          ${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
-        </div>
-      `;
-    } else {
-      fieldsHtml = `
-        <!-- 본견 기본 정보 -->
-        <div class="field" data-key="dog_name" data-real="${pedigree.fullName || pedigree.name || '-'}" data-sample="해피" style="left: 45mm; top: 40mm; font-weight: bold;">${pedigree.fullName || pedigree.name || '-'}</div>
-        <div class="field" data-key="reg_no" data-real="${pedigree.regNo || '-'}" data-sample="KKC-56789" style="left: 145mm; top: 40mm; font-weight: bold;">${pedigree.regNo || '-'}</div>
-        
-        <div class="field" data-key="dog_breed" data-real="${pedigree.breed || '-'}" data-sample="푸들" style="left: 45mm; top: 47mm;">${pedigree.breed || '-'}</div>
-        <div class="field" data-key="dog_gender" data-real="${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}" data-sample="FEMALE (암컷)" style="left: 145mm; top: 47mm;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
-        
-        <div class="field" data-key="dog_birth" data-real="${formatDateKr(pedigree.birthDate)}" data-sample="2021년 10월 10일" style="left: 45mm; top: 54mm;">${formatDateKr(pedigree.birthDate)}</div>
-        <div class="field" data-key="dog_color" data-real="${pedigree.color || '-'}" data-sample="갈색" style="left: 145mm; top: 54mm;">${pedigree.color || '-'}</div>
-        
-        <div class="field" data-key="microchip" data-real="${pedigree.microchip || '-'}" data-sample="410160022334455" style="left: 45mm; top: 61mm;">${pedigree.microchip || '-'}</div>
-        <div class="field" data-key="index_no" data-real="${pedigree.indexNo || '-'}" data-sample="IND-777" style="left: 145mm; top: 61mm;">${pedigree.indexNo || '-'}</div>
-        
-        <div class="field" data-key="dog_litter" data-real="${fullLitterList}" data-sample="갈색 2 / 흰색 1" style="left: 45mm; top: 68mm; width: 155mm; white-space: normal; line-height: 1.2; font-size: 0.85em;">
-          ${fullLitterList}
-        </div>
-
-        <!-- 3대 혈통도 계보 (14 Ancestors) -->
-        <!-- 1대 (Parents) -->
-        ${renderShepherdAncestor(2, '18mm', '125mm')} <!-- 부견 -->
-        ${renderShepherdAncestor(3, '18mm', '185mm')} <!-- 모견 -->
-
-        <!-- 2대 (Grandparents) -->
-        ${renderShepherdAncestor(4, '78mm', '102mm')}
-        ${renderShepherdAncestor(5, '78mm', '142mm')}
-        ${renderShepherdAncestor(6, '78mm', '168mm')}
-        ${renderShepherdAncestor(7, '78mm', '208mm')}
-
-        <!-- 3대 (Great-grandparents) -->
-        ${renderShepherdAncestor(8, '138mm', '92mm')}
-        ${renderShepherdAncestor(9, '138mm', '112mm')}
-        ${renderShepherdAncestor(10, '138mm', '132mm')}
-        ${renderShepherdAncestor(11, '138mm', '152mm')}
-        ${renderShepherdAncestor(12, '138mm', '172mm')}
-        ${renderShepherdAncestor(13, '138mm', '192mm')}
-        ${renderShepherdAncestor(14, '138mm', '212mm')}
-        ${renderShepherdAncestor(15, '138mm', '232mm')}
-
-        <!-- 번식자/소유자 정보 -->
-        <div class="field" data-key="dog_breeder" data-real="${pedigree.breeder || '-'}" data-sample="박문수" style="left: 35mm; top: 246mm; font-weight: bold;">${pedigree.breeder || '-'}</div>
-        <div class="field" data-key="dog_breeder_addr" data-real="${pedigree.breederAddr || '-'}" data-sample="부산시 해운대구" style="left: 35mm; top: 251mm; font-size: 0.85em;">${pedigree.breederAddr || '-'}</div>
-        
-        <div class="field" data-key="dog_owner" data-real="${pedigree.owner || '-'}" data-sample="성춘향" style="left: 35mm; top: 262mm; font-weight: bold;">${pedigree.owner || '-'}</div>
-        <div class="field" data-key="dog_owner_addr" data-real="${pedigree.ownerAddr || '-'}" data-sample="전라북도 남원시" style="left: 35mm; top: 267mm; font-size: 0.85em;">${pedigree.ownerAddr || '-'}</div>
-
-        <div class="field" data-key="issue_date" data-real="${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}" data-sample="2026년 7월 6일" style="left: 140mm; top: 279mm; font-size: 1.1em; font-weight: bold;">
-          ${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
-        </div>
-      `;
+      if (key === 'dog_name') return 'Xamo vom Grafenbrunn';
+      if (key === 'dog_gender') return 'MALE (수컷)';
+      if (key === 'dog_coat') return 'stock hair';
+      if (key === 'dog_color') return 'schwarz braun';
+      if (key === 'dog_birth') return '2022년 11월 28일';
+      if (key === 'dog_join') return '2024-10-28';
+      if (key === 'dog_owner_change') return '2025년 10월 19일';
+      if (key === 'dog_breeder') return 'Dirk Scheerer';
+      if (key === 'dog_breeder_addr') return 'Bergweg 3, 56179 Vallendar';
+      if (key === 'dog_owner') return '김기흥';
+      if (key === 'dog_owner_addr') return '경남 김해시 한림면 금곡리 590-1';
+      if (key === 'reg_no') return 'KSZ-C40386';
+      if (key === 'microchip') return '981189900142765';
+      if (key === 'foreign_no') return 'SZ-2385565';
+      if (key === 'dongtae_no') return 'Xamo sb KSZ-C40386';
+      if (key === 'ok_date') return 'HD ED / BH IGP1';
+      if (key === 'dog_relate') return '*Ursa v. Ghattas(3-3)/*Enosch v. Amasis *Bella v. Ghattas(4-4)';
+      if (key === 'litter_birth_m') return '1';
+      if (key === 'litter_birth_f') return '0';
+      if (key === 'litter_dead_m') return '0';
+      if (key === 'litter_dead_f') return '0';
+      if (key === 'litter_cancel_m') return '0';
+      if (key === 'litter_cancel_f') return '0';
+      if (key === 'litter_reg_m') return '1';
+      if (key === 'litter_reg_f') return '0';
+      if (key === 'litter_total_m') return '1';
+      if (key === 'litter_total_f') return '0';
+      if (key === 'birth_litter') return 'Male: 1 / Female: 0';
+      if (key === 'birth_count') return '1';
+      if (key === 'dead_count') return '0';
+      if (key === 'reg_count') return 'Male: 1 / Female: 0';
+      if (key === 'issue_date') return '2026년 7월 6일';
+      
+      if (key.startsWith('ancestor_')) {
+        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2)$/);
+        if (match) {
+          const node = parseInt(match[1]);
+          const field = match[2];
+          if (field === 'slash1' || field === 'slash2') return '/';
+          const s = shepherdSamples[node];
+          if (s) {
+            if (field === 'win') return node === 2 ? 'SG' : node === 3 ? 'V(BSZS)' : '';
+            if (field === 'train') return 'IGP3';
+            if (field === 'dna') return 'DNA gpr.';
+            if (field === 'bone') return 'HD ED';
+            if (field === 'color') return 'sb';
+            if (field === 'micro') return node === 2 ? '963007000778785' : node === 3 ? '963004001035661' : node === 4 ? '963007000778111' : node === 5 ? '963004001035222' : node === 6 ? '963007000778333' : node === 7 ? '963004001035444' : '';
+            return s[field as keyof typeof s] || '';
+          }
+        }
+      }
     }
 
-    const printWindow = window.open('', '_blank', 'width=1100,height=850');
-    if (!printWindow) {
-      alert('팝업 차단이 설정되어 있습니다. 팝업 허용 후 다시 시도해 주세요.');
-      return;
+    if (type === 'jindo') {
+      if (key === 'dog_name') return '보미';
+      if (key === 'reg_no') return 'KJ-C60028';
+      if (key === 'dog_breed') return '진돗개';
+      if (key === 'dog_gender') return 'FEMALE (암컷)';
+      if (key === 'dog_birth') return '2025년 10월 23일';
+      if (key === 'dog_color') return '황구';
+      if (key === 'microchip') return '-';
+      if (key === 'index_no') return '-';
+      if (key === 'dog_litter') return '보미 황구 KJ-C60028';
+      if (key === 'dog_breeder') return '최하식';
+      if (key === 'dog_breeder_addr') return '충북 충주시 금가면 하담리 35-5';
+      if (key === 'dog_owner') return '최하식';
+      if (key === 'dog_owner_addr') return '충북 충주시 금가면 하담리 35-5';
+      if (key === 'issue_date') return '2026년 3월 17일';
+      
+      if (key.startsWith('ancestor_')) {
+        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2)$/);
+        if (match) {
+          const node = parseInt(match[1]);
+          const field = match[2];
+          if (field === 'slash1' || field === 'slash2') return '/';
+          if (node === 2) {
+            if (field === 'name') return '삼호 충주금가견사';
+            if (field === 'reg') return 'KJ-C10092';
+            if (field === 'extra') return '황구';
+            return '';
+          }
+          if (node === 3) {
+            if (field === 'name') return '홍 피어리스';
+            if (field === 'reg') return 'KJ-C10077';
+            if (field === 'extra') return '황구';
+            return '';
+          }
+          return field === 'name' ? `진도 조상 ${node}` : field === 'reg' ? `KJ-A00${node}` : '';
+        }
+      }
     }
 
-    const prefix = `pedigree_offset_${type}`;
-    const savedTop = localStorage.getItem(`${prefix}_top`) || '0';
-    const savedLeft = localStorage.getItem(`${prefix}_left`) || '0';
-    const savedScale = localStorage.getItem(`${prefix}_scale`) || '100';
-    const savedBold = localStorage.getItem(`${prefix}_bold`) !== 'false';
+    if (type === 'general') {
+      if (key === 'dog_name') return 'Arin';
+      if (key === 'reg_no') return 'KSZ-C60236';
+      if (key === 'dog_breed') return 'German Shepherd Dog';
+      if (key === 'dog_gender') return 'FEMALE (암컷)';
+      if (key === 'dog_birth') return '2025년 10월 23일';
+      if (key === 'dog_color') return 'sb';
+      if (key === 'microchip') return '981189900142765';
+      if (key === 'index_no') return '-';
+      if (key === 'dog_litter') return 'Arin sb KSZ-C60236';
+      if (key === 'dog_breeder') return '최하식';
+      if (key === 'dog_breeder_addr') return '충북 충주시 금가면 하담리 35-5';
+      if (key === 'dog_owner') return '최하식';
+      if (key === 'dog_owner_addr') return '충북 충주시 금가면 하담리 35-5';
+      if (key === 'issue_date') return '2026년 3월 17일';
 
-    const isLandscape = type === 'shepherd';
+      if (key.startsWith('ancestor_')) {
+        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2)$/);
+        if (match) {
+          const node = parseInt(match[1]);
+          const field = match[2];
+          if (field === 'slash1' || field === 'slash2') return '/';
+          return field === 'name' ? `일반 조상 ${node}` : field === 'reg' ? `GEN-C00${node}` : 'sb';
+        }
+      }
+    }
+    return '';
+  };
+
+  const getRealValue = (key: string, type: 'shepherd' | 'jindo' | 'general') => {
+    const isValidDate = (d: any) => {
+      if (!d) return false;
+      const str = String(d).trim();
+      return str !== '' && str !== '0000-00-00' && str !== '0' && str !== '-';
+    };
+
+    if (key === 'dog_name') return pedigree.fullName || pedigree.name || '-';
+    if (key === 'dog_gender') return formatGender(pedigree.gender);
+    if (key === 'dog_coat') return pedigree.coatType || (type === 'shepherd' ? 'stock hair' : '-');
+    if (key === 'dog_color') return pedigree.color || '-';
+    if (key === 'dog_birth') return formatDateKr(pedigree.birthDate);
+    if (key === 'dog_join') return pedigree.joinDate || '-';
+    if (key === 'dog_owner_change') {
+      const latest = ownerHistory[0];
+      let dateVal = '';
+      if (latest && isValidDate(latest.change_date)) {
+        dateVal = latest.change_date;
+      } else if (latest && isValidDate(latest.sign_date)) {
+        dateVal = latest.sign_date;
+      }
+      
+      // 1. 승인일 문자열 우선 체크
+      if (!isValidDate(dateVal) && isValidDate(pedigree.editDate)) {
+        dateVal = pedigree.editDate!;
+      }
+      
+      // 2. UNIX 타임스탬프 기반 승인일(signdate) 변환 체크 (최우선 폴백)
+      if (!isValidDate(dateVal)) {
+        const ts = pedigree.signdate || (pedigree as any).signdate || (pedigree as any).moddate;
+        if (ts && !isNaN(Number(ts)) && Number(ts) > 0) {
+          const dObj = new Date(Number(ts) * 1000);
+          const y = dObj.getFullYear();
+          const m = String(dObj.getMonth() + 1).padStart(2, '0');
+          const d = String(dObj.getDate()).padStart(2, '0');
+          dateVal = `${y}-${m}-${d}`;
+        }
+      }
+
+      // 3. 기타 DB 상의 원본 sign_date 체크
+      if (!isValidDate(dateVal) && isValidDate((pedigree as any).sign_date)) {
+        dateVal = (pedigree as any).sign_date;
+      }
+      
+      // 4. 소유자 변경 기록이나 승인일이 모두 부재할 경우에만 최종적으로 등록일(joinDate / reg_date)로 폴백
+      if (!isValidDate(dateVal)) {
+        if (isValidDate(pedigree.joinDate)) {
+          dateVal = pedigree.joinDate!;
+        } else if (isValidDate((pedigree as any).reg_date)) {
+          dateVal = (pedigree as any).reg_date;
+        } else if (isValidDate((pedigree as any).registrationDate)) {
+          dateVal = (pedigree as any).registrationDate;
+        }
+      }
+      return formatDateKr(dateVal);
+    }
+    if (key === 'dog_breeder') return pedigree.breeder || '-';
+    if (key === 'dog_breeder_addr') return pedigree.breederAddr || '-';
+    if (key === 'dog_owner') return pedigree.owner || '-';
+    if (key === 'dog_owner_addr') return pedigree.ownerAddr || '-';
+    if (key === 'reg_no') return pedigree.regNo || '-';
+    if (key === 'microchip') return pedigree.microchip || (pedigree as any).micro || '-';
+    if (key === 'foreign_no') return pedigree.foreignNo || pedigree.domesticNo || '-';
+    if (key === 'dongtae_no' || key === 'dog_litter') return fullLitterList || '-';
+    if (key === 'dog_breed') return pedigree.breed || '-';
+    if (key === 'index_no') return pedigree.indexNo || '-';
+    if (key === 'ok_date') {
+      const parts = [pedigree.specWin, pedigree.specDna, pedigree.specBone, pedigree.specTrain].map(s => (s || '').trim()).filter(Boolean);
+      if (parts.length > 0) return parts.join(' / ');
+      return pedigree.okDate || (pedigree.okStat === 'Y' ? '기록 확인' : '-');
+    }
+    if (key === 'birth_litter') return `Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}`;
+    if (key === 'dog_relate') return pedigree.specRelate || '-';
+    if (key === 'litter_birth_m') return getLitterValue('birth_M') || '0';
+    if (key === 'litter_birth_f') return getLitterValue('birth_F') || '0';
+    if (key === 'litter_dead_m') {
+      const dm = parseInt(getLitterValue('dead_M')) || 0;
+      const d2m = parseInt(getLitterValue('dead2_M')) || 0;
+      return (dm + d2m).toString();
+    }
+    if (key === 'litter_dead_f') {
+      const df = parseInt(getLitterValue('dead_F')) || 0;
+      const d2f = parseInt(getLitterValue('dead2_F')) || 0;
+      return (df + d2f).toString();
+    }
+    if (key === 'litter_cancel_m') return getLitterValue('cancel_M') || '0';
+    if (key === 'litter_cancel_f') return getLitterValue('cancel_F') || '0';
+    if (key === 'litter_reg_m') return getLitterValue('reg_count_M') || '0';
+    if (key === 'litter_reg_f') return getLitterValue('reg_count_F') || '0';
+    if (key === 'litter_total_m') return getLitterValue('reg_count_M') || '0';
+    if (key === 'litter_total_f') return getLitterValue('reg_count_F') || '0';
+
+    if (key === 'birth_litter') return `Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}`;
+    if (key === 'birth_count') {
+      const bm = parseInt(getLitterValue('birth_M')) || 0;
+      const bf = parseInt(getLitterValue('birth_F')) || 0;
+      const total = bm + bf;
+      return total > 0 ? total.toString() : '1';
+    }
+    if (key === 'dead_count') {
+      const dm = parseInt(getLitterValue('dead_M')) || 0;
+      const df = parseInt(getLitterValue('dead_F')) || 0;
+      const d2m = parseInt(getLitterValue('dead2_M')) || 0;
+      const d2f = parseInt(getLitterValue('dead2_F')) || 0;
+      return (dm + df + d2m + d2f).toString();
+    }
+    if (key === 'reg_count') return `Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}`;
+    if (key === 'issue_date') return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date());
+    
+    // Ancestors
+    if (key.startsWith('ancestor_')) {
+      const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2)$/);
+      if (match) {
+        const nodeId = parseInt(match[1]);
+        const field = match[2];
+        if (field === 'slash1' || field === 'slash2') return '/';
+        const dog = ancestorTree[nodeId];
+        if (!dog) return '';
+        
+        if (field === 'name') return dog.fullname || dog.name || '';
+        if (field === 'reg') {
+          const regVal = (dog.reg_no || '').trim();
+          if (regVal && regVal !== '0' && regVal !== '-') {
+            return regVal;
+          }
+          const f1 = (dog.foreign_no || '').trim();
+          const f2 = (dog.foreign_no2 || '').trim();
+          if (f1 && f2) return `${f1} ${f2}`;
+          return f1 || f2 || '';
+        }
+        if (field === 'extra') {
+          const extraList = [
+            dog.spec_win,
+            dog.spec_dna,
+            dog.spec_bone,
+            dog.spec_train,
+            getColorAbbr(dog.hair)
+          ].map(s => (s || '').toString().trim()).filter(Boolean);
+          return extraList.join(' / ');
+        }
+        if (field === 'win') return dog.spec_win || '';
+        if (field === 'train') return dog.spec_train || '';
+        if (field === 'dna') return dog.spec_dna || '';
+        if (field === 'bone') return dog.spec_bone || '';
+        if (field === 'color') return getColorAbbr(dog.hair) || '';
+        if (field === 'micro') return dog.micro || (dog as any).microchip || '';
+      }
+    }
+    return '';
+  };
+
+  const fetchDogsByKeys = async (keys: string[]): Promise<Record<string, ParentDogInfo>> => {
+    const cleanedKeys = Array.from(new Set(keys.map(k => (k || '').toString().trim()).filter(k => k && k !== '0' && k !== '-' && k !== '미등록')));
+    if (cleanedKeys.length === 0) return {};
+    try {
+      const byUid = await fetchDogsByUids(cleanedKeys, tableName);
+      const missingKeys = cleanedKeys.filter(k => !byUid[k]);
+      let byRegNo: Record<string, ParentDogInfo> = {};
+      if (missingKeys.length > 0) {
+        const { fetchDogsByRegNos } = await import('../services/memberService');
+        byRegNo = await fetchDogsByRegNos(missingKeys, tableName);
+      }
+      const result: Record<string, ParentDogInfo> = {};
+      cleanedKeys.forEach(k => {
+        const dog = byUid[k] || byRegNo[k];
+        if (dog) {
+          result[k] = dog;
+        }
+      });
+      return result;
+    } catch (e) {
+      console.error("Error in fetchDogsByKeys:", e);
+      return {};
+    }
+  };
+
+  const handleResetCoords = () => {
+    if (!activePrintType) return;
+    if (window.confirm("모든 좌표와 오차 설정을 기본 초기값으로 리셋하시겠습니까?")) {
+      localStorage.removeItem(`pedigree_coords_${activePrintType}`);
+      localStorage.removeItem(`pedigree_offset_${activePrintType}_top`);
+      localStorage.removeItem(`pedigree_offset_${activePrintType}_left`);
+      localStorage.removeItem(`pedigree_offset_${activePrintType}_scale`);
+      localStorage.removeItem(`pedigree_offset_${activePrintType}_bold`);
+
+      setOffsetTop(0);
+      setOffsetLeft(0);
+      setFontScale(100);
+      setFontBold(true);
+      setEditorCoords({ ...DEFAULT_PEDIGREE_LAYOUTS[activePrintType].fields });
+      setSelectedFieldKey(null);
+    }
+  };
+
+  const handleCopyCoords = () => {
+    if (!activePrintType) return;
+    const jsonStr = JSON.stringify(editorCoords, null, 2);
+    navigator.clipboard.writeText(jsonStr)
+      .then(() => {
+        alert("🎉 보정된 좌표 데이터 JSON이 클립보드에 복사되었습니다!\n\n개발자에게 이 JSON 내용을 전달하면 기본 좌표로 저장할 수 있습니다.");
+      })
+      .catch(err => {
+        prompt("클립보드 복사에 실패했습니다. 아래 텍스트를 직접 복사하세요:", jsonStr);
+      });
+  };
+
+  const generatePrintHtml = (type: 'shepherd' | 'jindo' | 'general', useSample: boolean) => {
+    const layout = DEFAULT_PEDIGREE_LAYOUTS[type];
+    const finalCoords = { ...layout.fields };
+    const saved = localStorage.getItem(`pedigree_coords_${type}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        Object.keys(parsed).forEach(k => {
+          if (finalCoords[k]) {
+            const savedItem = parsed[k];
+            if (savedItem && typeof savedItem.left === 'number' && savedItem.left > 0 && typeof savedItem.top === 'number' && savedItem.top > 0) {
+              finalCoords[k] = { ...finalCoords[k], ...savedItem };
+            }
+          }
+        });
+      } catch (e) {}
+    }
+
+    let fieldsHtml = '';
+    Object.keys(finalCoords).forEach(key => {
+      const coord = finalCoords[key];
+      let val = useSample ? getSampleValue(key, type) : getRealValue(key, type);
+      if (val === undefined || val === null) val = '';
+
+      const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
+      const fontStyle = isBold ? 'font-weight: bold;' : '';
+      const widthStyle = coord.width ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+
+      fieldsHtml += `
+        <div class="field" 
+             style="left: ${coord.left}mm; top: ${coord.top}mm; font-size: ${coord.fontSize || 0.95}em; ${fontStyle} ${widthStyle}">
+          ${val}
+        </div>
+      `;
+    });
+
+    const isLandscape = layout.isLandscape;
     const pageWidth = isLandscape ? '297mm' : '210mm';
     const pageHeight = isLandscape ? '210mm' : '297mm';
-    const pageSize = isLandscape ? 'A4 landscape' : 'A4 portrait';
+    const pageSize = layout.pageSize;
 
-    const htmlContent = `
+    const savedTop = localStorage.getItem(`pedigree_offset_${type}_top`) || '0';
+    const savedLeft = localStorage.getItem(`pedigree_offset_${type}_left`) || '0';
+    const savedScale = localStorage.getItem(`pedigree_offset_${type}_scale`) || '100';
+    const savedBold = localStorage.getItem(`pedigree_offset_${type}_bold`) !== 'false';
+
+    return `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>${targetLayout.title}</title>
+  <title>${layout.title}</title>
   <style>
-    :root {
-      --offset-top: ${savedTop}mm;
-      --offset-left: ${savedLeft}mm;
-      --font-scale: ${savedScale}%;
-      --font-weight: ${savedBold ? 'bold' : 'normal'};
-      --line-height-scale: 1.15;
-    }
     @page {
       size: ${pageSize};
       margin: 0;
@@ -471,538 +543,190 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     body {
       margin: 0;
       padding: 0;
-      background-color: #f3f4f6;
+      background-color: transparent;
       font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Dotum', sans-serif;
       -webkit-print-color-adjust: exact;
-    }
-    .toolbar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 60px;
-      background-color: #1e293b;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-      z-index: 1000;
-    }
-    .toolbar-title {
-      font-size: 15px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .controls {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .control-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-    }
-    .control-group label {
-      color: #94a3b8;
-      font-weight: 500;
-    }
-    .control-group input[type="number"] {
-      width: 55px;
-      padding: 5px 8px;
-      border: 1px solid #475569;
-      background-color: #334155;
-      color: white;
-      border-radius: 4px;
-      text-align: center;
-      outline: none;
-      font-weight: bold;
-    }
-    .control-group input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
-    }
-    .btn {
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: bold;
-      border-radius: 4px;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s;
-      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    }
-    .btn-primary {
-      background-color: #3b82f6;
-      color: white;
-    }
-    .btn-primary:hover {
-      background-color: #2563eb;
-      transform: translateY(-1px);
-    }
-    .btn-secondary {
-      background-color: #475569;
-      color: white;
-    }
-    .btn-secondary:hover {
-      background-color: #334155;
-    }
-    .page-container {
-      width: ${pageWidth};
-      height: ${pageHeight};
-      background-color: white;
-      margin: 80px auto 40px auto;
-      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-      position: relative;
-      box-sizing: border-box;
-    }
-    .bg-guide {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-image: url('${targetLayout.bgImage}');
-      background-size: 100% 100%;
-      background-repeat: no-repeat;
-      opacity: 0.35;
-      pointer-events: none;
-    }
-    .bg-guide.hidden {
-      display: none;
     }
     .print-content {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      transform: translate(var(--offset-left), var(--offset-top));
-      font-size: calc(9pt * (var(--font-scale) / 100));
-      font-weight: var(--font-weight);
+      width: ${pageWidth};
+      height: ${pageHeight};
+      transform: translate(${savedLeft}mm, ${savedTop}mm);
+      font-size: calc(9pt * (${savedScale} / 100));
+      font-weight: ${savedBold ? 'bold' : 'normal'};
       color: black;
-      line-height: var(--line-height-scale);
+      line-height: 1.15;
     }
     .field {
       position: absolute;
       white-space: nowrap;
       box-sizing: border-box;
-      font-family: inherit;
     }
-    .ancestor-box {
-      position: absolute;
-      width: 48mm;
-      height: 14mm;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      line-height: 1.1;
-      font-family: inherit;
-    }
-    .ancestor-name {
-      font-weight: bold;
-      font-size: 0.9em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .ancestor-reg {
-      font-size: 0.8em;
-    }
-    .ancestor-extra {
-      font-size: 0.75em;
-      color: #334155;
-    }
-    
-    /* 편집 모드 용 스타일 */
-    body.edit-active {
-      user-select: none !important;
-      -webkit-user-select: none !important;
-    }
-    .field[data-key] {
-      cursor: default;
-      transition: outline 0.1s;
-    }
-    body.edit-active .field[data-key] {
-      cursor: move;
-      outline: 1px dashed #fbbf24 !important;
-    }
-    .selected-field {
-      outline: 2px solid #3b82f6 !important;
-      outline-offset: 2px;
-      background-color: rgba(59, 130, 246, 0.1) !important;
-      z-index: 9999 !important;
-    }
-    
     @media print {
       body {
         background-color: transparent;
-      }
-      .toolbar {
-        display: none !important;
-      }
-      .page-container {
-        margin: 0 !important;
-        box-shadow: none !important;
-        width: ${pageWidth} !important;
-        height: ${pageHeight} !important;
-      }
-      .bg-guide {
-        display: none !important;
       }
     }
   </style>
 </head>
 <body>
-  <div class="toolbar">
-    <div class="toolbar-title">
-      🖨️ ${targetLayout.title}
-      <span id="statusIndicator" style="margin-left: 15px; color: #94a3b8; font-weight: bold; font-size: 13px;">[드래그 편집 꺼짐]</span>
-    </div>
-    <div class="controls">
-      <div class="control-group">
-        <label>상하 오차 (mm)</label>
-        <input type="number" id="offsetTop" step="0.5" value="${savedTop}">
-      </div>
-      <div class="control-group">
-        <label>좌우 오차 (mm)</label>
-        <input type="number" id="offsetLeft" step="0.5" value="${savedLeft}">
-      </div>
-      <div class="control-group">
-        <label>크기 (%)</label>
-        <input type="number" id="fontScale" step="5" value="${savedScale}">
-      </div>
-      <div class="control-group">
-        <label>굵게</label>
-        <input type="checkbox" id="fontBold" ${savedBold ? 'checked' : ''}>
-      </div>
-      <div class="control-group" style="margin-left: 10px;">
-        <input type="checkbox" id="showGuide" checked>
-        <label for="showGuide" style="color: white; cursor: pointer;">가이드 배경지 보기</label>
-      </div>
-      <div class="control-group" style="margin-left: 10px;">
-        <input type="checkbox" id="sampleMode">
-        <label for="sampleMode" style="color: #60a5fa; cursor: pointer; font-weight: bold;">🎯 샘플 대조 모드</label>
-      </div>
-      <div class="control-group" style="margin-left: 10px;">
-        <input type="checkbox" id="editMode">
-        <label for="editMode" style="color: #fbbf24; cursor: pointer; font-weight: bold;">🛠️ 드래그 편집</label>
-      </div>
-      <button class="btn btn-secondary" onclick="resetOffsets()">기초 초기화</button>
-      <button class="btn btn-primary" onclick="doPrint()">인쇄하기</button>
-      <button class="btn" id="copyCoordsBtn" style="background-color: #10b981; color: white; font-weight: bold; margin-left: 8px;">📋 최종 좌표 복사</button>
-    </div>
+  <div class="print-content">
+    ${fieldsHtml}
   </div>
+</body>
+</html>
+    `;
+  };
 
-  <div class="page-container">
-    <div class="bg-guide" id="guideBg"></div>
-    <div class="print-content">
-      ${fieldsHtml}
-    </div>
-  </div>
-
-  <script>
-    const type = '${type}';
-    const prefix = 'pedigree_offset_' + type;
-
-    const offsetTopInput = document.getElementById('offsetTop');
-    const offsetLeftInput = document.getElementById('offsetLeft');
-    const fontScaleInput = document.getElementById('fontScale');
-    const fontBoldInput = document.getElementById('fontBold');
-    const showGuideCheckbox = document.getElementById('showGuide');
-    const sampleModeCheckbox = document.getElementById('sampleMode');
-    const guideBg = document.getElementById('guideBg');
-
-    function updateStyles() {
-      const topVal = offsetTopInput.value;
-      const leftVal = offsetLeftInput.value;
-      const scaleVal = fontScaleInput.value;
-      const boldVal = fontBoldInput.checked;
-
-      document.documentElement.style.setProperty('--offset-top', topVal + 'mm');
-      document.documentElement.style.setProperty('--offset-left', leftVal + 'mm');
-      document.documentElement.style.setProperty('--font-scale', scaleVal + '%');
-      document.documentElement.style.setProperty('--font-weight', boldVal ? 'bold' : 'normal');
-
-      localStorage.setItem(prefix + '_top', topVal);
-      localStorage.setItem(prefix + '_left', leftVal);
-      localStorage.setItem(prefix + '_scale', scaleVal);
-      localStorage.setItem(prefix + '_bold', boldVal);
+  const printViaIframe = (type: 'shepherd' | 'jindo' | 'general', htmlContent: string) => {
+    let iframe = document.getElementById('pedigree-print-iframe') as HTMLIFrameElement;
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'pedigree-print-iframe';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
     }
 
-    function updateSampleData() {
-      const useSample = sampleModeCheckbox ? sampleModeCheckbox.checked : false;
-      document.querySelectorAll('[data-real]').forEach(el => {
-        el.textContent = useSample ? el.getAttribute('data-sample') : el.getAttribute('data-real');
+    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+    if (doc) {
+      doc.open();
+      doc.write(htmlContent);
+      doc.close();
+
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      }, 50);
+    }
+  };
+
+  const handlePrintAction = () => {
+    if (!activePrintType) return;
+    const htmlContent = generatePrintHtml(activePrintType, useSampleMode);
+    printViaIframe(activePrintType, htmlContent);
+  };
+
+  const handleDragStart = (e: React.MouseEvent, key: string) => {
+    if (!isEditingCoords) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedFieldKey(key);
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+
+    const currentCoords = editorCoords[key] || { left: 0, top: 0 };
+    const baseLeft = currentCoords.left;
+    const baseTop = currentCoords.top;
+
+    const isLandscape = DEFAULT_PEDIGREE_LAYOUTS[activePrintType!].isLandscape;
+    const containerWidthMm = isLandscape ? 297 : 210;
+    
+    const container = document.getElementById('pedigree-canvas');
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const widthPx = rect.width;
+    const pxToMm = containerWidthMm / widthPx;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      let dx = (moveEvent.clientX - startX) * pxToMm;
+      let dy = (moveEvent.clientY - startY) * pxToMm;
+
+      let newLeft = baseLeft + dx;
+      let newTop = baseTop + dy;
+
+      if (gridSize > 0) {
+        newLeft = Math.round(newLeft / gridSize) * gridSize;
+        newTop = Math.round(newTop / gridSize) * gridSize;
+      }
+
+      setEditorCoords(prev => {
+        const next = {
+          ...prev,
+          [key]: {
+            ...prev[key],
+            left: parseFloat(newLeft.toFixed(2)),
+            top: parseFloat(newTop.toFixed(2))
+          }
+        };
+        localStorage.setItem(`pedigree_coords_${activePrintType}`, JSON.stringify(next));
+        return next;
       });
-    }
+    };
 
-    offsetTopInput.addEventListener('input', updateStyles);
-    offsetLeftInput.addEventListener('input', updateStyles);
-    fontScaleInput.addEventListener('input', updateStyles);
-    fontBoldInput.addEventListener('change', updateStyles);
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
 
-    showGuideCheckbox.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        guideBg.classList.remove('hidden');
-      } else {
-        guideBg.classList.add('hidden');
-      }
-    });
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
 
-    if (sampleModeCheckbox) {
-      sampleModeCheckbox.addEventListener('change', updateSampleData);
-      updateSampleData();
-    }
-
-    function resetOffsets() {
-      offsetTopInput.value = '0';
-      offsetLeftInput.value = '0';
-      fontScaleInput.value = '100';
-      fontBoldInput.checked = true;
-      updateStyles();
-    }
-
-    function doPrint() {
-      const checked = showGuideCheckbox.checked;
-      showGuideCheckbox.checked = false;
-      guideBg.classList.add('hidden');
-
-      window.print();
-
-      showGuideCheckbox.checked = checked;
-      if (checked) {
-        guideBg.classList.remove('hidden');
-      }
-    }
-
-    /* 초정밀 보정 에디터 컨트롤 스크립트 */
-    let isEditing = false;
-    let activeElement = null;
-
-    editModeCheckbox.addEventListener('change', (e) => {
-      isEditing = e.target.checked;
-      const statusInd = document.getElementById('statusIndicator');
-      if (isEditing) {
-        document.body.classList.add('edit-active');
-        if (statusInd) {
-          statusInd.textContent = '선택된 필드 없음 (드래그 편집 켬)';
-          statusInd.style.color = '#fbbf24';
-        }
-      } else {
-        document.body.classList.remove('edit-active');
-        if (statusInd) {
-          statusInd.textContent = '[드래그 편집 꺼짐]';
-          statusInd.style.color = '#94a3b8';
-        }
-        if (activeElement) {
-          activeElement.classList.remove('selected-field');
-          activeElement = null;
-        }
-      }
-    });
-
-    document.addEventListener('mousedown', (e) => {
-      if (!isEditing) return;
-      const target = e.target.closest('[data-key]');
-      if (!target) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (activeElement) {
-        activeElement.classList.remove('selected-field');
-      }
-      activeElement = target;
-      activeElement.classList.add('selected-field');
-
-      const key = target.getAttribute('data-key');
-      const text = target.textContent.trim().substring(0, 15);
-      const statusInd = document.getElementById('statusIndicator');
-      if (statusInd) {
-        statusInd.textContent = '선택됨: ' + text + ' (' + key + ')';
-        statusInd.style.color = '#60a5fa';
-      }
-
-      const startX = e.clientX;
-      const startY = e.clientY;
-      
-      const container = document.querySelector('.page-container');
-      const rect = container ? container.getBoundingClientRect() : null;
-      const isLandscape = type === 'shepherd';
-      const containerWidthMm = isLandscape ? 297 : 210;
-      const widthPx = rect && rect.width > 0 ? rect.width : (window.innerWidth || 1100);
-      const pxToMm = containerWidthMm / widthPx;
-
-      let baseLeft = 0;
-      let baseTop = 0;
-
-      const inlineLeft = parseFloat(activeElement.style.left);
-      const inlineTop = parseFloat(activeElement.style.top);
-
-      if (!isNaN(inlineLeft)) {
-        baseLeft = inlineLeft;
-      } else {
-        const computedStyle = window.getComputedStyle(activeElement);
-        const leftPx = parseFloat(computedStyle.left) || 0;
-        baseLeft = leftPx * pxToMm;
-      }
-
-      if (!isNaN(inlineTop)) {
-        baseTop = inlineTop;
-      } else {
-        const computedStyle = window.getComputedStyle(activeElement);
-        const topPx = parseFloat(computedStyle.top) || 0;
-        baseTop = topPx * pxToMm;
-      }
-
-      function onMouseMove(moveEvent) {
-        const dx = (moveEvent.clientX - startX) * pxToMm;
-        const dy = (moveEvent.clientY - startY) * pxToMm;
-
-        activeElement.style.left = (baseLeft + dx).toFixed(2) + 'mm';
-        activeElement.style.top = (baseTop + dy).toFixed(2) + 'mm';
-      }
-
-      function onMouseUp() {
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
-      }
-
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (!isEditing || !activeElement) return;
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!activePrintType || !selectedFieldKey || !isEditingCoords) return;
 
       let step = 0.1;
       if (e.shiftKey) step = 0.5;
 
-      const container = document.querySelector('.page-container');
-      const rect = container ? container.getBoundingClientRect() : null;
-      const isLandscape = type === 'shepherd';
-      const containerWidthMm = isLandscape ? 297 : 210;
-      const widthPx = rect && rect.width > 0 ? rect.width : (window.innerWidth || 1100);
-      const pxToMm = containerWidthMm / widthPx;
-
-      let baseLeft = 0;
-      let baseTop = 0;
-
-      const inlineLeft = parseFloat(activeElement.style.left);
-      const inlineTop = parseFloat(activeElement.style.top);
-
-      if (!isNaN(inlineLeft)) {
-        baseLeft = inlineLeft;
-      } else {
-        const computedStyle = window.getComputedStyle(activeElement);
-        const leftPx = parseFloat(computedStyle.left) || 0;
-        baseLeft = leftPx * pxToMm;
-      }
-
-      if (!isNaN(inlineTop)) {
-        baseTop = inlineTop;
-      } else {
-        const computedStyle = window.getComputedStyle(activeElement);
-        const topPx = parseFloat(computedStyle.top) || 0;
-        baseTop = topPx * pxToMm;
-      }
-
+      const currentCoords = editorCoords[selectedFieldKey] || { left: 0, top: 0, fontSize: 0.95 };
       let moved = false;
+      let nextLeft = currentCoords.left;
+      let nextTop = currentCoords.top;
+      let nextFontSize = currentCoords.fontSize || 0.95;
 
       if (e.key === 'ArrowLeft') {
-        activeElement.style.left = (baseLeft - step).toFixed(2) + 'mm';
+        nextLeft = parseFloat((nextLeft - step).toFixed(2));
         moved = true;
       } else if (e.key === 'ArrowRight') {
-        activeElement.style.left = (baseLeft + step).toFixed(2) + 'mm';
+        nextLeft = parseFloat((nextLeft + step).toFixed(2));
         moved = true;
       } else if (e.key === 'ArrowUp') {
-        activeElement.style.top = (baseTop - step).toFixed(2) + 'mm';
+        nextTop = parseFloat((nextTop - step).toFixed(2));
         moved = true;
       } else if (e.key === 'ArrowDown') {
-        activeElement.style.top = (baseTop + step).toFixed(2) + 'mm';
+        nextTop = parseFloat((nextTop + step).toFixed(2));
         moved = true;
-      }
-
-      if (e.key === '[' || e.key === ']') {
+      } else if (e.key === '[' || e.key === ']') {
         e.preventDefault();
-        let currSizeStr = activeElement.style.fontSize;
-        let sizeVal = 1.0;
-        let unit = 'em';
-
-        if (currSizeStr) {
-          sizeVal = parseFloat(currSizeStr);
-          unit = currSizeStr.replace(/[0-9.]/g, '') || 'em';
-        } else {
-          sizeVal = 0.95;
-          unit = 'em';
-        }
-
         const sizeStep = e.shiftKey ? 0.05 : 0.01;
         if (e.key === '[') {
-          sizeVal = Math.max(0.1, sizeVal - sizeStep);
+          nextFontSize = parseFloat(Math.max(0.1, nextFontSize - sizeStep).toFixed(2));
         } else {
-          sizeVal = sizeVal + sizeStep;
+          nextFontSize = parseFloat((nextFontSize + sizeStep).toFixed(2));
         }
-
-        activeElement.style.fontSize = sizeVal.toFixed(2) + unit;
         moved = true;
       }
 
       if (moved) {
         e.preventDefault();
+        setEditorCoords(prev => {
+          const next = {
+            ...prev,
+            [selectedFieldKey]: {
+              ...prev[selectedFieldKey],
+              left: nextLeft,
+              top: nextTop,
+              fontSize: nextFontSize
+            }
+          };
+          localStorage.setItem(`pedigree_coords_${activePrintType}`, JSON.stringify(next));
+          return next;
+        });
       }
-    });
+    };
 
-    copyCoordsBtn.addEventListener('click', () => {
-      const coords = {};
-      document.querySelectorAll('[data-key]').forEach(el => {
-        const key = el.getAttribute('data-key');
-        coords[key] = {
-          left: el.style.left,
-          top: el.style.top,
-          fontSize: el.style.fontSize || ''
-        };
-      });
-
-      const jsonStr = JSON.stringify(coords, null, 2);
-      
-      const textarea = document.createElement('textarea');
-      textarea.value = jsonStr;
-      textarea.style.position = 'fixed';
-      document.body.appendChild(textarea);
-      textarea.select();
-      
-      try {
-        const successful = document.execCommand('copy');
-        document.body.removeChild(textarea);
-        if (successful) {
-          alert('🎉 모든 좌표 및 글자 크기 데이터가 클립보드에 성공적으로 복사되었습니다!\\n\\n채팅창에 붙여넣기(Ctrl+V) 하여 제미나이에게 전송해주시면 영구 저장해 드립니다.');
-        } else {
-          throw new Error('copy failed');
-        }
-      } catch (err) {
-        prompt('클립보드 자동 복사에 실패했습니다. 아래 텍스트를 전체 선택(Ctrl+A) 후 복사(Ctrl+C)하여 전달해주세요:', jsonStr);
-        if (textarea.parentNode) {
-          document.body.removeChild(textarea);
-        }
-      }
-    });
-  </script>
-</body>
-</html>
-    `;
-
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-  };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activePrintType, selectedFieldKey, isEditingCoords, editorCoords]);
 
   const handlePrint = async (type: 'shepherd' | 'jindo' | 'general') => {
     setIsPrinting(true);
@@ -1028,23 +752,25 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         breed_addr: pedigree.breederAddr
       } as any;
 
-      const gen2Uids = [pedigree.sireRegNo, pedigree.damRegNo].filter(u => u && u !== '0' && u !== '-' && u !== '미등록');
-      if (gen2Uids.length > 0) {
-        const gen2Data = await fetchDogsByUids(gen2Uids, tableName);
+      // 2세대 로드
+      const gen2Keys = [pedigree.sireRegNo, pedigree.damRegNo].filter(u => u && u !== '0' && u !== '-' && u !== '미등록');
+      if (gen2Keys.length > 0) {
+        const gen2Data = await fetchDogsByKeys(gen2Keys);
         if (pedigree.sireRegNo && gen2Data[pedigree.sireRegNo]) tree[2] = gen2Data[pedigree.sireRegNo];
         if (pedigree.damRegNo && gen2Data[pedigree.damRegNo]) tree[3] = gen2Data[pedigree.damRegNo];
       }
 
-      const gen3Uids: string[] = [];
+      // 3세대 로드
+      const gen3Keys: string[] = [];
       [2, 3].forEach(idx => {
         const dog = tree[idx];
         if (dog) {
-          if (dog.fa_regno && dog.fa_regno !== '0' && dog.fa_regno !== '-') gen3Uids.push(dog.fa_regno);
-          if (dog.mo_regno && dog.mo_regno !== '0' && dog.mo_regno !== '-') gen3Uids.push(dog.mo_regno);
+          if (dog.fa_regno && dog.fa_regno !== '0' && dog.fa_regno !== '-') gen3Keys.push(dog.fa_regno);
+          if (dog.mo_regno && dog.mo_regno !== '0' && dog.mo_regno !== '-') gen3Keys.push(dog.mo_regno);
         }
       });
-      if (gen3Uids.length > 0) {
-        const gen3Data = await fetchDogsByUids(gen3Uids, tableName);
+      if (gen3Keys.length > 0) {
+        const gen3Data = await fetchDogsByKeys(gen3Keys);
         if (tree[2]) {
           if (tree[2].fa_regno && gen3Data[tree[2].fa_regno]) tree[4] = gen3Data[tree[2].fa_regno];
           if (tree[2].mo_regno && gen3Data[tree[2].mo_regno]) tree[5] = gen3Data[tree[2].mo_regno];
@@ -1055,16 +781,17 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         }
       }
 
-      const gen4Uids: string[] = [];
+      // 4세대 로드
+      const gen4Keys: string[] = [];
       [4, 5, 6, 7].forEach(idx => {
         const dog = tree[idx];
         if (dog) {
-          if (dog.fa_regno && dog.fa_regno !== '0' && dog.fa_regno !== '-') gen4Uids.push(dog.fa_regno);
-          if (dog.mo_regno && dog.mo_regno !== '0' && dog.mo_regno !== '-') gen4Uids.push(dog.mo_regno);
+          if (dog.fa_regno && dog.fa_regno !== '0' && dog.fa_regno !== '-') gen4Keys.push(dog.fa_regno);
+          if (dog.mo_regno && dog.mo_regno !== '0' && dog.mo_regno !== '-') gen4Keys.push(dog.mo_regno);
         }
       });
-      if (gen4Uids.length > 0) {
-        const gen4Data = await fetchDogsByUids(gen4Uids, tableName);
+      if (gen4Keys.length > 0) {
+        const gen4Data = await fetchDogsByKeys(gen4Keys);
         for (let idx = 4; idx <= 7; idx++) {
           const dog = tree[idx];
           if (dog) {
@@ -1076,17 +803,18 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         }
       }
 
+      // 5세대 로드
       if (type !== 'general') {
-        const gen5Uids: string[] = [];
+        const gen5Keys: string[] = [];
         for (let idx = 8; idx <= 15; idx++) {
           const dog = tree[idx];
           if (dog) {
-            if (dog.fa_regno && dog.fa_regno !== '0' && dog.fa_regno !== '-') gen5Uids.push(dog.fa_regno);
-            if (dog.mo_regno && dog.mo_regno !== '0' && dog.mo_regno !== '-') gen5Uids.push(dog.mo_regno);
+            if (dog.fa_regno && dog.fa_regno !== '0' && dog.fa_regno !== '-') gen5Keys.push(dog.fa_regno);
+            if (dog.mo_regno && dog.mo_regno !== '0' && dog.mo_regno !== '-') gen5Keys.push(dog.mo_regno);
           }
         }
-        if (gen5Uids.length > 0) {
-          const gen5Data = await fetchDogsByUids(gen5Uids, tableName);
+        if (gen5Keys.length > 0) {
+          const gen5Data = await fetchDogsByKeys(gen5Keys);
           for (let idx = 8; idx <= 15; idx++) {
             const dog = tree[idx];
             if (dog) {
@@ -1098,6 +826,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
           }
         }
       }
+
+      setAncestorTree(tree);
 
       let siblings: any[] = [];
       if (pedigree.dongtaeNo && pedigree.dongtaeNo !== '-' && pedigree.dongtaeNo !== '0' && pedigree.dongtaeNo.trim() !== '') {
@@ -1125,7 +855,38 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const mainDogColorAbbr = getColorAbbr(pedigree.color);
       const fullLitterList = `${pedigree.fullName || pedigree.name} ${mainDogColorAbbr} / ${pedigree.regNo}${siblingListFormatted ? ', ' + siblingListFormatted : ''}`;
 
-      openPrintPreview(type, tree, fullLitterList);
+      setAncestorTree(tree);
+      setFullLitterList(fullLitterList);
+      
+      const defaultFields = DEFAULT_PEDIGREE_LAYOUTS[type].fields;
+      let initialCoords = { ...defaultFields };
+      const savedCoords = localStorage.getItem(`pedigree_coords_${type}`);
+      if (savedCoords) {
+        try {
+          const parsed = JSON.parse(savedCoords);
+          Object.keys(parsed).forEach(k => {
+            if (initialCoords[k]) {
+              const savedItem = parsed[k];
+              if (savedItem && typeof savedItem.left === 'number' && savedItem.left > 0 && typeof savedItem.top === 'number' && savedItem.top > 0) {
+                initialCoords[k] = { ...initialCoords[k], ...savedItem };
+              }
+            }
+          });
+        } catch (e) {}
+      }
+      setEditorCoords(initialCoords);
+
+      const savedTop = parseFloat(localStorage.getItem(`pedigree_offset_${type}_top`) || '0');
+      const savedLeft = parseFloat(localStorage.getItem(`pedigree_offset_${type}_left`) || '0');
+      const savedScale = parseInt(localStorage.getItem(`pedigree_offset_${type}_scale`) || '100');
+      const savedBold = localStorage.getItem(`pedigree_offset_${type}_bold`) !== 'false';
+      
+      setOffsetTop(savedTop);
+      setOffsetLeft(savedLeft);
+      setFontScale(savedScale);
+      setFontBold(savedBold);
+
+      setActivePrintType(type);
     } catch (err: any) {
       console.error(err);
       alert(`데이터 로드 실패: ${err.message}`);
@@ -1178,14 +939,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
             const searchKeys = [sireSearch, damSearch, sireVal, damVal].filter(v => v !== '' && v !== '미등록' && v !== '0' && v !== '-');
             
             if (searchKeys.length > 0) {
-                const byUid = await fetchDogsByUids(searchKeys, tableName);
-                const missingKeys = searchKeys.filter(k => !byUid[k]);
-                let byRegNo: Record<string, ParentDogInfo> = {};
-                if (missingKeys.length > 0) {
-                    const fetchDogsByRegNos = (await import('../services/memberService')).fetchDogsByRegNos;
-                    byRegNo = await fetchDogsByRegNos(missingKeys, tableName);
-                }
-                const getDog = (key: string, backupKey?: string) => byUid[key] || byRegNo[key] || (backupKey ? (byUid[backupKey] || byRegNo[backupKey]) : null);
+                const fetched = await fetchDogsByKeys(searchKeys);
+                const getDog = (key: string, backupKey?: string) => fetched[key] || (backupKey ? fetched[backupKey] : null);
                 setSireInfo(getDog(sireSearch, sireVal));
                 setDamInfo(getDog(damSearch, damVal));
             }
@@ -1473,7 +1228,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                <div className="bg-white rounded border border-gray-200 overflow-hidden shadow-sm">
                    <div className={sectionTitleStyle}>동태 정보</div>
                    <table className="w-full table-fixed"><tbody>
-                        <tr><th className={thStyle}>동태자 코드</th><td className={tdStyle}>{getLitterValue('dongtae_no') || pedigree.dongtaeNo || '-'}</td><th className={thStyle}>근친 번식</th><td className={tdStyle}>{getLitterValue('spec_relate')}</td></tr>
+                        <tr><th className={thStyle}>동태자 코드</th><td className={tdStyle}>{getLitterValue('dongtae_no') || pedigree.dongtaeNo || '-'}</td><th className={thStyle}>근친 번식</th><td className={tdStyle}>{getLitterValue('spec_relate') && getLitterValue('spec_relate') !== '-' ? getLitterValue('spec_relate') : (pedigree.specRelate || '-')}</td></tr>
                         <tr><th className={thStyle}>시작 등록번호</th><td className={tdStyle}>{getLitterValue('regno_start')}</td><th className={thStyle}>끝 등록번호</th><td className={tdStyle}>{getLitterValue('regno_end')}</td></tr>
                         <tr><th className={thStyle}>출산(수컷)</th><td className={tdStyle}>{getLitterValue('birth_M')}</td><th className={thStyle}>출산(암컷)</th><td className={tdStyle}>{getLitterValue('birth_F')}</td></tr>
                         <tr><th className={thStyle}>등록건(수컷)</th><td className={tdStyle}>{getLitterValue('reg_count_M')}</td><th className={thStyle}>등록건(암컷)</th><td className={tdStyle}>{getLitterValue('reg_count_F')}</td></tr>
@@ -1518,6 +1273,480 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
             <button onClick={() => onEdit(pedigree)} className="px-6 py-1.5 bg-[#374151] text-white text-[13px] font-bold rounded hover:bg-black transition-all ml-2 shadow-md">수정하기</button>
         </div>
       </div>
+
+      {activePrintType && (() => {
+        const layout = DEFAULT_PEDIGREE_LAYOUTS[activePrintType];
+        const isLandscape = layout.isLandscape;
+        const pageWidthMm = isLandscape ? 297 : 210;
+        const pageHeightMm = isLandscape ? 210 : 297;
+        
+        const offsetTopMm = `${offsetTop}mm`;
+        const offsetLeftMm = `${offsetLeft}mm`;
+        
+        return (
+          <div className="fixed inset-0 z-[9999] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-between font-sans text-slate-200">
+            {/* Top Toolbar */}
+            <div className="w-full bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-xl shrink-0">
+              <div className="flex items-center gap-3">
+                <Printer className="text-indigo-400 animate-pulse" size={22} />
+                <div>
+                  <h3 className="font-bold text-base text-white">{layout.title} 정밀 보정 에디터</h3>
+                  <p className="text-xs text-slate-400">마우스 드래그 및 방향키(이동), 대괄호 [ ] (글자 크기) 조절 가능</p>
+                </div>
+              </div>
+
+              {/* Status & Help Alert */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-md border border-slate-700 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping" />
+                <span className="text-slate-300 font-semibold">
+                  {selectedFieldKey ? (
+                    <span className="text-indigo-300">
+                      선택 필드: <strong className="text-white">{selectedFieldKey}</strong> ({useSampleMode ? getSampleValue(selectedFieldKey, activePrintType) : getRealValue(selectedFieldKey, activePrintType)})
+                    </span>
+                  ) : "편집할 필드를 클릭하여 선택하세요"}
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded text-xs font-bold transition-all flex items-center gap-1.5 mr-2"
+                >
+                  {isSidebarOpen ? "사이드바 접기 ◀" : "사이드바 열기 ▶"}
+                </button>
+                <button 
+                  onClick={handleResetCoords}
+                  className="px-3.5 py-1.5 bg-rose-950/50 hover:bg-rose-900 border border-rose-800/60 text-rose-300 hover:text-white rounded text-xs font-bold transition-all"
+                >
+                  기초 초기화
+                </button>
+                <button 
+                  onClick={handleCopyCoords}
+                  className="px-3.5 py-1.5 bg-emerald-950/50 hover:bg-emerald-900 border border-emerald-800/60 text-emerald-300 hover:text-white rounded text-xs font-bold transition-all flex items-center gap-1.5"
+                >
+                  <Copy size={13} /> 좌표 JSON 복사
+                </button>
+                <button 
+                  onClick={handlePrintAction}
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-bold transition-all shadow-lg flex items-center gap-1.5"
+                >
+                  <Printer size={13} /> 인쇄하기
+                </button>
+                <button 
+                  onClick={() => setActivePrintType(null)}
+                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded text-xs font-bold transition-all"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+
+            {/* Sidebar Controls & Content Layout */}
+            <div className="w-full flex flex-1 overflow-hidden">
+              {/* Sidebar */}
+              {isSidebarOpen && (
+                <div className="w-80 bg-slate-900/50 border-r border-slate-800/80 p-5 flex flex-col gap-5 overflow-y-auto shrink-0 font-sans">
+                  {/* 1. Selected Field Detail Settings (개별 조정) - 최상위 배치 */}
+                  {selectedFieldKey ? (() => {
+                    const coord = editorCoords[selectedFieldKey] || { left: 0, top: 0, fontSize: 0.95 };
+                    const val = useSampleMode ? getSampleValue(selectedFieldKey, activePrintType!) : getRealValue(selectedFieldKey, activePrintType!);
+                    
+                    const handleUpdateCoord = (updates: Partial<typeof coord>) => {
+                      setEditorCoords(prev => {
+                        const next = {
+                          ...prev,
+                          [selectedFieldKey]: {
+                            ...prev[selectedFieldKey],
+                            ...updates
+                          }
+                        };
+                        localStorage.setItem(`pedigree_coords_${activePrintType}`, JSON.stringify(next));
+                        return next;
+                      });
+                    };
+
+                    return (
+                      <div className="flex flex-col gap-3 bg-slate-800/60 p-4 rounded-lg border-2 border-amber-500/80 shadow-2xl">
+                        <h4 className="font-bold text-xs text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                          🎯 [개별 설정] 선택 필드 글자크기/위치
+                        </h4>
+                        <div className="text-[11px] text-white truncate bg-slate-950/80 p-2 rounded border border-slate-800">
+                          <strong className="text-amber-300">선택됨:</strong> {selectedFieldKey} <br/>
+                          <span className="text-slate-400 text-[10px]">내용: {val || '(빈값)'}</span>
+                        </div>
+
+                        {/* Font Size Selector */}
+                        <div>
+                          <label className="text-[11px] text-slate-300 block mb-1 font-semibold flex justify-between">
+                            <span>글자 크기 (em)</span>
+                            <span className="text-amber-400 font-bold">{coord.fontSize || 0.95} em</span>
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <button 
+                              onClick={() => handleUpdateCoord({ fontSize: parseFloat(Math.max(0.1, (coord.fontSize || 0.95) - 0.05).toFixed(2)) })}
+                              className="w-7 h-7 bg-slate-950 hover:bg-slate-800 active:scale-95 border border-slate-700 hover:border-amber-500/50 text-xs font-bold rounded flex items-center justify-center transition-all text-white"
+                            >
+                              -
+                            </button>
+                            <input 
+                              type="number" 
+                              step="0.01" 
+                              min="0.1"
+                              value={coord.fontSize || 0.95} 
+                              onChange={e => handleUpdateCoord({ fontSize: parseFloat(parseFloat(e.target.value).toFixed(2)) || 0.95 })}
+                              className="flex-1 bg-slate-950 border border-slate-800 rounded h-7 text-center text-xs text-white font-bold" 
+                            />
+                            <button 
+                              onClick={() => handleUpdateCoord({ fontSize: parseFloat(((coord.fontSize || 0.95) + 0.05).toFixed(2)) })}
+                              className="w-7 h-7 bg-slate-950 hover:bg-slate-800 active:scale-95 border border-slate-700 hover:border-amber-500/50 text-xs font-bold rounded flex items-center justify-center transition-all text-white"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Width Selector */}
+                        <div>
+                          <label className="text-[11px] text-slate-300 block mb-1 font-semibold flex justify-between">
+                            <span>가로 너비 (mm)</span>
+                            <span className="text-slate-400">{coord.width ? `${coord.width} mm` : '자동'}</span>
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <button 
+                              onClick={() => handleUpdateCoord({ width: Math.max(0, (coord.width || 0) - 1) })}
+                              className="w-7 h-7 bg-slate-950 hover:bg-slate-800 active:scale-95 border border-slate-700 text-xs font-bold rounded flex items-center justify-center transition-all text-white"
+                            >
+                              -
+                            </button>
+                            <input 
+                              type="number" 
+                              step="1" 
+                              min="0"
+                              placeholder="자동"
+                              value={coord.width || ''} 
+                              onChange={e => handleUpdateCoord({ width: parseInt(e.target.value) || undefined })}
+                              className="flex-1 bg-slate-950 border border-slate-800 rounded h-7 text-center text-xs text-white font-bold" 
+                            />
+                            <button 
+                              onClick={() => handleUpdateCoord({ width: (coord.width || 0) + 1 })}
+                              className="w-7 h-7 bg-slate-950 hover:bg-slate-800 active:scale-95 border border-slate-700 text-xs font-bold rounded flex items-center justify-center transition-all text-white"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Left position */}
+                        <div>
+                          <label className="text-[11px] text-slate-300 block mb-1 font-semibold flex justify-between">
+                            <span>가로 위치 (left, mm)</span>
+                            <span className="text-slate-400">{coord.left} mm</span>
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <button 
+                              onClick={() => handleUpdateCoord({ left: parseFloat((coord.left - 0.5).toFixed(2)) })}
+                              className="w-7 h-7 bg-slate-950 hover:bg-slate-800 active:scale-95 border border-slate-700 text-xs font-bold rounded flex items-center justify-center transition-all text-white"
+                            >
+                              -
+                            </button>
+                            <input 
+                              type="number" 
+                              step="0.1" 
+                              value={coord.left} 
+                              onChange={e => handleUpdateCoord({ left: parseFloat(parseFloat(e.target.value).toFixed(2)) || 0 })}
+                              className="flex-1 bg-slate-950 border border-slate-800 rounded h-7 text-center text-xs text-white font-bold" 
+                            />
+                            <button 
+                              onClick={() => handleUpdateCoord({ left: parseFloat((coord.left + 0.5).toFixed(2)) })}
+                              className="w-7 h-7 bg-slate-950 hover:bg-slate-800 active:scale-95 border border-slate-700 text-xs font-bold rounded flex items-center justify-center transition-all text-white"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Top position */}
+                        <div>
+                          <label className="text-[11px] text-slate-300 block mb-1 font-semibold flex justify-between">
+                            <span>세로 위치 (top, mm)</span>
+                            <span className="text-slate-400">{coord.top} mm</span>
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <button 
+                              onClick={() => handleUpdateCoord({ top: parseFloat((coord.top - 0.5).toFixed(2)) })}
+                              className="w-7 h-7 bg-slate-950 hover:bg-slate-800 active:scale-95 border border-slate-700 text-xs font-bold rounded flex items-center justify-center transition-all text-white"
+                            >
+                              -
+                            </button>
+                            <input 
+                              type="number" 
+                              step="0.1" 
+                              value={coord.top} 
+                              onChange={e => handleUpdateCoord({ top: parseFloat(parseFloat(e.target.value).toFixed(2)) || 0 })}
+                              className="flex-1 bg-slate-950 border border-slate-800 rounded h-7 text-center text-xs text-white font-bold" 
+                            />
+                            <button 
+                              onClick={() => handleUpdateCoord({ top: parseFloat((coord.top + 0.5).toFixed(2)) })}
+                              className="w-7 h-7 bg-slate-950 hover:bg-slate-800 active:scale-95 border border-slate-700 text-xs font-bold rounded flex items-center justify-center transition-all text-white"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })() : (
+                    <div className="bg-slate-800/40 p-4 rounded-lg border border-slate-800 text-center py-6 text-xs text-slate-400">
+                      💡 화면에서 보정할 단어(글자)를 마우스로 클릭하시면 여기에 <strong className="text-amber-400">"개별 글자 크기 조절"</strong> 패널이 열립니다!
+                    </div>
+                  )}
+
+                  {/* 2. Global Calibration */}
+                  <div className="flex flex-col gap-3.5 bg-slate-800/40 p-4 rounded-lg border border-slate-800">
+                    <h4 className="font-bold text-xs text-indigo-400 uppercase tracking-wider">⚠️ 전체 모든 글자 일괄 오차 조정</h4>
+                    
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">전체 상하 이동 (mm)</label>
+                      <input 
+                        type="number" 
+                        step="0.1" 
+                        value={offsetTop} 
+                        onChange={e => {
+                          const val = parseFloat(e.target.value) || 0;
+                          setOffsetTop(val);
+                          localStorage.setItem(`pedigree_offset_${activePrintType}_top`, val.toString());
+                        }}
+                        className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-sm text-white font-bold" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">전체 좌우 이동 (mm)</label>
+                      <input 
+                        type="number" 
+                        step="0.1" 
+                        value={offsetLeft} 
+                        onChange={e => {
+                          const val = parseFloat(e.target.value) || 0;
+                          setOffsetLeft(val);
+                          localStorage.setItem(`pedigree_offset_${activePrintType}_left`, val.toString());
+                        }}
+                        className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-sm text-white font-bold" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1 text-rose-400 font-bold">⚠️ 전체 모든 글자 크기 배율 (%)</label>
+                      <input 
+                        type="number" 
+                        step="1" 
+                        value={fontScale} 
+                        onChange={e => {
+                          const val = parseInt(e.target.value) || 100;
+                          setFontScale(val);
+                          localStorage.setItem(`pedigree_offset_${activePrintType}_scale`, val.toString());
+                        }}
+                        className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-sm text-white font-bold" 
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between mt-2 py-1 border-t border-slate-800">
+                      <span className="text-xs text-slate-300 font-sans">전체 폰트 두껍게 출력</span>
+                      <input 
+                        type="checkbox" 
+                        checked={fontBold}
+                        onChange={e => {
+                          setFontBold(e.target.checked);
+                          localStorage.setItem(`pedigree_offset_${activePrintType}_bold`, e.target.checked.toString());
+                        }}
+                        className="w-4.5 h-4.5 cursor-pointer rounded accent-indigo-500 bg-slate-950 border-slate-800" 
+                      />
+                    </div>
+                  </div>
+
+                  {/* 3. Editor Settings */}
+                  <div className="flex flex-col gap-3.5 bg-slate-800/40 p-4 rounded-lg border border-slate-800">
+                    <h4 className="font-bold text-xs text-amber-400 uppercase tracking-wider">3. 에디터 뷰 컨트롤</h4>
+
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">화면 줌 스케일 ({Math.round(editorZoom * 100)}%)</label>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => setEditorZoom(prev => Math.max(0.4, parseFloat((prev - 0.1).toFixed(2))))} 
+                          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded"
+                        >
+                          -
+                        </button>
+                        <input 
+                          type="range" 
+                          min="0.4" 
+                          max="2.5" 
+                          step="0.05"
+                          value={editorZoom} 
+                          onChange={e => setEditorZoom(parseFloat(e.target.value))}
+                          className="flex-1 accent-indigo-500 bg-slate-950" 
+                        />
+                        <button 
+                          onClick={() => setEditorZoom(prev => Math.min(2.5, parseFloat((prev + 0.1).toFixed(2))))} 
+                          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">그리드 스냅 (Grid Snap)</label>
+                      <select 
+                        value={gridSize} 
+                        onChange={e => setGridSize(parseFloat(e.target.value))}
+                        className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-xs text-white"
+                      >
+                        <option value="0">그리드 끔 (자유 이동)</option>
+                        <option value="0.5">0.5 mm 스냅</option>
+                        <option value="1">1.0 mm 스냅</option>
+                        <option value="2">2.0 mm 스냅</option>
+                        <option value="5">5.0 mm 스냅</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-2.5 mt-1 pt-2.5 border-t border-slate-800">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-300">배경 가이드 백지 투명화</span>
+                        <input 
+                          type="checkbox" 
+                          checked={showGuide}
+                          onChange={e => setShowGuide(e.target.checked)}
+                          className="w-4.5 h-4.5 cursor-pointer rounded accent-indigo-500" 
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-300 font-semibold text-emerald-400">🎯 대상견 샘플 데이터 대조</span>
+                        <input 
+                          type="checkbox" 
+                          checked={useSampleMode}
+                          onChange={e => setUseSampleMode(e.target.checked)}
+                          className="w-4.5 h-4.5 cursor-pointer rounded accent-emerald-500" 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-300 font-semibold text-amber-400 font-sans">🛠️ 마우스 드래그 좌표 이동</span>
+                        <input 
+                          type="checkbox" 
+                          checked={isEditingCoords}
+                          onChange={e => setIsEditingCoords(e.target.checked)}
+                          className="w-4.5 h-4.5 cursor-pointer rounded accent-amber-500" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4. Helper Info */}
+                  <div className="bg-slate-800/40 p-4 rounded-lg border border-slate-800 text-xs leading-relaxed text-slate-400">
+                    <h4 className="font-bold text-xs text-slate-300 mb-2">💡 미세조정 단축키</h4>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li>필드를 선택하고 <strong className="text-slate-200">방향키(← → ↑ ↓)</strong>를 입력하면 <strong className="text-white">0.1mm</strong> 단위로 미세 이동합니다.</li>
+                      <li><strong className="text-slate-200">Shift + 방향키</strong> 입력시 <strong className="text-white">0.5mm</strong> 단위로 빠르게 이동합니다.</li>
+                      <li><strong className="text-slate-200">[ ] (대괄호)</strong> 키로 개별 글자 크기 배율을 조절합니다. (<strong className="text-slate-200">Shift + [ ]</strong>은 대폭 조절)</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Workspace / Canvas Area */}
+              <div className="flex-1 bg-slate-950 overflow-auto p-8 flex items-start justify-center">
+                <div 
+                  style={{
+                    width: `${pageWidthMm * editorZoom}mm`,
+                    height: `${pageHeightMm * editorZoom}mm`,
+                    position: 'relative',
+                    flexShrink: 0
+                  }}
+                >
+                  <div 
+                    id="pedigree-canvas"
+                    className="bg-white text-black absolute top-0 left-0 border-4 border-indigo-900/40 shadow-2xl transition-all origin-top-left"
+                    style={{
+                      width: `${pageWidthMm}mm`,
+                      height: `${pageHeightMm}mm`,
+                      transform: `scale(${editorZoom})`,
+                      backgroundImage: showGuide ? `url('${layout.bgImage}')` : 'none',
+                      backgroundSize: '100% 100%',
+                      backgroundRepeat: 'no-repeat',
+                      boxSizing: 'content-box'
+                    }}
+                  >
+                    {/* Grid Overlay */}
+                    {gridSize > 0 && (
+                      <div 
+                        className="absolute inset-0 pointer-events-none" 
+                        style={{
+                          backgroundImage: `
+                            linear-gradient(to right, rgba(99, 102, 241, 0.15) 1px, transparent 1px),
+                            linear-gradient(to bottom, rgba(99, 102, 241, 0.15) 1px, transparent 1px)
+                          `,
+                          backgroundSize: `${gridSize}mm ${gridSize}mm`
+                        }}
+                      />
+                    )}
+
+                    {/* Print Offset Margin Preview Box */}
+                    <div 
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        transform: `translate(${offsetLeftMm}, ${offsetTopMm})`,
+                        fontSize: `calc(9pt * (${fontScale} / 100))`,
+                        fontWeight: fontBold ? 'bold' : 'normal',
+                        lineHeight: 1.15
+                      }}
+                    >
+                      {/* Render Coordinates */}
+                      {Object.keys(editorCoords).map(key => {
+                        const coord = editorCoords[key];
+                        const val = useSampleMode ? getSampleValue(key, activePrintType) : getRealValue(key, activePrintType);
+                        const isSelected = selectedFieldKey === key;
+                        const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
+                        
+                        return (
+                          <div
+                            key={key}
+                            onMouseDown={e => handleDragStart(e, key)}
+                            className={`absolute select-none pointer-events-auto border transition-all truncate text-left whitespace-nowrap
+                              ${isEditingCoords ? 'cursor-move' : 'cursor-pointer'}
+                              ${isSelected ? 'border-indigo-600 bg-indigo-50/70 text-indigo-950 font-extrabold shadow-md scale-105 z-[99]' : 'border-transparent hover:border-amber-400 hover:bg-amber-50/30'}
+                            `}
+                            style={{
+                              left: `${coord.left}mm`,
+                              top: `${coord.top}mm`,
+                              fontSize: `${coord.fontSize || 0.95}em`,
+                              fontWeight: isBold ? 'bold' : 'inherit',
+                              width: coord.width ? `${coord.width}mm` : 'auto',
+                              padding: '1px 2px',
+                              minHeight: '4mm'
+                            }}
+                            title={`[${key}] L:${coord.left} T:${coord.top} S:${coord.fontSize || 0.95}`}
+                          >
+                            {val || <span className="text-[7pt] text-rose-500 opacity-60 italic">({key} 빈값)</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Bottom Footer Info */}
+            <div className="w-full bg-slate-900 border-t border-slate-800 px-6 py-2.5 flex items-center justify-between text-xs text-slate-500 shrink-0">
+              <span>KKF Admin Dashboard • High-Performance Pedigree Print Calibration Module</span>
+              <span>A4 Dimensions: {pageWidthMm}mm × {pageHeightMm}mm (1:1 Ratio)</span>
+            </div>
+          </div>
+        );
+      })()}
 
       <CustomConfirmModal
         isOpen={confirmModal.isOpen}

@@ -24,7 +24,9 @@ import { setApiConfig, fetchAllTableNames, fetchMembers, fetchNotices } from './
 import { fetchPedigrees } from './services/pedigreeService';
 import { AlertCircle, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
 
-const DEFAULT_URL = 'https://kkc3349.mycafe24.com/bridg.php';
+const DEFAULT_URL = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? '/bridg.php'
+  : 'https://kkc3349.mycafe24.com/bridg.php';
 
 const GlobalModal = ({ isOpen, type, title, message, onConfirm, onCancel }: any) => {
   if (!isOpen) return null;

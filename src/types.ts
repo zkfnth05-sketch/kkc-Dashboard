@@ -50,7 +50,7 @@ export interface Member {
   dogs: Dog[];
 }
 
-export interface Pedigree { id: string; regNo: string; regType: string; name: string; fullName: string; group: string; breed: string; gender: string; birthDate: string; color: string; coatType: string; kennel: string; kennelNameEng: string; ownerId: string; owner: string; ownerPhone: string; ownerAddr: string; breederId: string; breeder: string; breederPhone: string; breederAddr: string; sireUid: string; sireRegNo: string; sireRegNoText?: string; sireNameText?: string; sireName: string; damUid: string; damRegNo: string; damRegNoText?: string; damNameText?: string; damName: string; microchip: string; indexNo: string; hairIndex: string; specBone: string; specDna: string; specTrain: string; specWin: string; specWin2?: string; specRelate: string; domesticNo: string; foreignNo: string; foreignNo2: string; memo: string; okDate: string; okStat: string; dongtaeNo: string; type: string; joinDate?: string; editDate?: string; }
+export interface Pedigree { id: string; regNo: string; regType: string; name: string; fullName: string; group: string; breed: string; gender: string; birthDate: string; color: string; coatType: string; kennel: string; kennelNameEng: string; ownerId: string; owner: string; ownerPhone: string; ownerAddr: string; breederId: string; breeder: string; breederPhone: string; breederAddr: string; sireUid: string; sireRegNo: string; sireRegNoText?: string; sireNameText?: string; sireName: string; damUid: string; damRegNo: string; damRegNoText?: string; damNameText?: string; damName: string; microchip: string; indexNo: string; hairIndex: string; specBone: string; specDna: string; specTrain: string; specWin: string; specWin2?: string; specRelate: string; domesticNo: string; foreignNo: string; foreignNo2: string; memo: string; okDate: string; okStat: string; dongtaeNo: string; type: string; joinDate?: string; editDate?: string; signdate?: string; moddate?: string; }
 
 export interface Point {
   id: string;
@@ -134,7 +134,7 @@ export interface DongtaeInfo {
   memo?: string;                // 39. memo (VARCHAR 255)
 }
 
-export interface ParentDogInfo { uid: string; name: string; fullname: string; reg_no: string; birth: string; dog_class: string; hair: string; hair_long: string; saho_eng: string; foreign100: string; foreign_no: string; foreign_no2: string; }
+export interface ParentDogInfo { uid: string; name: string; fullname: string; reg_no: string; birth: string; dog_class: string; hair: string; hair_long: string; saho_eng: string; foreign100: string; foreign_no: string; foreign_no2: string; fa_regno?: string; mo_regno?: string; spec_bone?: string; spec_dna?: string; spec_train?: string; spec_win?: string; spec_win2?: string; sex?: string; gender?: string; }
 export interface PersonSearchResult { id: string; name: string; source: string; context: string; data: { id: string; name: string; nameEng: string; phone: string; address: string; }; }
 export interface OwnerHistory { uid: string; dog_uid: string; reg_no: string; change_date: string; poss_id: string; poss_name: string; poss_name_eng: string; poss_addr: string; poss_phone: string; }
 

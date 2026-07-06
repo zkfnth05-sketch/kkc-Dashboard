@@ -1,7 +1,9 @@
 
 import { Member, Pedigree, Notice, PostCategory, ParentDogInfo, PersonSearchResult, OwnerHistory, Point, Prize, Evaluation } from '../types';
 
-export let BRIDGE_URL = 'https://kkc3349.mycafe24.com/bridg.php';
+export let BRIDGE_URL = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? '/bridg.php'
+    : 'https://kkc3349.mycafe24.com/bridg.php';
 export const SECRET_KEY = 'kkc-super-secret-key-change-this-now-12345!';
 
 export const setApiConfig = (url: string) => {
