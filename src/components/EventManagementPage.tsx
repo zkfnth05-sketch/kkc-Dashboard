@@ -11,7 +11,6 @@ import {
 import { fetchDogShows, createDogShow, updateDogShow, deleteDogShow } from '../services/eventService';
 import { fetchBridge, SECRET_KEY, BRIDGE_URL, uploadFile, compressImage } from '../services/memberService';
 import { applyToCompetition } from '../services/portalService';
-import ReactQuill from 'react-quill';
 
 
 
