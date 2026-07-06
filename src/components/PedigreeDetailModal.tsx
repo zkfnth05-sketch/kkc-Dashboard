@@ -96,7 +96,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     const layouts = {
       shepherd: {
         title: '저먼 셰퍼드 혈통서 인쇄',
-        bgImage: '/pedigree_templates/KakaoTalk_20260706_141944995.jpg',
+        bgImage: '/pedigree_templates/KakaoTalk_20260706_141939066.jpg',
       },
       jindo: {
         title: '진돗개 혈통서 인쇄',
@@ -104,7 +104,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       },
       general: {
         title: '일반/리트리버 혈통서 인쇄',
-        bgImage: '/pedigree_templates/KakaoTalk_20260706_141939066.jpg',
+        bgImage: '/pedigree_templates/KakaoTalk_20260706_141944995.jpg',
       }
     };
 
