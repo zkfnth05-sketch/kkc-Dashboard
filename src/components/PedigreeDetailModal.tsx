@@ -139,79 +139,79 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (type === 'shepherd') {
       fieldsHtml = `
         <!-- 본견 기본 정보 -->
-        <div class="field" style="left: 42mm; top: 43.8mm; font-weight: bold; font-size: 1.1em;">${pedigree.fullName || pedigree.name || '-'}</div>
+        <div class="field" style="left: 34mm; top: 31.0mm; font-weight: bold; font-size: 1.05em;">${pedigree.fullName || pedigree.name || '-'}</div>
         
-        <div class="field" style="left: 42mm; top: 51.5mm;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
-        <div class="field" style="left: 85.5mm; top: 50.4mm;">${pedigree.coatType || 'stock hair'}</div>
+        <div class="field" style="left: 34mm; top: 41.5mm; font-size: 0.95em;">${pedigree.gender === 'M' ? 'MALE (수컷)' : 'FEMALE (암컷)'}</div>
+        <div class="field" style="left: 92.0mm; top: 41.5mm; font-size: 0.95em;">${pedigree.coatType || 'stock hair'}</div>
         
-        <div class="field" style="left: 42mm; top: 58mm;">${pedigree.color || '-'}</div>
+        <div class="field" style="left: 34mm; top: 52.0mm; font-size: 0.95em;">${pedigree.color || '-'}</div>
         
-        <div class="field" style="left: 42mm; top: 64.6mm;">${formatDateKr(pedigree.birthDate)}</div>
-        <div class="field" style="left: 85.5mm; top: 63.5mm;">${pedigree.joinDate || '-'}</div>
+        <div class="field" style="left: 34mm; top: 62.5mm; font-size: 0.95em;">${formatDateKr(pedigree.birthDate)}</div>
+        <div class="field" style="left: 92.0mm; top: 62.5mm; font-size: 0.95em;">${pedigree.joinDate || '-'}</div>
         
-        <div class="field" style="left: 85.5mm; top: 70mm;">${ownerHistory[0]?.change_date || '-'}</div>
+        <div class="field" style="left: 92.0mm; top: 73.0mm; font-size: 0.95em;">${ownerHistory[0]?.change_date || '-'}</div>
 
         <!-- 번식자/소유자 정보 (좌측 상단에 위치) -->
-        <div class="field" style="left: 42mm; top: 70mm; font-weight: bold;">${pedigree.breeder || '-'}</div>
-        <div class="field" style="left: 42mm; top: 73.5mm; font-size: 0.8em; max-width: 40mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.breederAddr || '-'}</div>
+        <div class="field" style="left: 34mm; top: 73.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.breeder || '-'}</div>
+        <div class="field" style="left: 34mm; top: 77.5mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.breederAddr || '-'}</div>
         
-        <div class="field" style="left: 42mm; top: 79mm; font-weight: bold;">${pedigree.owner || '-'}</div>
-        <div class="field" style="left: 42mm; top: 82.5mm; font-size: 0.8em; max-width: 40mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.ownerAddr || '-'}</div>
+        <div class="field" style="left: 34mm; top: 85.0mm; font-weight: bold; font-size: 0.95em;">${pedigree.owner || '-'}</div>
+        <div class="field" style="left: 34mm; top: 89.5mm; font-size: 0.78em; max-width: 55mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.ownerAddr || '-'}</div>
 
         <!-- 중앙 회색 박스 등록번호 정보 -->
-        <div class="field" style="left: 149mm; top: 45mm; font-weight: bold;">${pedigree.microchip || '-'}</div>
-        <div class="field" style="left: 149mm; top: 51.5mm; font-weight: bold; color: #1e3a8a;">${pedigree.regNo || '-'}</div>
-        <div class="field" style="left: 149mm; top: 58mm;">${pedigree.foreignNo || pedigree.domesticNo || '-'}</div>
-        <div class="field" style="left: 149mm; top: 64.6mm; font-size: 0.9em; max-width: 50mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.dongtaeNo || '-'}</div>
+        <div class="field" style="left: 146mm; top: 43.5mm; font-weight: bold; color: #1e3a8a; font-size: 1.0em;">${pedigree.regNo || '-'}</div>
+        <div class="field" style="left: 146mm; top: 54.0mm; font-weight: bold; font-size: 1.0em;">${pedigree.microchip || '-'}</div>
+        <div class="field" style="left: 146mm; top: 64.5mm; font-size: 0.95em;">${pedigree.foreignNo || pedigree.domesticNo || '-'}</div>
+        <div class="field" style="left: 146mm; top: 75.0mm; font-size: 0.9em; max-width: 42mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pedigree.dongtaeNo || '-'}</div>
 
         <!-- 4대 혈통도 계보 (30 Ancestors) -->
         <!-- 1대 (Parents) -->
-        ${renderShepherdAncestor(2, '37.2mm', '98.6mm', '60mm', '14mm')} <!-- 부견 -->
-        ${renderShepherdAncestor(3, '37.2mm', '157.8mm', '60mm', '14mm')} <!-- 모견 -->
+        ${renderShepherdAncestor(2, '18mm', '89.0mm', '50mm', '13mm')} <!-- 부견 -->
+        ${renderShepherdAncestor(3, '18mm', '146.0mm', '50mm', '13mm')} <!-- 모견 -->
 
         <!-- 2대 (Grandparents) -->
-        ${renderShepherdAncestor(4, '100.8mm', '86.6mm', '60mm', '12mm')}
-        ${renderShepherdAncestor(5, '100.8mm', '116.2mm', '60mm', '12mm')}
-        ${renderShepherdAncestor(6, '100.8mm', '144.7mm', '60mm', '12mm')}
-        ${renderShepherdAncestor(7, '100.8mm', '174.3mm', '60mm', '12mm')}
+        ${renderShepherdAncestor(4, '74mm', '79.0mm', '50mm', '11mm')}
+        ${renderShepherdAncestor(5, '74mm', '107.0mm', '50mm', '11mm')}
+        ${renderShepherdAncestor(6, '74mm', '136.0mm', '50mm', '11mm')}
+        ${renderShepherdAncestor(7, '74mm', '164.0mm', '50mm', '11mm')}
 
         <!-- 3대 (Great-grandparents) -->
-        ${renderShepherdAncestor(8, '164.4mm', '80.0mm', '58mm', '10mm', true)}
-        ${renderShepherdAncestor(9, '164.4mm', '95.3mm', '58mm', '10mm', true)}
-        ${renderShepherdAncestor(10, '164.4mm', '109.6mm', '58mm', '10mm', true)}
-        ${renderShepherdAncestor(11, '164.4mm', '125.0mm', '58mm', '10mm', true)}
-        ${renderShepherdAncestor(12, '164.4mm', '139.2mm', '58mm', '10mm', true)}
-        ${renderShepherdAncestor(13, '164.4mm', '154.6mm', '58mm', '10mm', true)}
-        ${renderShepherdAncestor(14, '164.4mm', '168.8mm', '58mm', '10mm', true)}
-        ${renderShepherdAncestor(15, '164.4mm', '184.2mm', '58mm', '10mm', true)}
+        ${renderShepherdAncestor(8, '132mm', '72.5mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(9, '132mm', '86.5mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(10, '132mm', '100.5mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(11, '132mm', '114.5mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(12, '132mm', '129.0mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(13, '132mm', '143.0mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(14, '132mm', '157.0mm', '50mm', '9mm', true)}
+        ${renderShepherdAncestor(15, '132mm', '171.0mm', '50mm', '9mm', true)}
 
         <!-- 4대 (Great-great-grandparents) -->
-        ${renderShepherdAncestor(16, '225.8mm', '76.7mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(17, '225.8mm', '84.4mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(18, '225.8mm', '92.0mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(19, '225.8mm', '99.7mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(20, '225.8mm', '107.4mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(21, '225.8mm', '115.1mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(22, '225.8mm', '122.8mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(23, '225.8mm', '130.4mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(24, '225.8mm', '137.0mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(25, '225.8mm', '144.7mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(26, '225.8mm', '152.4mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(27, '225.8mm', '160.0mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(28, '225.8mm', '167.7mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(29, '225.8mm', '175.4mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(30, '225.8mm', '183.0mm', '58mm', '7.5mm', true)}
-        ${renderShepherdAncestor(31, '225.8mm', '190.7mm', '58mm', '7.5mm', true)}
+        ${renderShepherdAncestor(16, '188mm', '70.0mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(17, '188mm', '76.8mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(18, '188mm', '83.6mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(19, '188mm', '90.4mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(20, '188mm', '97.2mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(21, '188mm', '104.0mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(22, '188mm', '110.8mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(23, '188mm', '117.6mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(24, '188mm', '124.4mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(25, '188mm', '131.2mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(26, '188mm', '138.0mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(27, '188mm', '144.8mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(28, '188mm', '151.6mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(29, '188mm', '158.4mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(30, '188mm', '165.2mm', '50mm', '6.8mm', true)}
+        ${renderShepherdAncestor(31, '188mm', '172.0mm', '50mm', '6.8mm', true)}
 
         <!-- 우측 상단 평가 및 출생 통계 정보 -->
-        <div class="field" style="left: 210.5mm; top: 15.3mm; font-size: 0.85em;">${pedigree.okDate || '-'}</div>
-        <div class="field" style="left: 215mm; top: 40.5mm; font-size: 0.85em;">Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}</div>
-        <div class="field" style="left: 215mm; top: 47.0mm; font-size: 0.85em;">${getLitterValue('birth_count') || '1'}</div>
-        <div class="field" style="left: 215mm; top: 60.0mm; font-size: 0.85em;">0</div>
-        <div class="field" style="left: 215mm; top: 73.4mm; font-size: 0.85em;">Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}</div>
+        <div class="field" style="left: 210.5mm; top: 16.5mm; font-size: 0.85em;">${pedigree.okDate || '-'}</div>
+        <div class="field" style="left: 228mm; top: 44.5mm; font-size: 0.85em;">Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}</div>
+        <div class="field" style="left: 228mm; top: 52.0mm; font-size: 0.85em;">${getLitterValue('birth_count') || '1'}</div>
+        <div class="field" style="left: 228mm; top: 59.5mm; font-size: 0.85em;">0</div>
+        <div class="field" style="left: 228mm; top: 67.0mm; font-size: 0.85em;">Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}</div>
 
         <!-- 하단 발행일 정보 (협회 직인 근처) -->
-        <div class="field" style="left: 140mm; top: 198mm; font-size: 1.1em; font-weight: bold;">
+        <div class="field" style="left: 140mm; top: 192mm; font-size: 1.1em; font-weight: bold;">
           ${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
         </div>
       `;
