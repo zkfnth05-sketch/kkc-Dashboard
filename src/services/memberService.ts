@@ -272,25 +272,55 @@ export const fetchNotices = async (t: string, p: number, q: string, f: string) =
 
 export const fetchDogsByUids = async (uids: string[], table: string = 'dogTab'): Promise<Record<string, ParentDogInfo>> => {
     const result: Record<string, ParentDogInfo> = {};
-    const filteredUids = uids.map(u => (u || '').toString().trim()).filter(u => u !== '' && u !== '0');
-    await Promise.all(filteredUids.map(async (uid) => {
-        try {
-            const res = await fetchBridge({ mode: 'list', table, search: uid, field: 'uid', limit: 1 });
-            if (res.data && res.data.length > 0) result[uid] = res.data[0];
-        } catch (e) { console.error(`UID 조회 실패: ${uid}`, e); }
-    }));
+    const filteredUids = uids.map(u => (u || '').toString().trim()).filter(u => u !== '' && u !== '0' && u !== '-' && u !== '미등록');
+    if (filteredUids.length === 0) return result;
+
+    try {
+        const res = await fetchBridge({
+            mode: 'list',
+            table,
+            search: filteredUids.join(','),
+            field: 'uid',
+            exact: true,
+            limit: 100
+        });
+        if (res.data && res.data.length > 0) {
+            res.data.forEach((dog: any) => {
+                if (dog.uid) {
+                    result[dog.uid.toString()] = dog;
+                }
+            });
+        }
+    } catch (e) {
+        console.error(`UID 다중 조회 실패: ${filteredUids.join(',')}`, e);
+    }
     return result;
 };
 
 export const fetchDogsByRegNos = async (regNos: string[], table: string = 'dogTab'): Promise<Record<string, ParentDogInfo>> => {
     const result: Record<string, ParentDogInfo> = {};
-    const filteredRegNos = regNos.map(r => (r || '').toString().trim()).filter(r => r !== '' && r !== '0');
-    await Promise.all(filteredRegNos.map(async (regNo) => {
-        try {
-            const res = await fetchBridge({ mode: 'list', table, search: regNo, field: 'reg_no', limit: 1 });
-            if (res.data && res.data.length > 0) result[regNo] = res.data[0];
-        } catch (e) { console.error(`RegNo 조회 실패: ${regNo}`, e); }
-    }));
+    const filteredRegNos = regNos.map(r => (r || '').toString().trim()).filter(r => r !== '' && r !== '0' && r !== '-' && r !== '미등록');
+    if (filteredRegNos.length === 0) return result;
+
+    try {
+        const res = await fetchBridge({
+            mode: 'list',
+            table,
+            search: filteredRegNos.join(','),
+            field: 'reg_no',
+            exact: true,
+            limit: 100
+        });
+        if (res.data && res.data.length > 0) {
+            res.data.forEach((dog: any) => {
+                if (dog.reg_no) {
+                    result[dog.reg_no.trim()] = dog;
+                }
+            });
+        }
+    } catch (e) {
+        console.error(`RegNo 다중 조회 실패: ${filteredRegNos.join(',')}`, e);
+    }
     return result;
 };
 

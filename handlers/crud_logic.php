@@ -63,7 +63,25 @@ function kkc_handle_general_list($input) {
                     $sub[] = "FROM_UNIXTIME(p.pt_regdate, '%Y-%m-%d') LIKE CONCAT('%', UNHEX('$q_hex'), '%')";
                 } else {
                     $prefix = ($table === 'point') ? "p." : "";
-                    $sub[] = "{$prefix}`$f` LIKE CONCAT('%', UNHEX('$q_hex'), '%')";
+                    if (!empty($input['exact'])) {
+                        if (strpos($input['search'], ',') !== false) {
+                            $ids = explode(',', $input['search']);
+                            $hex_ids = [];
+                            foreach ($ids as $id) {
+                                $id_trimmed = trim($id);
+                                if ($id_trimmed !== '') {
+                                    $hex_ids[] = "UNHEX('" . bin2hex(kkc_convert($id_trimmed, $enc, false)) . "')";
+                                }
+                            }
+                            if (!empty($hex_ids)) {
+                                $sub[] = "{$prefix}`$f` IN (" . implode(', ', $hex_ids) . ")";
+                            }
+                        } else {
+                            $sub[] = "{$prefix}`$f` = UNHEX('$q_hex')";
+                        }
+                    } else {
+                        $sub[] = "{$prefix}`$f` LIKE CONCAT('%', UNHEX('$q_hex'), '%')";
+                    }
                 }
             }
             $where .= " AND (" . implode(" OR ", $sub) . ")";
