@@ -219,52 +219,52 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
         <!-- 4대 혈통도 계보 (30 Ancestors) -->
         <!-- 1대 (Parents) -->
-        ${renderShepherdAncestor(2, '18mm', '89.0mm', '50mm', '13mm', 1)} <!-- 부견 -->
-        ${renderShepherdAncestor(3, '18mm', '146.0mm', '50mm', '13mm', 1)} <!-- 모견 -->
+        ${renderShepherdAncestor(2, '18mm', '86.0mm', '50mm', '13mm', 1)} <!-- 부견 -->
+        ${renderShepherdAncestor(3, '18mm', '143.0mm', '50mm', '13mm', 1)} <!-- 모견 -->
 
         <!-- 2대 (Grandparents) -->
-        ${renderShepherdAncestor(4, '74mm', '79.0mm', '50mm', '11mm', 2)}
-        ${renderShepherdAncestor(5, '74mm', '107.0mm', '50mm', '11mm', 2)}
-        ${renderShepherdAncestor(6, '74mm', '136.0mm', '50mm', '11mm', 2)}
-        ${renderShepherdAncestor(7, '74mm', '164.0mm', '50mm', '11mm', 2)}
+        ${renderShepherdAncestor(4, '74mm', '76.0mm', '50mm', '11mm', 2)}
+        ${renderShepherdAncestor(5, '74mm', '104.0mm', '50mm', '11mm', 2)}
+        ${renderShepherdAncestor(6, '74mm', '133.0mm', '50mm', '11mm', 2)}
+        ${renderShepherdAncestor(7, '74mm', '161.0mm', '50mm', '11mm', 2)}
 
         <!-- 3대 (Great-grandparents) -->
-        ${renderShepherdAncestor(8, '132mm', '72.5mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(9, '132mm', '86.5mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(10, '132mm', '100.5mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(11, '132mm', '114.5mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(12, '132mm', '129.0mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(13, '132mm', '143.0mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(14, '132mm', '157.0mm', '50mm', '9mm', 3)}
-        ${renderShepherdAncestor(15, '132mm', '171.0mm', '50mm', '9mm', 3)}
+        ${renderShepherdAncestor(8, '132mm', '69.5mm', '50mm', '9mm', 3)}
+        ${renderShepherdAncestor(9, '132mm', '83.5mm', '50mm', '9mm', 3)}
+        ${renderShepherdAncestor(10, '132mm', '97.5mm', '50mm', '9mm', 3)}
+        ${renderShepherdAncestor(11, '132mm', '111.5mm', '50mm', '9mm', 3)}
+        ${renderShepherdAncestor(12, '132mm', '126.0mm', '50mm', '9mm', 3)}
+        ${renderShepherdAncestor(13, '132mm', '140.0mm', '50mm', '9mm', 3)}
+        ${renderShepherdAncestor(14, '132mm', '154.0mm', '50mm', '9mm', 3)}
+        ${renderShepherdAncestor(15, '132mm', '168.0mm', '50mm', '9mm', 3)}
 
         <!-- 4대 (Great-great-grandparents) -->
-        ${renderShepherdAncestor(16, '188mm', '70.0mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(17, '188mm', '76.8mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(18, '188mm', '83.6mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(19, '188mm', '90.4mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(20, '188mm', '97.2mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(21, '188mm', '104.0mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(22, '188mm', '110.8mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(23, '188mm', '117.6mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(24, '188mm', '124.4mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(25, '188mm', '131.2mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(26, '188mm', '138.0mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(27, '188mm', '144.8mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(28, '188mm', '151.6mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(29, '188mm', '158.4mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(30, '188mm', '165.2mm', '50mm', '6.8mm', 4)}
-        ${renderShepherdAncestor(31, '188mm', '172.0mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(16, '188mm', '67.0mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(17, '188mm', '73.8mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(18, '188mm', '80.6mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(19, '188mm', '87.4mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(20, '188mm', '94.2mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(21, '188mm', '101.0mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(22, '188mm', '107.8mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(23, '188mm', '114.6mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(24, '188mm', '121.4mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(25, '188mm', '128.2mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(26, '188mm', '135.0mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(27, '188mm', '141.8mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(28, '188mm', '148.6mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(29, '188mm', '155.4mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(30, '188mm', '162.2mm', '50mm', '6.8mm', 4)}
+        ${renderShepherdAncestor(31, '188mm', '169.0mm', '50mm', '6.8mm', 4)}
 
         <!-- 우측 상단 평가 및 출생 통계 정보 -->
-        <div class="field" data-real="${pedigree.okDate || '-'}" data-sample="2025-04 ~ 2027-04" style="left: 210.5mm; top: 16.5mm; font-size: 0.85em;">${pedigree.okDate || '-'}</div>
-        <div class="field" data-real="Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}" data-sample="Male: 2 / Female: 3" style="left: 228mm; top: 44.5mm; font-size: 0.85em;">Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}</div>
-        <div class="field" data-real="${getLitterValue('birth_count') || '1'}" data-sample="1" style="left: 228mm; top: 52.0mm; font-size: 0.85em;">${getLitterValue('birth_count') || '1'}</div>
-        <div class="field" data-real="0" data-sample="0" style="left: 228mm; top: 59.5mm; font-size: 0.85em;">0</div>
-        <div class="field" data-real="Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}" data-sample="Male: 2 / Female: 3" style="left: 228mm; top: 67.0mm; font-size: 0.85em;">Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}</div>
+        <div class="field" data-real="${pedigree.okDate || '-'}" data-sample="2025-04 ~ 2027-04" style="left: 210.5mm; top: 13.5mm; font-size: 0.85em;">${pedigree.okDate || '-'}</div>
+        <div class="field" data-real="Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}" data-sample="Male: 2 / Female: 3" style="left: 228mm; top: 41.5mm; font-size: 0.85em;">Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}</div>
+        <div class="field" data-real="${getLitterValue('birth_count') || '1'}" data-sample="1" style="left: 228mm; top: 49.0mm; font-size: 0.85em;">${getLitterValue('birth_count') || '1'}</div>
+        <div class="field" data-real="0" data-sample="0" style="left: 228mm; top: 56.5mm; font-size: 0.85em;">0</div>
+        <div class="field" data-real="Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}" data-sample="Male: 2 / Female: 3" style="left: 228mm; top: 64.0mm; font-size: 0.85em;">Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}</div>
 
         <!-- 하단 발행일 정보 (협회 직인 근처) -->
-        <div class="field" data-real="${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}" data-sample="2026년 7월 6일" style="left: 140mm; top: 192mm; font-size: 1.1em; font-weight: bold;">
+        <div class="field" data-real="${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}" data-sample="2026년 7월 6일" style="left: 140mm; top: 189mm; font-size: 1.1em; font-weight: bold;">
           ${new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
         </div>
       `;
