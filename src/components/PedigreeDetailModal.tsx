@@ -622,12 +622,15 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     }
     
     /* 편집 모드 용 스타일 */
-    .field[data-key], .ancestor-box[data-key] {
+    body.edit-active {
+      user-select: none !important;
+      -webkit-user-select: none !important;
+    }
+    .field[data-key] {
       cursor: default;
       transition: outline 0.1s;
     }
-    body.edit-active .field[data-key]:hover, 
-    body.edit-active .ancestor-box[data-key]:hover {
+    body.edit-active .field[data-key] {
       cursor: move;
       outline: 1px dashed #fbbf24 !important;
     }
@@ -635,6 +638,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       outline: 2px solid #3b82f6 !important;
       outline-offset: 2px;
       background-color: rgba(59, 130, 246, 0.1) !important;
+      z-index: 9999 !important;
     }
     
     @media print {
@@ -660,6 +664,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
   <div class="toolbar">
     <div class="toolbar-title">
       🖨️ ${targetLayout.title}
+      <span id="statusIndicator" style="margin-left: 15px; color: #94a3b8; font-weight: bold; font-size: 13px;">[드래그 편집 꺼짐]</span>
     </div>
     <div class="controls">
       <div class="control-group">
@@ -784,10 +789,19 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
     editModeCheckbox.addEventListener('change', (e) => {
       isEditing = e.target.checked;
+      const statusInd = document.getElementById('statusIndicator');
       if (isEditing) {
         document.body.classList.add('edit-active');
+        if (statusInd) {
+          statusInd.textContent = '선택된 필드 없음 (드래그 편집 켬)';
+          statusInd.style.color = '#fbbf24';
+        }
       } else {
         document.body.classList.remove('edit-active');
+        if (statusInd) {
+          statusInd.textContent = '[드래그 편집 꺼짐]';
+          statusInd.style.color = '#94a3b8';
+        }
         if (activeElement) {
           activeElement.classList.remove('selected-field');
           activeElement = null;
@@ -801,21 +815,53 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (!target) return;
 
       e.preventDefault();
+      e.stopPropagation();
+
       if (activeElement) {
         activeElement.classList.remove('selected-field');
       }
       activeElement = target;
       activeElement.classList.add('selected-field');
 
+      const key = target.getAttribute('data-key');
+      const text = target.textContent.trim().substring(0, 15);
+      const statusInd = document.getElementById('statusIndicator');
+      if (statusInd) {
+        statusInd.textContent = '선택됨: ' + text + ' (' + key + ')';
+        statusInd.style.color = '#60a5fa';
+      }
+
       const startX = e.clientX;
       const startY = e.clientY;
       
       const container = document.querySelector('.page-container');
-      const containerWidth = container.clientWidth;
-      const pxToMm = 297 / containerWidth;
+      const rect = container ? container.getBoundingClientRect() : null;
+      const isLandscape = type === 'shepherd';
+      const containerWidthMm = isLandscape ? 297 : 210;
+      const widthPx = rect && rect.width > 0 ? rect.width : (window.innerWidth || 1100);
+      const pxToMm = containerWidthMm / widthPx;
 
-      let baseLeft = parseFloat(activeElement.style.left) || 0;
-      let baseTop = parseFloat(activeElement.style.top) || 0;
+      let baseLeft = 0;
+      let baseTop = 0;
+
+      const inlineLeft = parseFloat(activeElement.style.left);
+      const inlineTop = parseFloat(activeElement.style.top);
+
+      if (!isNaN(inlineLeft)) {
+        baseLeft = inlineLeft;
+      } else {
+        const computedStyle = window.getComputedStyle(activeElement);
+        const leftPx = parseFloat(computedStyle.left) || 0;
+        baseLeft = leftPx * pxToMm;
+      }
+
+      if (!isNaN(inlineTop)) {
+        baseTop = inlineTop;
+      } else {
+        const computedStyle = window.getComputedStyle(activeElement);
+        const topPx = parseFloat(computedStyle.top) || 0;
+        baseTop = topPx * pxToMm;
+      }
 
       function onMouseMove(moveEvent) {
         const dx = (moveEvent.clientX - startX) * pxToMm;
@@ -840,8 +886,35 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       let step = 0.1;
       if (e.shiftKey) step = 0.5;
 
-      let baseLeft = parseFloat(activeElement.style.left) || 0;
-      let baseTop = parseFloat(activeElement.style.top) || 0;
+      const container = document.querySelector('.page-container');
+      const rect = container ? container.getBoundingClientRect() : null;
+      const isLandscape = type === 'shepherd';
+      const containerWidthMm = isLandscape ? 297 : 210;
+      const widthPx = rect && rect.width > 0 ? rect.width : (window.innerWidth || 1100);
+      const pxToMm = containerWidthMm / widthPx;
+
+      let baseLeft = 0;
+      let baseTop = 0;
+
+      const inlineLeft = parseFloat(activeElement.style.left);
+      const inlineTop = parseFloat(activeElement.style.top);
+
+      if (!isNaN(inlineLeft)) {
+        baseLeft = inlineLeft;
+      } else {
+        const computedStyle = window.getComputedStyle(activeElement);
+        const leftPx = parseFloat(computedStyle.left) || 0;
+        baseLeft = leftPx * pxToMm;
+      }
+
+      if (!isNaN(inlineTop)) {
+        baseTop = inlineTop;
+      } else {
+        const computedStyle = window.getComputedStyle(activeElement);
+        const topPx = parseFloat(computedStyle.top) || 0;
+        baseTop = topPx * pxToMm;
+      }
+
       let moved = false;
 
       if (e.key === 'ArrowLeft') {
@@ -868,13 +941,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
           sizeVal = parseFloat(currSizeStr);
           unit = currSizeStr.replace(/[0-9.]/g, '') || 'em';
         } else {
-          if (activeElement.classList.contains('ancestor-box')) {
-            sizeVal = 1.0;
-            unit = 'em';
-          } else {
-            sizeVal = 0.95;
-            unit = 'em';
-          }
+          sizeVal = 0.95;
+          unit = 'em';
         }
 
         const sizeStep = e.shiftKey ? 0.05 : 0.01;
