@@ -413,12 +413,12 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         dog_name: 'A-ISAM OF DOG MASTER',
         reg_no: 'BM-C50074',
         dog_breed: 'Belgian Malinois',
-        dog_gender: 'MALE (수컷)',
+        dog_gender: 'MALE 수컷',
         dog_birth: '2025-01-19',
         dog_color: 'FN BLK MSK',
         microchip: '',
         index_no: '',
-        dog_litter: 'A-ISAM\nBM-C50074',
+        dog_litter: 'A-ISAM OF DOG MASTER\nBM-C50074',
         dog_breeder: 'Lee Tae Won',
         dog_breeder_addr: '대전 유성구 학하동 114-14',
         dog_owner: 'Lee Tae Won',
@@ -473,23 +473,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
             12: { name: 'CLARA OF JONGHO HOUSE', reg: 'BM-B30262', extra: 'SBL BLK MSK' },
             13: { name: 'DASAN BILL OF JJS MALINOIS FCI', reg: 'BM-C10074 BGS-15-0004107-ROK', extra: 'FN BLK MSK' },
             14: { name: 'DOBI OF ILWOL NONGJANG', reg: 'BM-B30266', extra: 'FN' },
-            15: { name: 'T2-SAEND OF TITI HOUSE', reg: 'BM-B20117', extra: 'FN' },
-            16: { name: 'TURCODOS VAN DE DUVETORRE', reg: '', extra: 'FN BLK MSK' },
-            17: { name: 'PHARRA VON BONVM BONO (USA)', reg: '', extra: '' },
-            18: { name: 'KUSGRA OT VITOSHA', reg: '', extra: 'FN&BLK MSK' },
-            19: { name: 'ANJA VON SCHOERLING', reg: '', extra: 'FN&BLK MSK' },
-            20: { name: 'CARTOUCHE VOM ROTEN FALKEN', reg: '', extra: 'grdgew' },
-            21: { name: 'ASSI VON DEN BOESEN BUBEN', reg: '', extra: 'grdgew' },
-            22: { name: 'PHENIX DE LA PLAINE DES CHEYENNES(M)', reg: '', extra: '' },
-            23: { name: 'REBECCA VON DER SCHOENEN ECKE(M)', reg: '', extra: '' },
-            24: { name: 'CHARO OF HOUSE DREAM', reg: 'BM-A90132', extra: 'RD SBL' },
-            25: { name: 'B-SOPHIE OF CLEAN ACE', reg: 'BM-B30229 BGS-07-0000991-ROK', extra: 'BLK & FN' },
-            26: { name: 'CODELONG BILL', reg: 'BGS-15-0004091-ROK', extra: 'FN BLK MSK' },
-            27: { name: 'JULLIA', reg: 'BGS-15-0004090-ROK', extra: 'FN BLK MSK' },
-            28: { name: 'BONO OF JJS MALINOIS FCI', reg: 'BGS-09-0001128-ROK', extra: 'BLK & FN' },
-            29: { name: 'DYUNA OF HOUSE GYERYONG', reg: 'BM-A80192 KDF BM-280006', extra: 'FN&BLK MSK' },
-            30: { name: 'TITI OF WOLF BOSS', reg: 'BM-B00130 BGS-08-0001076-ROK', extra: 'FN' },
-            31: { name: 'DYUI OF HOUSE GYERYONG', reg: 'BM-B10021 KDF BM-280005', extra: 'FN&BLK MSK' }
+            15: { name: 'T2-SAEND OF TITI HOUSE', reg: 'BM-B20117', extra: 'FN' }
           };
 
           const dog = ancestors[node];
@@ -515,10 +499,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'dog_name') return pedigree.fullName || pedigree.name || '-';
     if (key === 'dog_gender') {
       const gVal = formatGender(pedigree.gender);
-      if (type === 'shepherd' || type === 'jindo') {
-        if (gVal === '수컷') return 'MALE 수컷';
-        if (gVal === '암컷') return 'FEMALE 암컷';
-      }
+      if (gVal === '수컷') return 'MALE 수컷';
+      if (gVal === '암컷') return 'FEMALE 암컷';
       return gVal;
     }
     if (key === 'dog_coat') {
