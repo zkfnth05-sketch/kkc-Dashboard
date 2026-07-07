@@ -889,11 +889,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (val === undefined || val === null) val = '';
 
       const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
-      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: Georgia, serif; text-align: center;' : '');
+      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: inherit; text-align: left;' : '');
       const isAncestor = key.startsWith('ancestor_');
       const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter';
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
-      const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+      const widthStyle = coord.width && !isAncestor ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
       const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
 
@@ -994,11 +994,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (val === undefined || val === null) val = '';
 
       const isBold = key === 'dog_name' || key === 'reg_no' || key.endsWith('_name');
-      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: Georgia, serif; text-align: center;' : '');
+      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: inherit; text-align: left;' : '');
       const isAncestor = key.startsWith('ancestor_');
       const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter';
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
-      const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+      const widthStyle = coord.width && !isAncestor ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
       const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
 
