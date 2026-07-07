@@ -2118,9 +2118,13 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                             }}
                             title={`[${key}] L:${coord.left} T:${coord.top} S:${coord.fontSize || 0.95}`}
                           >
-                            {(!val || val === '-' || val === '0' || val.trim() === '') ? (
-                               <span className="text-[7pt] text-rose-500 opacity-60 italic">({getFieldLabel(key)})</span>
-                             ) : val}
+                            {(() => {
+                              const isLitterStat = key.startsWith('litter_') || key.endsWith('_count');
+                              const isEmpty = !val || val === '-' || val.trim() === '' || (!isLitterStat && val === '0');
+                              return isEmpty ? (
+                                <span className="text-[7pt] text-rose-500 opacity-60 italic">({getFieldLabel(key)})</span>
+                              ) : val;
+                            })()}
                           </div>
                         );
                       })}
