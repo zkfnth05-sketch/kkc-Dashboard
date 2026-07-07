@@ -409,42 +409,48 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     }
 
     if (type === 'general') {
-      if (key === 'dog_name') return 'Arin';
-      if (key === 'ok_term') return '2025-06-01~2027-06-01';
-      if (key === 'dog_relate') return 'Max(3-3)\nBella(4-4)';
-      if (key === 'litter_birth_m') return '2';
-      if (key === 'litter_birth_f') return '4';
-      if (key === 'litter_dead_m') return '0';
-      if (key === 'litter_dead_f') return '0';
-      if (key === 'litter_cancel_m') return '0';
-      if (key === 'litter_cancel_f') return '0';
-      if (key === 'litter_dead2_m') return '0';
-      if (key === 'litter_dead2_f') return '0';
-      if (key === 'litter_missing_m') return '0';
-      if (key === 'litter_missing_f') return '0';
-      if (key === 'litter_bringup_m') return '2';
-      if (key === 'litter_bringup_f') return '4';
-      if (key === 'litter_reg_m') return '2';
-      if (key === 'litter_reg_f') return '4';
-      if (key === 'birth_litter') return 'Male: 2 / Female: 4';
-      if (key === 'birth_count') return '6';
-      if (key === 'dead_count') return '0';
-      if (key === 'reg_count') return 'Male: 2 / Female: 4';
-      if (key === 'reg_no') return 'KSZ-C60236';
-      if (key === 'dog_breed') return 'German Shepherd Dog';
-      if (key === 'dog_gender') return 'FEMALE (암컷)';
-      if (key === 'dog_birth') return '2025-10-23';
-      if (key === 'dog_color') return 'sb';
-      if (key === 'microchip') return '';
-      if (key === 'index_no') return '-';
-      if (key === 'dog_litter') return 'Arin\nKSZ-C60236';
-      if (key === 'dog_breeder') return '최하식';
-      if (key === 'dog_breeder_addr') return '충북 충주시 금가면 하담리 35-5';
-      if (key === 'dog_owner') return '최하식';
-      if (key === 'dog_owner_addr') return '충북 충주시 금가면 하담리 35-5';
-      if (key === 'dog_join') return '2025-10-28';
-      if (key === 'dog_owner_change') return '2025-11-05';
-      if (key === 'issue_date') return '2026-03-17';
+      const generalData: Record<string, string> = {
+        dog_name: 'A-ISAM OF DOG MASTER',
+        reg_no: 'BM-C50074',
+        dog_breed: 'Belgian Malinois',
+        dog_gender: 'MALE (수컷)',
+        dog_birth: '2025-01-19',
+        dog_color: 'FN BLK MSK',
+        microchip: '',
+        index_no: '',
+        dog_litter: 'A-ISAM\nBM-C50074',
+        dog_breeder: 'Lee Tae Won',
+        dog_breeder_addr: '대전 유성구 학하동 114-14',
+        dog_owner: 'Lee Tae Won',
+        dog_owner_addr: '대전 유성구 학하동 114-14',
+        dog_join: '2025-03-14',
+        dog_owner_change: '2025-03-14',
+        issue_date: '2025-03-14',
+        ok_term: '-',
+        dog_relate: '-',
+        litter_birth_m: '0',
+        litter_birth_f: '0',
+        litter_dead_m: '0',
+        litter_dead_f: '0',
+        litter_cancel_m: '0',
+        litter_cancel_f: '0',
+        litter_dead2_m: '0',
+        litter_dead2_f: '0',
+        litter_missing_m: '0',
+        litter_missing_f: '0',
+        litter_bringup_m: '0',
+        litter_bringup_f: '0',
+        litter_reg_m: '0',
+        litter_reg_f: '0',
+        birth_litter: 'Male: 0 / Female: 0',
+        birth_count: '0',
+        dead_count: '0',
+        reg_count: 'Male: 0 / Female: 0'
+      };
+
+      if (key in generalData) {
+        return generalData[key];
+      }
 
       if (key.startsWith('ancestor_')) {
         const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
@@ -452,7 +458,47 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
           const node = parseInt(match[1]);
           const field = match[2];
           if (field.startsWith('slash')) return '/';
-          return field === 'name' ? `일반 조상 ${node}` : field === 'reg' ? `GEN-C00${node}` : 'sb';
+
+          const ancestors: Record<number, { name: string; reg: string; extra: string }> = {
+            2: { name: 'IKE OF DOGMASTER', reg: 'BM-B70073 BGS-14-0001374-ROK', extra: 'BR BLK MSK' },
+            3: { name: 'SUZY OF CHANEE HOUSE', reg: 'BM-C10083', extra: 'FN, BLK MSK' },
+            4: { name: 'BILL OF MONAMI LAND FCI', reg: 'BM-B00211 BGS-08-0001038-ROK', extra: 'FN&BLK MSK' },
+            5: { name: 'EASY VOM HORNBACHTAL', reg: 'BM-B00208 BGS-09-0001165-ROK', extra: 'grdgew' },
+            6: { name: 'ELDO OF CHANEE HOUSE', reg: 'BM-C10075', extra: 'FN BLK MSK' },
+            7: { name: 'MOLLY OF CHANEE HOUSE', reg: 'BM-B50226', extra: 'FN&BLK MSK' },
+            8: { name: 'EGOR VOM TEUFELHUND', reg: 'BGS-06-0000872-ROK', extra: 'FN BLK' },
+            9: { name: 'ELLIE OT VITOSHA', reg: 'BGS-07-0000883-ROK', extra: 'FN&BLK MSK' },
+            10: { name: 'BUTSCH VON DER BOESEN NACHBARSCHAFT', reg: '', extra: 'FN BLK MSK' },
+            11: { name: 'UNIC VON DER SCHOENEN ECKE(M)', reg: '', extra: 'grdgew' },
+            12: { name: 'CLARA OF JONGHO HOUSE', reg: 'BM-B30262', extra: 'SBL BLK MSK' },
+            13: { name: 'DASAN BILL OF JJS MALINOIS FCI', reg: 'BM-C10074 BGS-15-0004107-ROK', extra: 'FN BLK MSK' },
+            14: { name: 'DOBI OF ILWOL NONGJANG', reg: 'BM-B30266', extra: 'FN' },
+            15: { name: 'T2-SAEND OF TITI HOUSE', reg: 'BM-B20117', extra: 'FN' },
+            16: { name: 'TURCODOS VAN DE DUVETORRE', reg: '', extra: 'FN BLK MSK' },
+            17: { name: 'PHARRA VON BONVM BONO (USA)', reg: '', extra: '' },
+            18: { name: 'KUSGRA OT VITOSHA', reg: '', extra: 'FN&BLK MSK' },
+            19: { name: 'ANJA VON SCHOERLING', reg: '', extra: 'FN&BLK MSK' },
+            20: { name: 'CARTOUCHE VOM ROTEN FALKEN', reg: '', extra: 'grdgew' },
+            21: { name: 'ASSI VON DEN BOESEN BUBEN', reg: '', extra: 'grdgew' },
+            22: { name: 'PHENIX DE LA PLAINE DES CHEYENNES(M)', reg: '', extra: '' },
+            23: { name: 'REBECCA VON DER SCHOENEN ECKE(M)', reg: '', extra: '' },
+            24: { name: 'CHARO OF HOUSE DREAM', reg: 'BM-A90132', extra: 'RD SBL' },
+            25: { name: 'B-SOPHIE OF CLEAN ACE', reg: 'BM-B30229 BGS-07-0000991-ROK', extra: 'BLK & FN' },
+            26: { name: 'CODELONG BILL', reg: 'BGS-15-0004091-ROK', extra: 'FN BLK MSK' },
+            27: { name: 'JULLIA', reg: 'BGS-15-0004090-ROK', extra: 'FN BLK MSK' },
+            28: { name: 'BONO OF JJS MALINOIS FCI', reg: 'BGS-09-0001128-ROK', extra: 'BLK & FN' },
+            29: { name: 'DYUNA OF HOUSE GYERYONG', reg: 'BM-A80192 KDF BM-280006', extra: 'FN&BLK MSK' },
+            30: { name: 'TITI OF WOLF BOSS', reg: 'BM-B00130 BGS-08-0001076-ROK', extra: 'FN' },
+            31: { name: 'DYUI OF HOUSE GYERYONG', reg: 'BM-B10021 KDF BM-280005', extra: 'FN&BLK MSK' }
+          };
+
+          const dog = ancestors[node];
+          if (dog) {
+            if (field === 'name') return dog.name;
+            if (field === 'reg') return dog.reg || '-';
+            if (field === 'extra' || field === 'color') return dog.extra || '';
+          }
+          return '';
         }
       }
     }
