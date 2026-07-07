@@ -875,9 +875,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       `;
     });
 
-    const isLandscape = layout.isLandscape;
-    const pageWidth = isLandscape ? '297mm' : '210mm';
-    const pageHeight = isLandscape ? '210mm' : '297mm';
+    const pageWidth = `${layout.pageWidth}mm`;
+    const pageHeight = `${layout.pageHeight}mm`;
     const pageSize = layout.pageSize;
 
     const savedTop = localStorage.getItem(`pedigree_offset_${type}_top`) || '0';
@@ -978,9 +977,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       `;
     });
 
-    const isLandscape = layout.isLandscape;
-    const pageWidth = isLandscape ? '297mm' : '210mm';
-    const pageHeight = isLandscape ? '210mm' : '297mm';
+    const pageWidth = `${layout.pageWidth}mm`;
+    const pageHeight = `${layout.pageHeight}mm`;
     const pageSize = layout.pageSize;
 
     const savedTop = localStorage.getItem(`pedigree_offset_${type}_top`) || '0';
@@ -1881,9 +1879,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
       {activePrintType && (() => {
         const layout = DEFAULT_PEDIGREE_LAYOUTS[activePrintType];
-        const isLandscape = layout.isLandscape;
-        const pageWidthMm = isLandscape ? 297 : 210;
-        const pageHeightMm = isLandscape ? 210 : 297;
+        const pageWidthMm = layout.pageWidth;
+        const pageHeightMm = layout.pageHeight;
         
         const offsetTopMm = `${offsetTop}mm`;
         const offsetLeftMm = `${offsetLeft}mm`;
