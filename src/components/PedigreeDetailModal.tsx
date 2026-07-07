@@ -179,10 +179,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'litter_dead_f') return '0';
       if (key === 'litter_cancel_m') return '0';
       if (key === 'litter_cancel_f') return '0';
+      if (key === 'litter_dead2_m') return '0';
+      if (key === 'litter_dead2_f') return '0';
+      if (key === 'litter_missing_m') return '0';
+      if (key === 'litter_missing_f') return '0';
+      if (key === 'litter_bringup_m') return '0';
+      if (key === 'litter_bringup_f') return '0';
       if (key === 'litter_reg_m') return '1';
       if (key === 'litter_reg_f') return '0';
-      if (key === 'litter_total_m') return '1';
-      if (key === 'litter_total_f') return '0';
       if (key === 'birth_litter') return 'Male: 1 / Female: 0';
       if (key === 'birth_count') return '1';
       if (key === 'dead_count') return '0';
@@ -440,22 +444,18 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'dog_relate') return pedigree.specRelate || '-';
     if (key === 'litter_birth_m') return getLitterValue('birth_M') || '0';
     if (key === 'litter_birth_f') return getLitterValue('birth_F') || '0';
-    if (key === 'litter_dead_m') {
-      const dm = parseInt(getLitterValue('dead_M')) || 0;
-      const d2m = parseInt(getLitterValue('dead2_M')) || 0;
-      return (dm + d2m).toString();
-    }
-    if (key === 'litter_dead_f') {
-      const df = parseInt(getLitterValue('dead_F')) || 0;
-      const d2f = parseInt(getLitterValue('dead2_F')) || 0;
-      return (df + d2f).toString();
-    }
+    if (key === 'litter_dead_m') return getLitterValue('dead_M') || '0';
+    if (key === 'litter_dead_f') return getLitterValue('dead_F') || '0';
     if (key === 'litter_cancel_m') return getLitterValue('cancel_M') || '0';
     if (key === 'litter_cancel_f') return getLitterValue('cancel_F') || '0';
+    if (key === 'litter_dead2_m') return getLitterValue('dead2_M') || '0';
+    if (key === 'litter_dead2_f') return getLitterValue('dead2_F') || '0';
+    if (key === 'litter_missing_m') return getLitterValue('missing_M') || '0';
+    if (key === 'litter_missing_f') return getLitterValue('missing_F') || '0';
+    if (key === 'litter_bringup_m') return getLitterValue('bringup_M') || '0';
+    if (key === 'litter_bringup_f') return getLitterValue('bringup_F') || '0';
     if (key === 'litter_reg_m') return getLitterValue('reg_count_M') || '0';
     if (key === 'litter_reg_f') return getLitterValue('reg_count_F') || '0';
-    if (key === 'litter_total_m') return getLitterValue('reg_count_M') || '0';
-    if (key === 'litter_total_f') return getLitterValue('reg_count_F') || '0';
 
     if (key === 'birth_litter') return `Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}`;
     if (key === 'birth_count') {
