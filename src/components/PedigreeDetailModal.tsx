@@ -199,7 +199,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         if (type === 'shepherd') return '2025-06-01~2027-06-01';
         return '2025년 6월 1일 ~ 2027년 6월 1일';
       }
-      if (key === 'dog_relate') return '*Ursa v. Ghattas(3-3) *Enosch v. Amasis *Bella v. Ghattas(4-4)';
+      if (key === 'dog_relate') return '*Ursa v. Ghattas(3-3)\n*Enosch v. Amasis *Bella v. Ghattas(4-4)';
       if (key === 'litter_birth_m') return '1';
       if (key === 'litter_birth_f') return '0';
       if (key === 'litter_dead_m') return '0';
@@ -460,7 +460,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'dog_relate') {
       const val = pedigree.specRelate || '-';
       if (type === 'shepherd' && val !== '-') {
-        return val.replace(/\//g, ' ').replace(/\s+/g, ' ').trim();
+        return val.split('/').map(part => part.trim().replace(/\s+/g, ' ')).filter(Boolean).join('\n');
       }
       return val;
     }
@@ -1961,7 +1961,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                             onMouseDown={e => handleDragStart(e, key)}
                             className={`absolute select-none pointer-events-auto border transition-all text-left
                               ${isEditingCoords ? 'cursor-move' : 'cursor-pointer'}
-                              ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter') ? 'whitespace-normal break-words' : 'whitespace-nowrap'}
+                              ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter') ? 'whitespace-pre-line break-words' : 'whitespace-nowrap'}
                               ${(key !== 'dog_relate' && key !== 'dongtae_no' && key !== 'dog_litter' && !key.startsWith('ancestor_')) ? 'truncate' : ''}
                               ${genStyle} ${highlightStyle} ${opacityStyle}
                             `}
