@@ -436,7 +436,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'foreign_no') return pedigree.foreignNo || pedigree.domesticNo || '-';
     if (key === 'dongtae_no' || key === 'dog_litter') {
       const val = fullLitterList || '-';
-      if (type === 'shepherd' && val !== '-') {
+      if (val !== '-') {
         return val.replace(/\//g, ' ').replace(/\s+/g, ' ').trim();
       }
       return val;
@@ -450,8 +450,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       return pedigree.okDate || (pedigree.okStat === 'Y' ? '기록 확인' : '-');
     }
     if (key === 'ok_term') {
-      const start = (type === 'shepherd' ? formatDateHyphen(okStartDate) : formatDateKr(okStartDate)) || '';
-      const end = (type === 'shepherd' ? formatDateHyphen(okEndDate) : formatDateKr(okEndDate)) || '';
+      const start = formatDateHyphen(okStartDate) || '';
+      const end = formatDateHyphen(okEndDate) || '';
       if (!start && !end) return '-';
       if (start && end) return `${start}~${end}`;
       if (start) return `${start}~`;
@@ -460,7 +460,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'birth_litter') return `Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}`;
     if (key === 'dog_relate') {
       const val = pedigree.specRelate || '-';
-      if (type === 'shepherd' && val !== '-') {
+      if (val !== '-') {
         return val.split('/').map(part => part.trim().replace(/\s+/g, ' ')).filter(Boolean).join('\n');
       }
       return val;
