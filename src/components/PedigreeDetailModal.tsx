@@ -157,7 +157,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
   const getSampleValue = (key: string, type: string) => {
     if (type === 'shepherd') {
       if (key === 'dog_name') return 'Xamo vom Grafenbrunn';
-      if (key === 'dog_gender') return 'MALE (수컷)';
+      if (key === 'dog_gender') return 'MALE 수컷';
       if (key === 'dog_coat') return 'stock hair';
       if (key === 'dog_color') return 'schwarz braun';
       if (key === 'dog_birth') return '2022년 11월 28일';
@@ -330,7 +330,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     };
 
     if (key === 'dog_name') return pedigree.fullName || pedigree.name || '-';
-    if (key === 'dog_gender') return formatGender(pedigree.gender);
+    if (key === 'dog_gender') {
+      const gVal = formatGender(pedigree.gender);
+      if (type === 'shepherd') {
+        if (gVal === '수컷') return 'MALE 수컷';
+        if (gVal === '암컷') return 'FEMALE 암컷';
+      }
+      return gVal;
+    }
     if (key === 'dog_coat') return pedigree.coatType || (type === 'shepherd' ? 'stock hair' : '-');
     if (key === 'dog_color') return pedigree.color || '-';
     if (key === 'dog_birth') return formatDateKr(pedigree.birthDate);
