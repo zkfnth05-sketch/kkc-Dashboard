@@ -1439,7 +1439,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                 className="px-4 py-1.5 bg-green-600 text-white text-[13px] font-bold rounded hover:bg-green-700 transition-colors shadow-sm flex items-center gap-1 disabled:bg-green-300"
               >
                 {isPrinting ? <Loader2 size={14} className="animate-spin" /> : null}
-                진돗개 인쇄
+                한국견 인쇄
               </button>
               <button 
                 onClick={() => handlePrint('general')} 
@@ -1447,7 +1447,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                 className="px-4 py-1.5 bg-amber-600 text-white text-[13px] font-bold rounded hover:bg-amber-700 transition-colors shadow-sm flex items-center gap-1 disabled:bg-amber-300"
               >
                 {isPrinting ? <Loader2 size={14} className="animate-spin" /> : null}
-                일반/리트리버 인쇄
+                일반 견 인쇄
               </button>
             </div>
 

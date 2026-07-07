@@ -152,7 +152,7 @@ export const DEFAULT_PEDIGREE_LAYOUTS: Record<'shepherd' | 'jindo' | 'general', 
     }
   },
   jindo: {
-    title: '진돗개 혈통서 인쇄',
+    title: '한국견 혈통서 인쇄',
     bgImage: '/pedigree_templates/KakaoTalk_20260706_141920649.jpg',
     pageWidth: 210,
     pageHeight: 297,
@@ -250,7 +250,7 @@ export const DEFAULT_PEDIGREE_LAYOUTS: Record<'shepherd' | 'jindo' | 'general', 
     }
   },
   general: {
-    title: '일반/리트리버 혈통서 인쇄',
+    title: '일반 견 혈통서 인쇄',
     bgImage: '/pedigree_templates/KakaoTalk_20260706_141944995.jpg',
     pageWidth: 210,
     pageHeight: 297,
