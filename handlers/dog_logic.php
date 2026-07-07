@@ -245,3 +245,36 @@ function kkc_handle_owner_history($input) {
     $wpdb->query("SET NAMES 'utf8mb4'");
     return ['success' => true, 'data' => kkc_convert($rows, 'EUC-KR', true)];
 }
+
+function kkc_handle_save_pedigree_layout($input) {
+    $type = trim($input['type'] ?? '');
+    if (empty($type)) {
+        return ['success' => false, 'error' => '견종 타입이 누락되었습니다.'];
+    }
+    $coords = $input['coords'] ?? null;
+    if ($coords === null) {
+        return ['success' => false, 'error' => '저장할 좌표 데이터가 없습니다.'];
+    }
+    
+    $option_key = 'kkc_pedigree_layout_' . $type;
+    $updated = update_option($option_key, json_encode($coords, JSON_UNESCAPED_UNICODE));
+    
+    return ['success' => true, 'updated' => $updated];
+}
+
+function kkc_handle_get_pedigree_layout($input) {
+    $type = trim($input['type'] ?? '');
+    if (empty($type)) {
+        return ['success' => false, 'error' => '견종 타입이 누락되었습니다.'];
+    }
+    
+    $option_key = 'kkc_pedigree_layout_' . $type;
+    $coords_json = get_option($option_key);
+    
+    if (empty($coords_json)) {
+        return ['success' => true, 'data' => null];
+    }
+    
+    $coords = json_decode($coords_json, true);
+    return ['success' => true, 'data' => $coords];
+}

@@ -156,6 +156,11 @@ try {
         case 'get_dongtae_info':
         case 'get_next_dongtae_no':
         case 'get_owner_history': safe_req('dog_logic.php', $handler_root); $output = ($mode === 'get_dongtae_info') ? kkc_handle_get_dongtae($input) : (($mode === 'get_next_dongtae_no') ? kkc_handle_next_dongtae_no($input) : kkc_handle_owner_history($input)); break;
+        case 'save_pedigree_layout':
+        case 'get_pedigree_layout':
+            safe_req('dog_logic.php', $handler_root);
+            $output = ($mode === 'save_pedigree_layout') ? kkc_handle_save_pedigree_layout($input) : kkc_handle_get_pedigree_layout($input);
+            break;
         case 'get_events': safe_req('event_logic.php', $handler_root); $output = kkc_handle_get_events($input); break;
         case 'save_event': safe_req('event_logic.php', $handler_root); $output = kkc_handle_event_save($input); break;
         case 'delete_event': safe_req('event_logic.php', $handler_root); $output = kkc_handle_event_delete($input); break;

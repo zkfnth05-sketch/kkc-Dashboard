@@ -342,3 +342,25 @@ export const deletePedigree = async (table: string, id: string) => {
         id: id
     });
 };
+
+/**
+ * 혈통서 좌표 레이아웃 설정을 서버 DB에 저장합니다.
+ */
+export const savePedigreeLayout = async (type: string, coords: any) => {
+    return fetchBridge({
+        mode: 'save_pedigree_layout',
+        type,
+        coords
+    });
+};
+
+/**
+ * 서버 DB에 저장된 혈통서 좌표 레이아웃 설정을 불러옵니다.
+ */
+export const fetchPedigreeLayout = async (type: string) => {
+    const res = await fetchBridge({
+        mode: 'get_pedigree_layout',
+        type
+    });
+    return res.success ? res.data : null;
+};

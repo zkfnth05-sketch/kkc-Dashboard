@@ -6,6 +6,7 @@ import { fetchDogsByUids, fetchPointsByRegNo, fetchPrizesByRegNo, fetchOwnerHist
 import { fetchDongtaeInfo } from '../services/dongtaeService'; // 👈 분리된 서비스 참조
 import { AlertCircle } from 'lucide-react';
 import { DEFAULT_PEDIGREE_LAYOUTS } from '../config/pedigreeConfig';
+import { fetchPedigreeLayout, savePedigreeLayout } from '../services/pedigreeService';
 
 const CustomConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "확인", cancelText = "취소", isDanger = false }: any) => {
   if (!isOpen) return null;
@@ -50,7 +51,7 @@ interface PedigreeDetailModalProps {
 
 const getFieldLabel = (key: string): string => {
   if (key.startsWith('ancestor_')) {
-    const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash\d)$/);
+    const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|birth|foreign|slash\d)$/);
     if (match) {
       const node = match[1];
       const field = match[2];
@@ -63,6 +64,8 @@ const getFieldLabel = (key: string): string => {
                       : field === 'bone' ? '관절평가'
                       : field === 'color' ? '모색'
                       : field === 'micro' ? '마이크로칩'
+                      : field === 'birth' ? '생년월일'
+                      : field === 'foreign' ? '외국타단체 번호'
                       : '구분선';
       return `조상 ${node} ${fieldName}`;
     }
@@ -82,6 +85,7 @@ const getFieldLabel = (key: string): string => {
     dog_owner: '소유자',
     dog_owner_addr: '소유자 주소',
     reg_no: '등록번호',
+    dog_dna: 'DNA',
     microchip: '마이크로칩',
     foreign_no: '타단체번호',
     dongtae_no: '동태자 번호',
@@ -137,6 +141,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
   const [selectedFieldKey, setSelectedFieldKey] = useState<string | null>(null);
   const [isEditingCoords, setIsEditingCoords] = useState(true);
   const [useSampleMode, setUseSampleMode] = useState(false);
+  const [isSavingLayout, setIsSavingLayout] = useState(false);
   const [showGuide, setShowGuide] = useState(true);
   const [editorZoom, setEditorZoom] = useState(1.2);
   const [gridSize, setGridSize] = useState<number>(0.5); // mm
@@ -394,15 +399,18 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
           if (node === 2) {
             if (field === 'name') return '삼호 충주금가견사';
             if (field === 'reg') return 'KJ-C10092';
-            if (field === 'extra') return '황구';
+            if (field === 'extra') return '지정 전람회 우수';
+            if (field === 'color') return '황구';
             return '';
           }
           if (node === 3) {
             if (field === 'name') return '홍 피어리스';
             if (field === 'reg') return 'KJ-C10077';
-            if (field === 'extra') return '황구';
+            if (field === 'extra') return '';
+            if (field === 'color') return '황구';
             return '';
           }
+          if (field === 'color') return '황구';
           return field === 'name' ? `진도 조상 ${node}` : field === 'reg' ? `KJ-A00${node}` : '';
         }
       }
@@ -416,9 +424,10 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         dog_gender: 'MALE 수컷',
         dog_birth: '2025-01-19',
         dog_color: 'FN BLK MSK',
-        microchip: '',
-        index_no: '',
-        dog_litter: 'A-ISAM OF DOG MASTER\nBM-C50074',
+        microchip: '981189900142765 / 12345',
+        index_no: '12345',
+        dog_dna: 'DNA-GPR12345',
+        dog_litter: 'BM-C50071~BM-C50079',
         dog_breeder: 'Lee Tae Won',
         dog_breeder_addr: '대전 유성구 학하동 114-14',
         dog_owner: 'Lee Tae Won',
@@ -426,6 +435,9 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         dog_join: '2025-03-14',
         dog_owner_change: '2025-03-14',
         issue_date: '2025-03-14',
+        foreign_no: 'SZ-2385565',
+        foreign_no2: 'SZ-2385565-2',
+        domestic_no: 'KKC-D12345',
         ok_term: '-',
         dog_relate: '-',
         litter_birth_m: '0',
@@ -453,7 +465,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       }
 
       if (key.startsWith('ancestor_')) {
-        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
+        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|birth|foreign|slash1|slash2|slash3|slash4)$/);
         if (match) {
           const node = parseInt(match[1]);
           const field = match[2];
@@ -480,7 +492,10 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
           if (dog) {
             if (field === 'name') return dog.name;
             if (field === 'reg') return dog.reg || '-';
-            if (field === 'extra' || field === 'color') return dog.extra || '';
+            if (field === 'color') return dog.extra || '';
+            if (field === 'extra') return node === 2 ? 'BH IGP1' : node === 3 ? 'BH' : '';
+            if (field === 'birth') return '2021-06-15';
+            if (field === 'foreign') return 'AKC-1234567';
           }
           return '';
         }
@@ -569,11 +584,19 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'dog_owner') return pedigree.owner || '-';
     if (key === 'dog_owner_addr') return pedigree.ownerAddr || '-';
     if (key === 'reg_no') return pedigree.regNo || '-';
+    if (key === 'dog_dna') return pedigree.specDna || '-';
     if (key === 'microchip') {
       if (type === 'shepherd') return pedigree.microchip || (pedigree as any).micro || '-';
-      return '';
+      const micro = (pedigree.microchip || (pedigree as any).micro || '').trim();
+      const index = (pedigree.indexNo || '').trim();
+      const parts: string[] = [];
+      if (micro && micro !== '0' && micro !== '-') parts.push(micro);
+      if (index && index !== '0' && index !== '-') parts.push(index);
+      return parts.join(' / ') || '-';
     }
-    if (key === 'foreign_no') return pedigree.foreignNo || pedigree.domesticNo || '-';
+    if (key === 'foreign_no') return pedigree.foreignNo || '-';
+    if (key === 'foreign_no2') return pedigree.foreignNo2 || '-';
+    if (key === 'domestic_no') return pedigree.domesticNo || '-';
     if (key === 'dongtae_no' || key === 'dog_litter') {
       if (type === 'shepherd') {
         const val = fullLitterList || '-';
@@ -648,7 +671,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     
     // Ancestors
     if (key.startsWith('ancestor_')) {
-      const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
+      const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|birth|foreign|slash1|slash2|slash3|slash4)$/);
       if (match) {
         const nodeId = parseInt(match[1]);
         const field = match[2];
@@ -681,18 +704,18 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
            return nameVal;
          }
          if (field === 'reg') {
-           if (type !== 'shepherd' && (nodeId === 2 || nodeId === 3)) {
+           if (type !== 'shepherd' && nodeId >= 2 && nodeId <= 15) {
              const rVal = (dog.reg_no || '').trim();
-             const dom = (dog.foreign100 || '').trim();
+             const dom = (dog.foreign100 || '').trim(); const train = (dog.spec_train || '').trim(); const micro = (dog.micro || (dog as any).microchip || '').trim();
              const parts: string[] = [];
              if (rVal && rVal !== '0' && rVal !== '-') parts.push(rVal);
-             if (dom && dom !== '0' && dom !== '-') parts.push(dom);
-             if (parts.length > 0) {
+             if (dom && dom !== '0' && dom !== '-') parts.push(dom); if (train && train !== '0' && train !== '-') parts.push(train); if (micro && micro !== '0' && micro !== '-') parts.push(micro);
+             if (true) {
                return parts.join(' ');
              }
-             const f1 = (dog.foreign_no || '').trim();
-             const f2 = (dog.foreign_no2 || '').trim();
-             return (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
+             // f1
+             // f2
+             return '';
            }
 
            let regVal = (dog.reg_no || '').trim();
@@ -730,10 +753,9 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
             dog.spec_win,
             dog.spec_dna,
             dog.spec_bone,
-            dog.spec_train,
-            getColorAbbr(dog.hair)
+            dog.spec_train
           ].map(s => (s || '').toString().trim()).filter(Boolean);
-          return extraList.join(' / ');
+          return extraList.join(' ');
         }
         if (field === 'win') {
           if (type === 'shepherd' && nodeId >= 8 && nodeId <= 15) {
@@ -755,6 +777,12 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         if (field === 'bone') return dog.spec_bone || '';
         if (field === 'color') return getColorAbbr(dog.hair) || '';
         if (field === 'micro') return dog.micro || (dog as any).microchip || '';
+        if (field === 'birth') return formatDateHyphen(dog.birth) || '';
+        if (field === 'foreign') {
+          const f1 = (dog.foreign_no || '').trim();
+          const f2 = (dog.foreign_no2 || '').trim();
+          return (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
+        }
       }
     }
     return '';
@@ -815,6 +843,26 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       });
   };
 
+  const handleSaveToServer = async () => {
+    if (!activePrintType) return;
+    if (window.confirm("현재 조정한 모든 좌표들을 서버 데이터베이스에 영구적으로 저장하시겠습니까?\n이후 다른 PC나 브라우저에서도 이 좌표가 기본값으로 적용됩니다.")) {
+      setIsSavingLayout(true);
+      try {
+        const res = await savePedigreeLayout(activePrintType, editorCoords);
+        if (res.success) {
+          alert("🎉 서버 데이터베이스에 혈통서 좌표 레이아웃이 성공적으로 영구 저장되었습니다!");
+        } else {
+          alert("❌ 서버 저장에 실패했습니다: " + (res.error || "알 수 없는 오류"));
+        }
+      } catch (err: any) {
+        console.error(err);
+        alert("❌ 서버 통신 오류가 발생했습니다: " + err.message);
+      } finally {
+        setIsSavingLayout(false);
+      }
+    }
+  };
+
   const generateShepherdPrintHtml = (useSample: boolean) => {
     const type = 'shepherd';
     const layout = DEFAULT_PEDIGREE_LAYOUTS[type];
@@ -823,6 +871,19 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        const migratedKey = `pedigree_${type}_migrated_a3_v3`;
+        if (type === 'shepherd' && !localStorage.getItem(migratedKey)) {
+          Object.keys(parsed).forEach(k => {
+            if (parsed[k]) {
+              if (typeof parsed[k].left === 'number') parsed[k].left = Math.round(parsed[k].left * 1.41414 * 100) / 100;
+              if (typeof parsed[k].top === 'number') parsed[k].top = Math.round(parsed[k].top * 1.41428 * 100) / 100;
+              if (typeof parsed[k].fontSize === 'number') parsed[k].fontSize = Math.round(parsed[k].fontSize * 1.414 * 100) / 100;
+              if (typeof parsed[k].width === 'number') parsed[k].width = Math.round(parsed[k].width * 1.414 * 100) / 100;
+            }
+          });
+          localStorage.setItem(`pedigree_coords_${type}`, JSON.stringify(parsed));
+          localStorage.setItem(migratedKey, 'true');
+        }
         Object.keys(parsed).forEach(k => {
           if (finalCoords[k]) {
             const savedItem = parsed[k];
@@ -841,11 +902,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (val === undefined || val === null) val = '';
 
       const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
-      const fontStyle = isBold ? 'font-weight: bold;' : '';
+      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: Georgia, serif; text-align: center;' : '');
       const isAncestor = key.startsWith('ancestor_');
       const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key === 'ancestor_2_name' || key === 'ancestor_3_name';
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
-      const widthStyle = (coord.width && !isAncestor) ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+      const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
       const formattedVal = typeof val === 'string' ? val.replace(/\n/g, '<br />') : val;
 
@@ -943,11 +1004,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (val === undefined || val === null) val = '';
 
       const isBold = key === 'dog_name' || key === 'reg_no' || key.endsWith('_name');
-      const fontStyle = isBold ? 'font-weight: bold;' : '';
+      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: Georgia, serif; text-align: center;' : '');
       const isAncestor = key.startsWith('ancestor_');
       const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key === 'ancestor_2_name' || key === 'ancestor_3_name';
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
-      const widthStyle = (coord.width && !isAncestor) ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+      const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
       const formattedVal = typeof val === 'string' ? val.replace(/\n/g, '<br />') : val;
 
@@ -1045,11 +1106,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (val === undefined || val === null) val = '';
 
       const isBold = key === 'dog_name' || key === 'reg_no' || key.endsWith('_name');
-      const fontStyle = isBold ? 'font-weight: bold;' : '';
+      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: Georgia, serif; text-align: center;' : '');
       const isAncestor = key.startsWith('ancestor_');
       const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key === 'ancestor_2_name' || key === 'ancestor_3_name';
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
-      const widthStyle = (coord.width && !isAncestor) ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+      const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
       const formattedVal = typeof val === 'string' ? val.replace(/\n/g, '<br />') : val;
 
@@ -1061,9 +1122,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       `;
     });
 
-    const isLandscape = layout.isLandscape;
-    const pageWidth = isLandscape ? '297mm' : '210mm';
-    const pageHeight = isLandscape ? '210mm' : '297mm';
+    const pageWidth = `${layout.pageWidth}mm`;
+    const pageHeight = `${layout.pageHeight}mm`;
     const pageSize = layout.pageSize;
 
     const savedTop = localStorage.getItem(`pedigree_offset_${type}_top`) || '0';
@@ -1095,7 +1155,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       left: 0;
       width: ${pageWidth};
       height: ${pageHeight};
-      transform: translate(${savedLeft}mm, ${savedTop}mm);
+      transform: translate(calc(-210mm + ${savedLeft}mm), ${savedTop}mm);
       font-size: calc(9pt * (${savedScale} / 100));
       font-weight: ${savedBold ? 'bold' : 'normal'};
       color: black;
@@ -1389,7 +1449,17 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
           limit: 100
         });
         if (res.success && res.data) {
-          siblings = res.data.filter((d: any) => d.uid?.toString() !== pedigree.id);
+          // 중복 등록번호를 제거하여 DB에 이중 등록된 데이터 보정
+          const seenRegs = new Set();
+          const uniqueSiblings: any[] = [];
+          res.data.forEach((d: any) => {
+            const reg = (d.reg_no || '').trim();
+            if (reg && !seenRegs.has(reg)) {
+              seenRegs.add(reg);
+              uniqueSiblings.push(d);
+            }
+          });
+          siblings = uniqueSiblings.filter((d: any) => d.uid?.toString() !== pedigree.id);
         }
       }
 
@@ -1404,16 +1474,23 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const mainDogColorAbbr = getColorAbbr(pedigree.color);
       const fullLitterList = `${pedigree.fullName || pedigree.name} ${mainDogColorAbbr} / ${pedigree.regNo}${siblingListFormatted ? ', ' + siblingListFormatted : ''}`;
 
-      const jindoSiblings = siblings.map(s => {
-        const sName = s.fullname || s.name || '';
-        const sReg = s.reg_no || '';
-        return sReg ? `${sName}\n${sReg}` : sName;
-      });
-      const mainName = pedigree.fullName || pedigree.name || '';
-      const mainReg = pedigree.regNo || '';
-      const mainText = mainReg ? `${mainName}\n${mainReg}` : mainName;
-      const jindoLitterListVal = [mainText, ...jindoSiblings].join(', ');
+      const regNos = [pedigree.regNo, ...siblings.map(s => s.reg_no)]
+        .map(r => (r || '').trim())
+        .filter(r => r && r !== '-' && r !== '0');
       
+      let jindoLitterListVal = '';
+      if (regNos.length > 0) {
+        regNos.sort();
+        const minReg = regNos[0];
+        const maxReg = regNos[regNos.length - 1];
+        if (minReg === maxReg) {
+          jindoLitterListVal = minReg;
+        } else {
+          jindoLitterListVal = `${minReg}~${maxReg}`;
+        }
+      } else {
+        jindoLitterListVal = pedigree.regNo || '-';
+      }
       setJindoLitterList(jindoLitterListVal);
 
       // 종견인정검사 시작/끝 날짜 조회
@@ -1445,19 +1522,52 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       
       const defaultFields = DEFAULT_PEDIGREE_LAYOUTS[type].fields;
       let initialCoords = { ...defaultFields };
-      const savedCoords = localStorage.getItem(`pedigree_coords_${type}`);
-      if (savedCoords) {
-        try {
-          const parsed = JSON.parse(savedCoords);
-          Object.keys(parsed).forEach(k => {
-            if (initialCoords[k]) {
-              const savedItem = parsed[k];
-              if (savedItem && typeof savedItem.left === 'number' && savedItem.left > 0 && typeof savedItem.top === 'number' && savedItem.top > 0) {
-                initialCoords[k] = { ...initialCoords[k], ...savedItem };
-              }
+      
+      // 1. 서버 DB에서 최신 좌표 가져오기 시도
+      let serverCoords = null;
+      try {
+        serverCoords = await fetchPedigreeLayout(type);
+      } catch (e) {
+        console.error("Failed to load layout from server:", e);
+      }
+
+      if (serverCoords && Object.keys(serverCoords).length > 0) {
+        // 서버 좌표가 있는 경우 사용 및 로컬 저장소 동기화
+        Object.keys(serverCoords).forEach(k => {
+          if (initialCoords[k]) {
+            initialCoords[k] = { ...initialCoords[k], ...serverCoords[k] };
+          }
+        });
+        localStorage.setItem(`pedigree_coords_${type}`, JSON.stringify(serverCoords));
+      } else {
+        // 2. 서버에 저장된 좌표가 없는 경우 로컬 브라우저 저장소 데이터 활용 (마이그레이션 포함)
+        const savedCoords = localStorage.getItem(`pedigree_coords_${type}`);
+        if (savedCoords) {
+          try {
+            const parsed = JSON.parse(savedCoords);
+            const migratedKey = `pedigree_${type}_migrated_a3_v3`;
+            if (type === 'shepherd' && !localStorage.getItem(migratedKey)) {
+              Object.keys(parsed).forEach(k => {
+                if (parsed[k]) {
+                  if (typeof parsed[k].left === 'number') parsed[k].left = Math.round(parsed[k].left * 1.41414 * 100) / 100;
+                  if (typeof parsed[k].top === 'number') parsed[k].top = Math.round(parsed[k].top * 1.41428 * 100) / 100;
+                  if (typeof parsed[k].fontSize === 'number') parsed[k].fontSize = Math.round(parsed[k].fontSize * 1.414 * 100) / 100;
+                  if (typeof parsed[k].width === 'number') parsed[k].width = Math.round(parsed[k].width * 1.414 * 100) / 100;
+                }
+              });
+              localStorage.setItem(`pedigree_coords_${type}`, JSON.stringify(parsed));
+              localStorage.setItem(migratedKey, 'true');
             }
-          });
-        } catch (e) {}
+            Object.keys(parsed).forEach(k => {
+              if (initialCoords[k]) {
+                const savedItem = parsed[k];
+                if (savedItem && typeof savedItem.left === 'number' && savedItem.left > 0 && typeof savedItem.top === 'number' && savedItem.top > 0) {
+                  initialCoords[k] = { ...initialCoords[k], ...savedItem };
+                }
+              }
+            });
+          } catch (e) {}
+        }
       }
       setEditorCoords(initialCoords);
 
@@ -1912,6 +2022,21 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                   <Copy size={13} /> 좌표 JSON 복사
                 </button>
                 <button 
+                  onClick={handleSaveToServer}
+                  disabled={isSavingLayout}
+                  className="px-3.5 py-1.5 bg-blue-950/50 hover:bg-blue-900 border border-blue-800/60 text-blue-300 hover:text-white rounded text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {isSavingLayout ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" /> 저장 중...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={13} /> 서버에 영구 저장
+                    </>
+                  )}
+                </button>
+                <button 
                   onClick={handlePrintAction}
                   className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-bold transition-all shadow-lg flex items-center gap-1.5"
                 >
@@ -2362,7 +2487,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                           <div
                             key={key}
                             onMouseDown={e => handleDragStart(e, key)}
-                            className={`absolute select-none pointer-events-auto border transition-all text-left
+                            className={`absolute select-none pointer-events-auto border transition-all
+                              ${key === 'dog_name' ? 'text-center' : 'text-left'}
                               ${isEditingCoords ? 'cursor-move' : 'cursor-pointer'}
                               ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter') ? 'whitespace-pre-line break-words' : 'whitespace-nowrap'}
                               ${(key !== 'dog_relate' && key !== 'dongtae_no' && key !== 'dog_litter' && !key.startsWith('ancestor_')) ? 'truncate' : ''}
@@ -2373,7 +2499,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                               top: `${coord.top}mm`,
                               fontSize: `${coord.fontSize || 0.95}em`,
                               fontWeight: isBold ? 'bold' : 'inherit',
-                              width: (coord.width && !key.startsWith('ancestor_')) ? `${coord.width}mm` : 'auto',
+                              fontFamily: key === 'dog_name' ? 'Georgia, serif' : 'inherit',
+                              width: (coord.width || (key === 'dog_name' ? 150 : undefined)) && !key.startsWith('ancestor_') ? `${coord.width || 150}mm` : 'auto',
                               padding: '1px 2px',
                               minHeight: '4mm'
                             }}
