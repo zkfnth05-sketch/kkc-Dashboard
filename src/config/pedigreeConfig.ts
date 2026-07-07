@@ -264,7 +264,7 @@ export const DEFAULT_PEDIGREE_LAYOUTS: Record<'shepherd' | 'jindo' | 'general', 
     bgImage: '/pedigree_templates/KakaoTalk_20260706_141944995.jpg',
     pageWidth: 420,
     pageHeight: 297,
-    pageSize: 'A3 landscape',
+    pageSize: 'A4 landscape',
     isLandscape: true,
     fields: {
       dog_name: { left: 255.0, top: 37.5, fontSize: 1.05 },

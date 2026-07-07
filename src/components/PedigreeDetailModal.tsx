@@ -1155,7 +1155,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       left: 0;
       width: ${pageWidth};
       height: ${pageHeight};
-      transform: translate(${savedLeft}mm, ${savedTop}mm);
+      transform: scale(0.707) translate(${savedLeft}mm, ${savedTop}mm);
+      transform-origin: top left;
       font-size: calc(9pt * (${savedScale} / 100));
       font-weight: ${savedBold ? 'bold' : 'normal'};
       color: black;
