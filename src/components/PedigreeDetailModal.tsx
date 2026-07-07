@@ -1238,8 +1238,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     const baseLeft = currentCoords.left;
     const baseTop = currentCoords.top;
 
-    const isLandscape = DEFAULT_PEDIGREE_LAYOUTS[activePrintType!].isLandscape;
-    const containerWidthMm = isLandscape ? 297 : 210;
+    const layout = DEFAULT_PEDIGREE_LAYOUTS[activePrintType!];
+    const containerWidthMm = activePrintType === 'general' ? 210 : layout.pageWidth;
     
     const container = document.getElementById('pedigree-canvas');
     if (!container) return;
@@ -2372,8 +2372,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
               <div className="flex-1 bg-slate-950 overflow-auto p-8 flex items-start justify-center">
                 <div 
                   style={{
-                    width: `${pageWidthMm * editorZoom}mm`,
-                    height: `${pageHeightMm * editorZoom}mm`,
+                    width: `${(activePrintType === 'general' ? 210 : pageWidthMm) * editorZoom}mm`,
+                    height: `${(activePrintType === 'general' ? 297 : pageHeightMm) * editorZoom}mm`,
                     position: 'relative',
                     flexShrink: 0
                   }}
@@ -2382,11 +2382,12 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                     id="pedigree-canvas"
                     className="bg-white text-black absolute top-0 left-0 border-4 border-indigo-900/40 shadow-2xl transition-all origin-top-left"
                     style={{
-                      width: `${pageWidthMm}mm`,
-                      height: `${pageHeightMm}mm`,
+                      width: `${activePrintType === 'general' ? 210 : pageWidthMm}mm`,
+                      height: `${activePrintType === 'general' ? 297 : pageHeightMm}mm`,
                       transform: `scale(${editorZoom})`,
                       backgroundImage: showGuide ? `url('${layout.bgImage}')` : 'none',
-                      backgroundSize: '100% 100%',
+                      backgroundSize: activePrintType === 'general' ? '420mm 297mm' : '100% 100%',
+                      backgroundPosition: activePrintType === 'general' ? '-210mm 0mm' : 'center',
                       backgroundRepeat: 'no-repeat',
                       boxSizing: 'content-box'
                     }}
@@ -2498,7 +2499,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                               ${genStyle} ${highlightStyle} ${opacityStyle}
                             `}
                             style={{
-                              left: `${coord.left}mm`,
+                              left: `${activePrintType === 'general' ? coord.left - 210 : coord.left}mm`,
                               top: `${coord.top}mm`,
                               fontSize: `${coord.fontSize || 0.95}em`,
                               fontWeight: isBold ? 'bold' : 'inherit',
