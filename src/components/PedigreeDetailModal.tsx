@@ -380,7 +380,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'dog_breeder_addr') return '충북 충주시 금가면 하담리 35-5';
       if (key === 'dog_owner') return '최하식';
       if (key === 'dog_owner_addr') return '충북 충주시 금가면 하담리 35-5';
-      if (key === 'issue_date') return '2026년 3월 17일';
+      if (key === 'issue_date') return '2026-03-17';
       
       if (key.startsWith('ancestor_')) {
         const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
@@ -439,7 +439,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'dog_breeder_addr') return '충북 충주시 금가면 하담리 35-5';
       if (key === 'dog_owner') return '최하식';
       if (key === 'dog_owner_addr') return '충북 충주시 금가면 하담리 35-5';
-      if (key === 'issue_date') return '2026년 3월 17일';
+      if (key === 'issue_date') return '2026-03-17';
 
       if (key.startsWith('ancestor_')) {
         const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
@@ -509,7 +509,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       return colorVal;
     }
     if (key === 'dog_birth') return formatDateKr(pedigree.birthDate);
-    if (key === 'dog_join') return pedigree.joinDate || '-';
+    if (key === 'dog_join') return formatDateHyphen(pedigree.joinDate);
     if (key === 'dog_owner_change') {
       const latest = ownerHistory[0];
       let dateVal = '';
@@ -523,10 +523,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         return '';
       }
 
-      if (type === 'shepherd') {
-        return formatDateHyphen(dateVal);
-      }
-      return formatDateKr(dateVal);
+      return formatDateHyphen(dateVal);
     }
     if (key === 'dog_breeder') return pedigree.breeder || '-';
     if (key === 'dog_breeder_addr') return pedigree.breederAddr || '-';
@@ -598,13 +595,10 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'reg_count') return `Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}`;
     if (key === 'issue_date') {
       const today = new Date();
-      if (type === 'shepherd') {
-        const y = today.getFullYear();
-        const m = String(today.getMonth() + 1).padStart(2, '0');
-        const d = String(today.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-      }
-      return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(today);
+      const y = today.getFullYear();
+      const m = String(today.getMonth() + 1).padStart(2, '0');
+      const d = String(today.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
     
     // Ancestors
