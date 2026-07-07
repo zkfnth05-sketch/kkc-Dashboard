@@ -2017,7 +2017,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                             }}
                             title={`[${key}] L:${coord.left} T:${coord.top} S:${coord.fontSize || 0.95}`}
                           >
-                            {val || <span className="text-[7pt] text-rose-500 opacity-60 italic">({key} 빈값)</span>}
+                            {val || <span className="text-[7pt] text-rose-500 opacity-60 italic">({getFieldLabel(key)} 빈값)</span>}
                           </div>
                         );
                       })}
