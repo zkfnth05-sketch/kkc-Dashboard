@@ -70,6 +70,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
   const [activePrintType, setActivePrintType] = useState<'shepherd' | 'jindo' | 'general' | null>(null);
   const [ancestorTree, setAncestorTree] = useState<Record<number, ParentDogInfo>>({});
   const [fullLitterList, setFullLitterList] = useState<string>('');
+  const [okStartDate, setOkStartDate] = useState<string>('');
+  const [okEndDate, setOkEndDate] = useState<string>('');
   const [selectedFieldKey, setSelectedFieldKey] = useState<string | null>(null);
   const [isEditingCoords, setIsEditingCoords] = useState(true);
   const [useSampleMode, setUseSampleMode] = useState(false);
@@ -193,6 +195,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'foreign_no') return 'SZ-2385565';
       if (key === 'dongtae_no') return 'Xamo sb KSZ-C40386';
       if (key === 'ok_date') return 'HD ED / BH IGP1';
+      if (key === 'ok_start_date') return '2025-06-01';
+      if (key === 'ok_end_date') return '2027-06-01';
       if (key === 'dog_relate') return '*Ursa v. Ghattas(3-3) *Enosch v. Amasis *Bella v. Ghattas(4-4)';
       if (key === 'litter_birth_m') return '1';
       if (key === 'litter_birth_f') return '0';
@@ -441,6 +445,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const parts = [pedigree.specWin, pedigree.specDna, pedigree.specBone, pedigree.specTrain].map(s => (s || '').trim()).filter(Boolean);
       if (parts.length > 0) return parts.join(' / ');
       return pedigree.okDate || (pedigree.okStat === 'Y' ? '기록 확인' : '-');
+    }
+    if (key === 'ok_start_date') {
+      if (type === 'shepherd') return formatDateHyphen(okStartDate);
+      return formatDateKr(okStartDate);
+    }
+    if (key === 'ok_end_date') {
+      if (type === 'shepherd') return formatDateHyphen(okEndDate);
+      return formatDateKr(okEndDate);
     }
     if (key === 'birth_litter') return `Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}`;
     if (key === 'dog_relate') {
@@ -997,6 +1009,30 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
       const mainDogColorAbbr = getColorAbbr(pedigree.color);
       const fullLitterList = `${pedigree.fullName || pedigree.name} ${mainDogColorAbbr} / ${pedigree.regNo}${siblingListFormatted ? ', ' + siblingListFormatted : ''}`;
+
+      // 종견인정검사 시작/끝 날짜 조회
+      let start_date = '';
+      let end_date = '';
+      try {
+        if (pedigree.regNo && pedigree.regNo.trim() !== '') {
+          const evalRes = await fetchBridge({
+            mode: 'list',
+            table: 'breed_dogTab',
+            search: pedigree.regNo.trim(),
+            field: 'reg_no',
+            limit: 1
+          });
+          if (evalRes.success && evalRes.data && evalRes.data.length > 0) {
+            const evalItem = evalRes.data[0];
+            start_date = evalItem.start_date || '';
+            end_date = evalItem.end_date || '';
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch breed evaluation dates:', e);
+      }
+      setOkStartDate(start_date);
+      setOkEndDate(end_date);
 
       setAncestorTree(tree);
       setFullLitterList(fullLitterList);
