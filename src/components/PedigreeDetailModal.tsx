@@ -904,7 +904,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
       const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: Georgia, serif; text-align: center;' : '');
       const isAncestor = key.startsWith('ancestor_');
-      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key === 'ancestor_2_name' || key === 'ancestor_3_name';
+      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter';
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
       const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
@@ -1006,7 +1006,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const isBold = key === 'dog_name' || key === 'reg_no' || key.endsWith('_name');
       const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: Georgia, serif; text-align: center;' : '');
       const isAncestor = key.startsWith('ancestor_');
-      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key === 'ancestor_2_name' || key === 'ancestor_3_name';
+      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter';
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
       const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
@@ -1108,7 +1108,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const isBold = key === 'dog_name' || key === 'reg_no' || key.endsWith('_name');
       const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: Georgia, serif; text-align: center;' : '');
       const isAncestor = key.startsWith('ancestor_');
-      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key === 'ancestor_2_name' || key === 'ancestor_3_name';
+      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter';
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
       const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
