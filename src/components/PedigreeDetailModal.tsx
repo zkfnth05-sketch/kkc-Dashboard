@@ -252,7 +252,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'dog_owner') return '김기흥';
       if (key === 'dog_owner_addr') return '경남 김해시 한림면 금곡리 590-1';
       if (key === 'reg_no') return 'KSZ-C40386';
-      if (key === 'microchip') return '981189900142765';
+      if (key === 'microchip') return '';
       if (key === 'foreign_no') return 'SZ-2385565';
       if (key === 'dongtae_no') return 'Xamo sb KSZ-C40386';
       if (key === 'ok_date') return '';
@@ -373,7 +373,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'dog_gender') return 'FEMALE (암컷)';
       if (key === 'dog_birth') return '2025년 10월 23일';
       if (key === 'dog_color') return '황구';
-      if (key === 'microchip') return '-';
+      if (key === 'microchip') return '';
       if (key === 'index_no') return '-';
       if (key === 'dog_litter') return '보미 황구 KJ-C60028';
       if (key === 'dog_breeder') return '최하식';
@@ -432,7 +432,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'dog_gender') return 'FEMALE (암컷)';
       if (key === 'dog_birth') return '2025년 10월 23일';
       if (key === 'dog_color') return 'sb';
-      if (key === 'microchip') return '981189900142765';
+      if (key === 'microchip') return '';
       if (key === 'index_no') return '-';
       if (key === 'dog_litter') return 'Arin sb KSZ-C60236';
       if (key === 'dog_breeder') return '최하식';
@@ -533,7 +533,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'dog_owner') return pedigree.owner || '-';
     if (key === 'dog_owner_addr') return pedigree.ownerAddr || '-';
     if (key === 'reg_no') return pedigree.regNo || '-';
-    if (key === 'microchip') return pedigree.microchip || (pedigree as any).micro || '-';
+    if (key === 'microchip') return '';
     if (key === 'foreign_no') return pedigree.foreignNo || pedigree.domesticNo || '-';
     if (key === 'dongtae_no' || key === 'dog_litter') {
       const val = fullLitterList || '-';
