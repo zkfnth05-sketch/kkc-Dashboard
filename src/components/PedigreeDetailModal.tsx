@@ -374,10 +374,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'dog_gender') return 'FEMALE (암컷)';
       if (key === 'dog_birth') return '2025-10-23';
       if (key === 'dog_color') return '황구';
-      if (key === 'microchip') {
-      if (type === 'shepherd') return pedigree.microchip || (pedigree as any).micro || '-';
-      return '';
-    }
+      if (key === 'microchip') return '';
       if (key === 'index_no') return '-';
       if (key === 'dog_litter') return '보미\nKJ-C60028';
       if (key === 'dog_breeder') return '최하식';
@@ -438,10 +435,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'dog_gender') return 'FEMALE (암컷)';
       if (key === 'dog_birth') return '2025-10-23';
       if (key === 'dog_color') return 'sb';
-      if (key === 'microchip') {
-      if (type === 'shepherd') return pedigree.microchip || (pedigree as any).micro || '-';
-      return '';
-    }
+      if (key === 'microchip') return '';
       if (key === 'index_no') return '-';
       if (key === 'dog_litter') return 'Arin\nKSZ-C60236';
       if (key === 'dog_breeder') return '최하식';
