@@ -195,8 +195,10 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'foreign_no') return 'SZ-2385565';
       if (key === 'dongtae_no') return 'Xamo sb KSZ-C40386';
       if (key === 'ok_date') return 'HD ED / BH IGP1';
-      if (key === 'ok_start_date') return '2025-06-01';
-      if (key === 'ok_end_date') return '2027-06-01';
+      if (key === 'ok_term') {
+        if (type === 'shepherd') return '2025-06-01~2027-06-01';
+        return '2025년 6월 1일 ~ 2027년 6월 1일';
+      }
       if (key === 'dog_relate') return '*Ursa v. Ghattas(3-3) *Enosch v. Amasis *Bella v. Ghattas(4-4)';
       if (key === 'litter_birth_m') return '1';
       if (key === 'litter_birth_f') return '0';
@@ -446,13 +448,13 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (parts.length > 0) return parts.join(' / ');
       return pedigree.okDate || (pedigree.okStat === 'Y' ? '기록 확인' : '-');
     }
-    if (key === 'ok_start_date') {
-      if (type === 'shepherd') return formatDateHyphen(okStartDate);
-      return formatDateKr(okStartDate);
-    }
-    if (key === 'ok_end_date') {
-      if (type === 'shepherd') return formatDateHyphen(okEndDate);
-      return formatDateKr(okEndDate);
+    if (key === 'ok_term') {
+      const start = (type === 'shepherd' ? formatDateHyphen(okStartDate) : formatDateKr(okStartDate)) || '';
+      const end = (type === 'shepherd' ? formatDateHyphen(okEndDate) : formatDateKr(okEndDate)) || '';
+      if (!start && !end) return '-';
+      if (start && end) return `${start}~${end}`;
+      if (start) return `${start}~`;
+      return `~${end}`;
     }
     if (key === 'birth_litter') return `Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}`;
     if (key === 'dog_relate') {
