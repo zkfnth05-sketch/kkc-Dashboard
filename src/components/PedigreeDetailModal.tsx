@@ -785,7 +785,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       });
   };
 
-  const generatePrintHtml = (type: 'shepherd' | 'jindo' | 'general', useSample: boolean) => {
+  const generateShepherdPrintHtml = (useSample: boolean) => {
+    const type = 'shepherd';
     const layout = DEFAULT_PEDIGREE_LAYOUTS[type];
     const finalCoords = { ...layout.fields };
     const saved = localStorage.getItem(`pedigree_coords_${type}`);
@@ -816,7 +817,212 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
       const widthStyle = (coord.width && !isAncestor) ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
-      // Replace newline characters with <br /> for HTML print compatibility
+      const formattedVal = typeof val === 'string' ? val.replace(/\n/g, '<br />') : val;
+
+      fieldsHtml += `
+        <div class="field" 
+             style="left: ${coord.left}mm; top: ${coord.top}mm; font-size: ${coord.fontSize || 0.95}em; ${fontStyle} ${widthStyle} ${wrapStyle}">
+          ${formattedVal}
+        </div>
+      `;
+    });
+
+    const isLandscape = layout.isLandscape;
+    const pageWidth = isLandscape ? '297mm' : '210mm';
+    const pageHeight = isLandscape ? '210mm' : '297mm';
+    const pageSize = layout.pageSize;
+
+    const savedTop = localStorage.getItem(`pedigree_offset_${type}_top`) || '0';
+    const savedLeft = localStorage.getItem(`pedigree_offset_${type}_left`) || '0';
+    const savedScale = localStorage.getItem(`pedigree_offset_${type}_scale`) || '100';
+    const savedBold = localStorage.getItem(`pedigree_offset_${type}_bold`) !== 'false';
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${layout.title}</title>
+  <style>
+    @page {
+      size: ${pageSize};
+      margin: 0;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: transparent;
+      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Dotum', sans-serif;
+      -webkit-print-color-adjust: exact;
+    }
+    .print-content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: ${pageWidth};
+      height: ${pageHeight};
+      transform: translate(${savedLeft}mm, ${savedTop}mm);
+      font-size: calc(9pt * (${savedScale} / 100));
+      font-weight: ${savedBold ? 'bold' : 'normal'};
+      color: black;
+      line-height: 1.15;
+    }
+    .field {
+      position: absolute;
+      white-space: nowrap;
+      box-sizing: border-box;
+    }
+    @media print {
+      body {
+        background-color: transparent;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-content">
+    ${fieldsHtml}
+  </div>
+</body>
+</html>
+    `;
+  };
+
+  const generateJindoPrintHtml = (useSample: boolean) => {
+    const type = 'jindo';
+    const layout = DEFAULT_PEDIGREE_LAYOUTS[type];
+    const finalCoords = { ...layout.fields };
+    const saved = localStorage.getItem(`pedigree_coords_${type}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        Object.keys(parsed).forEach(k => {
+          if (finalCoords[k]) {
+            const savedItem = parsed[k];
+            if (savedItem && typeof savedItem.left === 'number' && savedItem.left > 0 && typeof savedItem.top === 'number' && savedItem.top > 0) {
+              finalCoords[k] = { ...finalCoords[k], ...savedItem };
+            }
+          }
+        });
+      } catch (e) {}
+    }
+
+    let fieldsHtml = '';
+    Object.keys(finalCoords).forEach(key => {
+      const coord = finalCoords[key];
+      let val = useSample ? getSampleValue(key, type) : getRealValue(key, type);
+      if (val === undefined || val === null) val = '';
+
+      const isBold = key === 'dog_name' || key === 'reg_no' || key.endsWith('_name');
+      const fontStyle = isBold ? 'font-weight: bold;' : '';
+      const isAncestor = key.startsWith('ancestor_');
+      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key === 'ancestor_2_name' || key === 'ancestor_3_name';
+      const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
+      const widthStyle = (coord.width && !isAncestor) ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+
+      const formattedVal = typeof val === 'string' ? val.replace(/\n/g, '<br />') : val;
+
+      fieldsHtml += `
+        <div class="field" 
+             style="left: ${coord.left}mm; top: ${coord.top}mm; font-size: ${coord.fontSize || 0.95}em; ${fontStyle} ${widthStyle} ${wrapStyle}">
+          ${formattedVal}
+        </div>
+      `;
+    });
+
+    const isLandscape = layout.isLandscape;
+    const pageWidth = isLandscape ? '297mm' : '210mm';
+    const pageHeight = isLandscape ? '210mm' : '297mm';
+    const pageSize = layout.pageSize;
+
+    const savedTop = localStorage.getItem(`pedigree_offset_${type}_top`) || '0';
+    const savedLeft = localStorage.getItem(`pedigree_offset_${type}_left`) || '0';
+    const savedScale = localStorage.getItem(`pedigree_offset_${type}_scale`) || '100';
+    const savedBold = localStorage.getItem(`pedigree_offset_${type}_bold`) !== 'false';
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${layout.title}</title>
+  <style>
+    @page {
+      size: ${pageSize};
+      margin: 0;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: transparent;
+      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Dotum', sans-serif;
+      -webkit-print-color-adjust: exact;
+    }
+    .print-content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: ${pageWidth};
+      height: ${pageHeight};
+      transform: translate(${savedLeft}mm, ${savedTop}mm);
+      font-size: calc(9pt * (${savedScale} / 100));
+      font-weight: ${savedBold ? 'bold' : 'normal'};
+      color: black;
+      line-height: 1.15;
+    }
+    .field {
+      position: absolute;
+      white-space: nowrap;
+      box-sizing: border-box;
+    }
+    @media print {
+      body {
+        background-color: transparent;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-content">
+    ${fieldsHtml}
+  </div>
+</body>
+</html>
+    `;
+  };
+
+  const generateGeneralPrintHtml = (useSample: boolean) => {
+    const type = 'general';
+    const layout = DEFAULT_PEDIGREE_LAYOUTS[type];
+    const finalCoords = { ...layout.fields };
+    const saved = localStorage.getItem(`pedigree_coords_${type}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        Object.keys(parsed).forEach(k => {
+          if (finalCoords[k]) {
+            const savedItem = parsed[k];
+            if (savedItem && typeof savedItem.left === 'number' && savedItem.left > 0 && typeof savedItem.top === 'number' && savedItem.top > 0) {
+              finalCoords[k] = { ...finalCoords[k], ...savedItem };
+            }
+          }
+        });
+      } catch (e) {}
+    }
+
+    let fieldsHtml = '';
+    Object.keys(finalCoords).forEach(key => {
+      const coord = finalCoords[key];
+      let val = useSample ? getSampleValue(key, type) : getRealValue(key, type);
+      if (val === undefined || val === null) val = '';
+
+      const isBold = key === 'dog_name' || key === 'reg_no' || key.endsWith('_name');
+      const fontStyle = isBold ? 'font-weight: bold;' : '';
+      const isAncestor = key.startsWith('ancestor_');
+      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key === 'ancestor_2_name' || key === 'ancestor_3_name';
+      const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
+      const widthStyle = (coord.width && !isAncestor) ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+
       const formattedVal = typeof val === 'string' ? val.replace(/\n/g, '<br />') : val;
 
       fieldsHtml += `
@@ -917,7 +1123,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
   const handlePrintAction = () => {
     if (!activePrintType) return;
-    const htmlContent = generatePrintHtml(activePrintType, useSampleMode);
+    let htmlContent = '';
+    if (activePrintType === 'shepherd') {
+      htmlContent = generateShepherdPrintHtml(useSampleMode);
+    } else if (activePrintType === 'jindo') {
+      htmlContent = generateJindoPrintHtml(useSampleMode);
+    } else if (activePrintType === 'general') {
+      htmlContent = generateGeneralPrintHtml(useSampleMode);
+    }
     printViaIframe(activePrintType, htmlContent);
   };
 
