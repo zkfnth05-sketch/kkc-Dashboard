@@ -871,19 +871,6 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        const migratedKey = `pedigree_${type}_migrated_a3_v3`;
-        if (type === 'shepherd' && !localStorage.getItem(migratedKey)) {
-          Object.keys(parsed).forEach(k => {
-            if (parsed[k]) {
-              if (typeof parsed[k].left === 'number') parsed[k].left = Math.round(parsed[k].left * 1.41414 * 100) / 100;
-              if (typeof parsed[k].top === 'number') parsed[k].top = Math.round(parsed[k].top * 1.41428 * 100) / 100;
-              if (typeof parsed[k].fontSize === 'number') parsed[k].fontSize = Math.round(parsed[k].fontSize * 1.414 * 100) / 100;
-              if (typeof parsed[k].width === 'number') parsed[k].width = Math.round(parsed[k].width * 1.414 * 100) / 100;
-            }
-          });
-          localStorage.setItem(`pedigree_coords_${type}`, JSON.stringify(parsed));
-          localStorage.setItem(migratedKey, 'true');
-        }
         Object.keys(parsed).forEach(k => {
           if (finalCoords[k]) {
             const savedItem = parsed[k];
@@ -935,12 +922,15 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
   <title>${layout.title}</title>
   <style>
     @page {
-      size: ${pageSize};
+      size: landscape;
       margin: 0;
     }
     body {
       margin: 0;
       padding: 0;
+      width: 420mm;
+      height: 297mm;
+      overflow: hidden;
       background-color: transparent;
       font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Dotum', sans-serif;
       -webkit-print-color-adjust: exact;
@@ -1037,12 +1027,15 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
   <title>${layout.title}</title>
   <style>
     @page {
-      size: ${pageSize};
+      size: landscape;
       margin: 0;
     }
     body {
       margin: 0;
       padding: 0;
+      width: 420mm;
+      height: 297mm;
+      overflow: hidden;
       background-color: transparent;
       font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Dotum', sans-serif;
       -webkit-print-color-adjust: exact;
@@ -1543,24 +1536,13 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         });
         localStorage.setItem(`pedigree_coords_${type}`, JSON.stringify(serverCoords));
       } else {
-        // 2. 서버에 저장된 좌표가 없는 경우 로컬 브라우저 저장소 데이터 활용 (마이그레이션 포함)
+        // 2. 서버에 저장된 좌표가 없는 경우 로컬 브라우저 저장소 데이터 활용
         const savedCoords = localStorage.getItem(`pedigree_coords_${type}`);
         if (savedCoords) {
           try {
             const parsed = JSON.parse(savedCoords);
-            const migratedKey = `pedigree_${type}_migrated_a3_v3`;
-            if (type === 'shepherd' && !localStorage.getItem(migratedKey)) {
-              Object.keys(parsed).forEach(k => {
-                if (parsed[k]) {
-                  if (typeof parsed[k].left === 'number') parsed[k].left = Math.round(parsed[k].left * 1.41414 * 100) / 100;
-                  if (typeof parsed[k].top === 'number') parsed[k].top = Math.round(parsed[k].top * 1.41428 * 100) / 100;
-                  if (typeof parsed[k].fontSize === 'number') parsed[k].fontSize = Math.round(parsed[k].fontSize * 1.414 * 100) / 100;
-                  if (typeof parsed[k].width === 'number') parsed[k].width = Math.round(parsed[k].width * 1.414 * 100) / 100;
-                }
-              });
-              localStorage.setItem(`pedigree_coords_${type}`, JSON.stringify(parsed));
-              localStorage.setItem(migratedKey, 'true');
-            }
+
+
             Object.keys(parsed).forEach(k => {
               if (initialCoords[k]) {
                 const savedItem = parsed[k];
