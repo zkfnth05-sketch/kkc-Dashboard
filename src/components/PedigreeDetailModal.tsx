@@ -348,6 +348,26 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
     if (type === 'jindo') {
       if (key === 'dog_name') return '보미';
+      if (key === 'ok_term') return '2025-06-01~2027-06-01';
+      if (key === 'dog_relate') return '백호(3-3)\n천룡(4-4)';
+      if (key === 'litter_birth_m') return '3';
+      if (key === 'litter_birth_f') return '2';
+      if (key === 'litter_dead_m') return '0';
+      if (key === 'litter_dead_f') return '0';
+      if (key === 'litter_cancel_m') return '0';
+      if (key === 'litter_cancel_f') return '0';
+      if (key === 'litter_dead2_m') return '0';
+      if (key === 'litter_dead2_f') return '0';
+      if (key === 'litter_missing_m') return '0';
+      if (key === 'litter_missing_f') return '0';
+      if (key === 'litter_bringup_m') return '3';
+      if (key === 'litter_bringup_f') return '2';
+      if (key === 'litter_reg_m') return '3';
+      if (key === 'litter_reg_f') return '2';
+      if (key === 'birth_litter') return 'Male: 3 / Female: 2';
+      if (key === 'birth_count') return '5';
+      if (key === 'dead_count') return '0';
+      if (key === 'reg_count') return 'Male: 3 / Female: 2';
       if (key === 'reg_no') return 'KJ-C60028';
       if (key === 'dog_breed') return '진돗개';
       if (key === 'dog_gender') return 'FEMALE (암컷)';
@@ -387,6 +407,26 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
     if (type === 'general') {
       if (key === 'dog_name') return 'Arin';
+      if (key === 'ok_term') return '2025-06-01~2027-06-01';
+      if (key === 'dog_relate') return 'Max(3-3)\nBella(4-4)';
+      if (key === 'litter_birth_m') return '2';
+      if (key === 'litter_birth_f') return '4';
+      if (key === 'litter_dead_m') return '0';
+      if (key === 'litter_dead_f') return '0';
+      if (key === 'litter_cancel_m') return '0';
+      if (key === 'litter_cancel_f') return '0';
+      if (key === 'litter_dead2_m') return '0';
+      if (key === 'litter_dead2_f') return '0';
+      if (key === 'litter_missing_m') return '0';
+      if (key === 'litter_missing_f') return '0';
+      if (key === 'litter_bringup_m') return '2';
+      if (key === 'litter_bringup_f') return '4';
+      if (key === 'litter_reg_m') return '2';
+      if (key === 'litter_reg_f') return '4';
+      if (key === 'birth_litter') return 'Male: 2 / Female: 4';
+      if (key === 'birth_count') return '6';
+      if (key === 'dead_count') return '0';
+      if (key === 'reg_count') return 'Male: 2 / Female: 4';
       if (key === 'reg_no') return 'KSZ-C60236';
       if (key === 'dog_breed') return 'German Shepherd Dog';
       if (key === 'dog_gender') return 'FEMALE (암컷)';
@@ -2078,7 +2118,9 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                             }}
                             title={`[${key}] L:${coord.left} T:${coord.top} S:${coord.fontSize || 0.95}`}
                           >
-                            {val || <span className="text-[7pt] text-rose-500 opacity-60 italic">({getFieldLabel(key)} 빈값)</span>}
+                            {(!val || val === '-' || val === '0' || val.trim() === '') ? (
+                               <span className="text-[7pt] text-rose-500 opacity-60 italic">({getFieldLabel(key)})</span>
+                             ) : val}
                           </div>
                         );
                       })}
