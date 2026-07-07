@@ -525,6 +525,20 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
            return nameVal;
          }
          if (field === 'reg') {
+           if (type !== 'shepherd' && (nodeId === 2 || nodeId === 3)) {
+             const rVal = (dog.reg_no || '').trim();
+             const dom = (dog.foreign100 || '').trim();
+             const parts: string[] = [];
+             if (rVal && rVal !== '0' && rVal !== '-') parts.push(rVal);
+             if (dom && dom !== '0' && dom !== '-') parts.push(dom);
+             if (parts.length > 0) {
+               return parts.join(' ');
+             }
+             const f1 = (dog.foreign_no || '').trim();
+             const f2 = (dog.foreign_no2 || '').trim();
+             return (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
+           }
+
            let regVal = (dog.reg_no || '').trim();
            if (!regVal || regVal === '0' || regVal === '-') {
              const dom = (dog.foreign100 || '').trim();
