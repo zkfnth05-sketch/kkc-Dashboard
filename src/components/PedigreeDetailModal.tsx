@@ -212,7 +212,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'birth_count') return '1';
       if (key === 'dead_count') return '0';
       if (key === 'reg_count') return 'Male: 1 / Female: 0';
-      if (key === 'issue_date') return '2026년 7월 6일';
+      if (key === 'issue_date') return '2026-07-06';
       
       if (key.startsWith('ancestor_')) {
         const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
@@ -468,7 +468,16 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       return (dm + df + d2m + d2f).toString();
     }
     if (key === 'reg_count') return `Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}`;
-    if (key === 'issue_date') return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date());
+    if (key === 'issue_date') {
+      const today = new Date();
+      if (type === 'shepherd') {
+        const y = today.getFullYear();
+        const m = String(today.getMonth() + 1).padStart(2, '0');
+        const d = String(today.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+      return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(today);
+    }
     
     // Ancestors
     if (key.startsWith('ancestor_')) {
