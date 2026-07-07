@@ -190,21 +190,66 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'issue_date') return '2026년 7월 6일';
       
       if (key.startsWith('ancestor_')) {
-        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2)$/);
+        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
         if (match) {
           const node = parseInt(match[1]);
           const field = match[2];
-          if (field === 'slash1' || field === 'slash2') return '/';
-          const s = shepherdSamples[node];
-          if (s) {
-            if (field === 'win') return node === 2 ? 'SG' : node === 3 ? 'V(BSZS)' : '';
-            if (field === 'train') return 'IGP3';
-            if (field === 'dna') return 'DNA gpr.';
-            if (field === 'bone') return 'HD ED';
-            if (field === 'color') return 'sb';
-            if (field === 'micro') return node === 2 ? '963007000778785' : node === 3 ? '963004001035661' : node === 4 ? '963007000778111' : node === 5 ? '963004001035222' : node === 6 ? '963007000778333' : node === 7 ? '963004001035444' : '';
-            return s[field as keyof typeof s] || '';
-          }
+          if (field.startsWith('slash')) return '/';
+           const s = shepherdSamples[node];
+           if (s) {
+             if (node === 2 || node === 3) {
+               if (field === 'reg') {
+                 return `${s.reg || ''} DNA gpr. HD ED`;
+               }
+             }
+             if (node >= 4 && node <= 7) {
+               if (field === 'name') {
+                 return `${s.name || ''} DNA gpr.`;
+               }
+               if (field === 'train') {
+                 return 'IGP3 HD ED';
+               }
+               if (field === 'win') {
+                 return node === 4 ? 'VA(BSZS)' : node === 5 ? 'V' : node === 6 ? 'SG' : 'V';
+               }
+               if (field === 'color') {
+                 return 'sb';
+               }
+               if (field === 'micro') {
+                 return node === 4 ? '963007000778111' : node === 5 ? '963004001035222' : node === 6 ? '963007000778333' : '963004001035444';
+               }
+               if (field === 'reg') {
+                 return s.reg || '';
+               }
+             }
+             if (node >= 8 && node <= 15) {
+               if (field === 'name') {
+                 return `${s.name || ''} DNA gpr.`;
+               }
+               if (field === 'reg') {
+                 return `${s.reg || ''} IGP3`;
+               }
+               if (field === 'win') {
+                 const sampleWin = node === 8 ? 'SG' : node === 9 ? 'V' : '';
+                 return [sampleWin, 'HD ED'].filter(Boolean).join(' ');
+               }
+             }
+             if (node >= 16 && node <= 31) {
+               if (field === 'name') {
+                 return `${s.name || ''} DNA gpr.`;
+               }
+               if (field === 'reg') {
+                 return `${s.reg || ''} IGP3 HD ED`;
+               }
+             }
+             if (field === 'win') return node === 2 ? 'SG' : node === 3 ? 'V(BSZS)' : '';
+             if (field === 'train') return 'IGP3';
+             if (field === 'dna') return 'DNA gpr.';
+             if (field === 'bone') return 'HD ED';
+             if (field === 'color') return 'sb';
+             if (field === 'micro') return node === 2 ? '963007000778785' : node === 3 ? '963004001035661' : node === 4 ? '963007000778111' : node === 5 ? '963004001035222' : node === 6 ? '963007000778333' : node === 7 ? '963004001035444' : '';
+             return s[field as keyof typeof s] || '';
+           }
         }
       }
     }
@@ -226,11 +271,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'issue_date') return '2026년 3월 17일';
       
       if (key.startsWith('ancestor_')) {
-        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2)$/);
+        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
         if (match) {
           const node = parseInt(match[1]);
           const field = match[2];
-          if (field === 'slash1' || field === 'slash2') return '/';
+          if (field.startsWith('slash')) return '/';
           if (node === 2) {
             if (field === 'name') return '삼호 충주금가견사';
             if (field === 'reg') return 'KJ-C10092';
@@ -265,11 +310,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'issue_date') return '2026년 3월 17일';
 
       if (key.startsWith('ancestor_')) {
-        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2)$/);
+        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
         if (match) {
           const node = parseInt(match[1]);
           const field = match[2];
-          if (field === 'slash1' || field === 'slash2') return '/';
+          if (field.startsWith('slash')) return '/';
           return field === 'name' ? `일반 조상 ${node}` : field === 'reg' ? `GEN-C00${node}` : 'sb';
         }
       }
@@ -388,25 +433,48 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     
     // Ancestors
     if (key.startsWith('ancestor_')) {
-      const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2)$/);
+      const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
       if (match) {
         const nodeId = parseInt(match[1]);
         const field = match[2];
-        if (field === 'slash1' || field === 'slash2') return '/';
+        if (field.startsWith('slash')) return '/';
         const dog = ancestorTree[nodeId];
         if (!dog) return '';
         
-        if (field === 'name') return dog.fullname || dog.name || '';
-        if (field === 'reg') {
-          const regVal = (dog.reg_no || '').trim();
-          if (regVal && regVal !== '0' && regVal !== '-') {
-            return regVal;
-          }
-          const f1 = (dog.foreign_no || '').trim();
-          const f2 = (dog.foreign_no2 || '').trim();
-          if (f1 && f2) return `${f1} ${f2}`;
-          return f1 || f2 || '';
-        }
+         if (field === 'name') {
+           const nameVal = dog.fullname || dog.name || '';
+           if (type === 'shepherd' && nodeId >= 4 && nodeId <= 31) {
+             const dnaVal = (dog.spec_dna || '').trim();
+             return [nameVal, dnaVal].filter(Boolean).join(' ');
+           }
+           return nameVal;
+         }
+         if (field === 'reg') {
+           let regVal = (dog.reg_no || '').trim();
+           if (!regVal || regVal === '0' || regVal === '-') {
+             const f1 = (dog.foreign_no || '').trim();
+             const f2 = (dog.foreign_no2 || '').trim();
+             regVal = (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
+           }
+           if (type === 'shepherd') {
+             if (nodeId === 2 || nodeId === 3) {
+               const dnaVal = (dog.spec_dna || '').trim();
+               const boneVal = (dog.spec_bone || '').trim();
+               return [regVal, dnaVal, boneVal].filter(Boolean).join(' ');
+             }
+             if (nodeId >= 8 && nodeId <= 15) {
+               const trainVal = (dog.spec_train || '').trim();
+               return [regVal, trainVal].filter(Boolean).join(' ');
+             }
+             if (nodeId >= 16 && nodeId <= 31) {
+               const trainVal = (dog.spec_train || '').trim();
+               const boneVal = (dog.spec_bone || '').trim();
+               const winVal = (dog.spec_win || '').trim();
+               return [regVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
+             }
+           }
+           return regVal;
+         }
         if (field === 'extra') {
           const extraList = [
             dog.spec_win,
@@ -417,8 +485,22 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
           ].map(s => (s || '').toString().trim()).filter(Boolean);
           return extraList.join(' / ');
         }
-        if (field === 'win') return dog.spec_win || '';
-        if (field === 'train') return dog.spec_train || '';
+        if (field === 'win') {
+          if (type === 'shepherd' && nodeId >= 8 && nodeId <= 15) {
+            const winVal = (dog.spec_win || '').trim();
+            const boneVal = (dog.spec_bone || '').trim();
+            return [winVal, boneVal].filter(Boolean).join(' ');
+          }
+          return dog.spec_win || '';
+        }
+        if (field === 'train') {
+          if (type === 'shepherd' && nodeId >= 4 && nodeId <= 7) {
+            const trainVal = (dog.spec_train || '').trim();
+            const boneVal = (dog.spec_bone || '').trim();
+            return [trainVal, boneVal].filter(Boolean).join(' ');
+          }
+          return dog.spec_train || '';
+        }
         if (field === 'dna') return dog.spec_dna || '';
         if (field === 'bone') return dog.spec_bone || '';
         if (field === 'color') return getColorAbbr(dog.hair) || '';
@@ -509,7 +591,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
       const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
       const fontStyle = isBold ? 'font-weight: bold;' : '';
-      const widthStyle = coord.width ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+      const isAncestor = key.startsWith('ancestor_');
+      const widthStyle = (coord.width && !isAncestor) ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
       fieldsHtml += `
         <div class="field" 
@@ -1710,20 +1793,85 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                         const isSelected = selectedFieldKey === key;
                         const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
                         
+                        let nodeId: number | null = null;
+                        if (key.startsWith('ancestor_')) {
+                          const match = key.match(/^ancestor_(\d+)_/);
+                          if (match) nodeId = parseInt(match[1]);
+                        }
+
+                        let selectedNodeId: number | null = null;
+                        if (selectedFieldKey && selectedFieldKey.startsWith('ancestor_')) {
+                          const match = selectedFieldKey.match(/^ancestor_(\d+)_/);
+                          if (match) selectedNodeId = parseInt(match[1]);
+                        }
+
+                        // Generation colors (Transparent background, only borders)
+                        // Split into Sire side (Cool colors) vs Dam side (Warm colors)
+                        let genStyle = 'bg-transparent border-gray-300 text-gray-800';
+                        if (nodeId !== null) {
+                          let isSireSide = false;
+                          let temp = nodeId;
+                          while (temp > 1) {
+                            if (temp === 2) {
+                              isSireSide = true;
+                              break;
+                            }
+                            temp = Math.floor(temp / 2);
+                          }
+
+                          if (isSireSide) {
+                            // Sire Lineage: Cool Colors
+                            if (nodeId === 2) {
+                              genStyle = 'bg-transparent border-blue-600 text-blue-900 font-bold'; // 1대 부
+                            } else if (nodeId >= 4 && nodeId <= 5) {
+                              genStyle = 'bg-transparent border-cyan-500 text-cyan-900'; // 2대 부계
+                            } else if (nodeId >= 8 && nodeId <= 11) {
+                              genStyle = 'bg-transparent border-teal-500 text-teal-900'; // 3대 부계
+                            } else if (nodeId >= 16 && nodeId <= 23) {
+                              genStyle = 'bg-transparent border-indigo-400 text-indigo-900'; // 4대 부계
+                            }
+                          } else {
+                            // Dam Lineage: Warm Colors
+                            if (nodeId === 3) {
+                              genStyle = 'bg-transparent border-pink-600 text-pink-900 font-bold'; // 1대 모
+                            } else if (nodeId >= 6 && nodeId <= 7) {
+                              genStyle = 'bg-transparent border-rose-400 text-rose-900'; // 2대 모계
+                            } else if (nodeId >= 12 && nodeId <= 15) {
+                              genStyle = 'bg-transparent border-fuchsia-400 text-fuchsia-900'; // 3대 모계
+                            } else if (nodeId >= 24 && nodeId <= 31) {
+                              genStyle = 'bg-transparent border-amber-500 text-amber-950'; // 4대 모계
+                            }
+                          }
+                        }
+
+                        let highlightStyle = '';
+                        let opacityStyle = ''; // No opacity fade-out
+
+                        if (selectedFieldKey) {
+                          if (isSelected) {
+                            highlightStyle = 'ring-2 ring-indigo-600 bg-indigo-50/20 text-indigo-950 font-extrabold z-[999] scale-105 shadow-md border-indigo-600';
+                          } else if (nodeId !== null && nodeId === selectedNodeId) {
+                            highlightStyle = 'border-dashed border-indigo-500 text-indigo-950 ring-1 ring-indigo-400 z-[99]';
+                          }
+                        } else {
+                          highlightStyle = 'hover:border-amber-400';
+                        }
+
                         return (
                           <div
                             key={key}
                             onMouseDown={e => handleDragStart(e, key)}
-                            className={`absolute select-none pointer-events-auto border transition-all truncate text-left whitespace-nowrap
+                            className={`absolute select-none pointer-events-auto border transition-all text-left whitespace-nowrap
                               ${isEditingCoords ? 'cursor-move' : 'cursor-pointer'}
-                              ${isSelected ? 'border-indigo-600 bg-indigo-50/70 text-indigo-950 font-extrabold shadow-md scale-105 z-[99]' : 'border-transparent hover:border-amber-400 hover:bg-amber-50/30'}
+                              ${key.startsWith('ancestor_') ? '' : 'truncate'}
+                              ${genStyle} ${highlightStyle} ${opacityStyle}
                             `}
                             style={{
                               left: `${coord.left}mm`,
                               top: `${coord.top}mm`,
                               fontSize: `${coord.fontSize || 0.95}em`,
                               fontWeight: isBold ? 'bold' : 'inherit',
-                              width: coord.width ? `${coord.width}mm` : 'auto',
+                              width: (coord.width && !key.startsWith('ancestor_')) ? `${coord.width}mm` : 'auto',
                               padding: '1px 2px',
                               minHeight: '4mm'
                             }}
