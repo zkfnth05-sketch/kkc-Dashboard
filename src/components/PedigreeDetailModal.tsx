@@ -908,7 +908,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
       const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
-      const formattedVal = typeof val === 'string' ? val.replace(/\n/g, '<br />') : val;
+      const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
 
       fieldsHtml += `
         <div class="field" 
@@ -1010,7 +1010,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
       const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
-      const formattedVal = typeof val === 'string' ? val.replace(/\n/g, '<br />') : val;
+      const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
 
       fieldsHtml += `
         <div class="field" 
@@ -1112,7 +1112,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
       const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
-      const formattedVal = typeof val === 'string' ? val.replace(/\n/g, '<br />') : val;
+      const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
 
       fieldsHtml += `
         <div class="field" 
