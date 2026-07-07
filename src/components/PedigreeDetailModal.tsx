@@ -338,8 +338,44 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       }
       return gVal;
     }
-    if (key === 'dog_coat') return pedigree.coatType || (type === 'shepherd' ? 'stock hair' : '-');
-    if (key === 'dog_color') return pedigree.color || '-';
+    if (key === 'dog_coat') {
+      const coatVal = pedigree.coatType || (type === 'shepherd' ? 'stock hair' : '-');
+      if (type === 'shepherd') {
+        const c = coatVal.trim().toLowerCase();
+        if (c.includes('long stock') || c.includes('long coat') || c.includes('장모') || c.includes('롱')) {
+          return 'Long stock hair';
+        }
+        if (c.includes('stock') || c.includes('단모') || c.includes('숏') || c.includes('이중모')) {
+          return 'stock hair';
+        }
+      }
+      return coatVal;
+    }
+    if (key === 'dog_color') {
+      const colorVal = pedigree.color || '-';
+      if (type === 'shepherd' && colorVal !== '-') {
+        const c = colorVal.trim().toLowerCase();
+        if (c === 'sb' || c.includes('schwarz braun') || c.includes('black & brown') || c.includes('black brown') || c.includes('블랙브라운') || c.includes('블랙 브라운')) {
+          return 'schwarz braun';
+        }
+        if (c === 'wlf gr' || c.includes('wolf gray') || c.includes('wolf grey') || c.includes('울프그레이') || c.includes('울프 그레이')) {
+          return 'wolf gray';
+        }
+        if (c === 'b&t' || c.includes('black and tan') || c.includes('black tan') || c.includes('블랙탄') || c.includes('블랙 탄')) {
+          return 'black & tan';
+        }
+        if (c === 's' || c.includes('black') || c.includes('검정') || c.includes('블랙')) {
+          return 'black';
+        }
+        if (c === 'w' || c.includes('white') || c.includes('백색') || c.includes('화이트')) {
+          return 'white';
+        }
+        if (c === 'gr' || c.includes('gray') || c.includes('grey') || c.includes('회색')) {
+          return 'gray';
+        }
+      }
+      return colorVal;
+    }
     if (key === 'dog_birth') return formatDateKr(pedigree.birthDate);
     if (key === 'dog_join') return pedigree.joinDate || '-';
     if (key === 'dog_owner_change') {
