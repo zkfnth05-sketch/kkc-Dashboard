@@ -702,12 +702,17 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
       const fontStyle = isBold ? 'font-weight: bold;' : '';
       const isAncestor = key.startsWith('ancestor_');
+      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key === 'ancestor_2_name' || key === 'ancestor_3_name';
+      const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
       const widthStyle = (coord.width && !isAncestor) ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+
+      // Replace newline characters with <br /> for HTML print compatibility
+      const formattedVal = typeof val === 'string' ? val.replace(/\n/g, '<br />') : val;
 
       fieldsHtml += `
         <div class="field" 
-             style="left: ${coord.left}mm; top: ${coord.top}mm; font-size: ${coord.fontSize || 0.95}em; ${fontStyle} ${widthStyle}">
-          ${val}
+             style="left: ${coord.left}mm; top: ${coord.top}mm; font-size: ${coord.fontSize || 0.95}em; ${fontStyle} ${widthStyle} ${wrapStyle}">
+          ${formattedVal}
         </div>
       `;
     });
