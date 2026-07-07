@@ -131,6 +131,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
   const [activePrintType, setActivePrintType] = useState<'shepherd' | 'jindo' | 'general' | null>(null);
   const [ancestorTree, setAncestorTree] = useState<Record<number, ParentDogInfo>>({});
   const [fullLitterList, setFullLitterList] = useState<string>('');
+  const [jindoLitterList, setJindoLitterList] = useState<string>('');
   const [okStartDate, setOkStartDate] = useState<string>('');
   const [okEndDate, setOkEndDate] = useState<string>('');
   const [selectedFieldKey, setSelectedFieldKey] = useState<string | null>(null);
@@ -378,7 +379,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       return '';
     }
       if (key === 'index_no') return '-';
-      if (key === 'dog_litter') return '보미 황구 KJ-C60028';
+      if (key === 'dog_litter') return '보미\nKJ-C60028';
       if (key === 'dog_breeder') return '최하식';
       if (key === 'dog_breeder_addr') return '충북 충주시 금가면 하담리 35-5';
       if (key === 'dog_owner') return '최하식';
@@ -442,7 +443,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       return '';
     }
       if (key === 'index_no') return '-';
-      if (key === 'dog_litter') return 'Arin sb KSZ-C60236';
+      if (key === 'dog_litter') return 'Arin\nKSZ-C60236';
       if (key === 'dog_breeder') return '최하식';
       if (key === 'dog_breeder_addr') return '충북 충주시 금가면 하담리 35-5';
       if (key === 'dog_owner') return '최하식';
@@ -552,11 +553,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     }
     if (key === 'foreign_no') return pedigree.foreignNo || pedigree.domesticNo || '-';
     if (key === 'dongtae_no' || key === 'dog_litter') {
-      const val = fullLitterList || '-';
-      if (val !== '-') {
-        return val.replace(/\//g, ' ').replace(/\s+/g, ' ').trim();
+      if (type === 'shepherd') {
+        const val = fullLitterList || '-';
+        if (val !== '-') {
+          return val.replace(/\//g, ' ').replace(/\s+/g, ' ').trim();
+        }
+        return val;
       }
-      return val;
+      return jindoLitterList || '-';
     }
     if (key === 'dog_breed') return pedigree.breed || '-';
     if (key === 'index_no') return pedigree.indexNo || '-';
@@ -1379,6 +1383,18 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
       const mainDogColorAbbr = getColorAbbr(pedigree.color);
       const fullLitterList = `${pedigree.fullName || pedigree.name} ${mainDogColorAbbr} / ${pedigree.regNo}${siblingListFormatted ? ', ' + siblingListFormatted : ''}`;
+
+      const jindoSiblings = siblings.map(s => {
+        const sName = s.fullname || s.name || '';
+        const sReg = s.reg_no || '';
+        return sReg ? `${sName}\n${sReg}` : sName;
+      });
+      const mainName = pedigree.fullName || pedigree.name || '';
+      const mainReg = pedigree.regNo || '';
+      const mainText = mainReg ? `${mainName}\n${mainReg}` : mainName;
+      const jindoLitterListVal = [mainText, ...jindoSiblings].join(', ');
+      
+      setJindoLitterList(jindoLitterListVal);
 
       // 종견인정검사 시작/끝 날짜 조회
       let start_date = '';
