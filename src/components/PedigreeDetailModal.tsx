@@ -902,11 +902,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (val === undefined || val === null) val = '';
 
       const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
-      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: Georgia, serif; text-align: center;' : '');
+      const fontStyle = isBold ? 'font-weight: bold;' : '';
       const isAncestor = key.startsWith('ancestor_');
       const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key === 'ancestor_2_name' || key === 'ancestor_3_name';
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
-      const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+      const widthStyle = (coord.width && !isAncestor) ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
       const formattedVal = typeof val === 'string' ? val.replace(/\n/g, '<br />') : val;
 
@@ -1004,11 +1004,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (val === undefined || val === null) val = '';
 
       const isBold = key === 'dog_name' || key === 'reg_no' || key.endsWith('_name');
-      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: Georgia, serif; text-align: center;' : '');
+      const fontStyle = isBold ? 'font-weight: bold;' : '';
       const isAncestor = key.startsWith('ancestor_');
       const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key === 'ancestor_2_name' || key === 'ancestor_3_name';
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
-      const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+      const widthStyle = (coord.width && !isAncestor) ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
       const formattedVal = typeof val === 'string' ? val.replace(/\n/g, '<br />') : val;
 
@@ -2488,7 +2488,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                             key={key}
                             onMouseDown={e => handleDragStart(e, key)}
                             className={`absolute select-none pointer-events-auto border transition-all
-                              ${key === 'dog_name' ? 'text-center' : 'text-left'}
+                              ${(key === 'dog_name' && activePrintType === 'general') ? 'text-center' : 'text-left'}
                               ${isEditingCoords ? 'cursor-move' : 'cursor-pointer'}
                               ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter') ? 'whitespace-pre-line break-words' : 'whitespace-nowrap'}
                               ${(key !== 'dog_relate' && key !== 'dongtae_no' && key !== 'dog_litter' && !key.startsWith('ancestor_')) ? 'truncate' : ''}
@@ -2499,8 +2499,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                               top: `${coord.top}mm`,
                               fontSize: `${coord.fontSize || 0.95}em`,
                               fontWeight: isBold ? 'bold' : 'inherit',
-                              fontFamily: key === 'dog_name' ? 'Georgia, serif' : 'inherit',
-                              width: (coord.width || (key === 'dog_name' ? 150 : undefined)) && !key.startsWith('ancestor_') ? `${coord.width || 150}mm` : 'auto',
+                              fontFamily: (key === 'dog_name' && activePrintType === 'general') ? 'Georgia, serif' : 'inherit',
+                              width: (coord.width || (key === 'dog_name' && activePrintType === 'general' ? 150 : undefined)) && !key.startsWith('ancestor_') ? `${coord.width || 150}mm` : 'auto',
                               padding: '1px 2px',
                               minHeight: '4mm'
                             }}
