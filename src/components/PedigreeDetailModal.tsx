@@ -1145,6 +1145,9 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     body {
       margin: 0;
       padding: 0;
+      width: 210mm;
+      height: 297mm;
+      overflow: hidden;
       background-color: transparent;
       font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Dotum', sans-serif;
       -webkit-print-color-adjust: exact;
@@ -1155,7 +1158,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       left: 0;
       width: ${pageWidth};
       height: ${pageHeight};
-      transform: translate(${savedLeft}mm, ${savedTop}mm);
+      transform: translate(calc(-210mm + ${savedLeft}mm), ${savedTop}mm);
       font-size: calc(9pt * (${savedScale} / 100));
       font-weight: ${savedBold ? 'bold' : 'normal'};
       color: black;
