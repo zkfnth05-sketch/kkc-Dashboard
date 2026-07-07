@@ -371,7 +371,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'reg_count') return 'Male: 3 / Female: 2';
       if (key === 'reg_no') return 'KJ-C60028';
       if (key === 'dog_breed') return '진돗개';
-      if (key === 'dog_gender') return 'FEMALE (암컷)';
+      if (key === 'dog_gender') return 'FEMALE 암컷';
       if (key === 'dog_birth') return '2025-10-23';
       if (key === 'dog_color') return '황구';
       if (key === 'microchip') return '';
@@ -515,7 +515,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'dog_name') return pedigree.fullName || pedigree.name || '-';
     if (key === 'dog_gender') {
       const gVal = formatGender(pedigree.gender);
-      if (type === 'shepherd') {
+      if (type === 'shepherd' || type === 'jindo') {
         if (gVal === '수컷') return 'MALE 수컷';
         if (gVal === '암컷') return 'FEMALE 암컷';
       }
