@@ -193,7 +193,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'foreign_no') return 'SZ-2385565';
       if (key === 'dongtae_no') return 'Xamo sb KSZ-C40386';
       if (key === 'ok_date') return 'HD ED / BH IGP1';
-      if (key === 'dog_relate') return '*Ursa v. Ghattas(3-3)/*Enosch v. Amasis *Bella v. Ghattas(4-4)';
+      if (key === 'dog_relate') return '*Ursa v. Ghattas(3-3) *Enosch v. Amasis *Bella v. Ghattas(4-4)';
       if (key === 'litter_birth_m') return '1';
       if (key === 'litter_birth_f') return '0';
       if (key === 'litter_dead_m') return '0';
@@ -428,7 +428,13 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'reg_no') return pedigree.regNo || '-';
     if (key === 'microchip') return pedigree.microchip || (pedigree as any).micro || '-';
     if (key === 'foreign_no') return pedigree.foreignNo || pedigree.domesticNo || '-';
-    if (key === 'dongtae_no' || key === 'dog_litter') return fullLitterList || '-';
+    if (key === 'dongtae_no' || key === 'dog_litter') {
+      const val = fullLitterList || '-';
+      if (type === 'shepherd' && val !== '-') {
+        return val.replace(/\//g, ' ').replace(/\s+/g, ' ').trim();
+      }
+      return val;
+    }
     if (key === 'dog_breed') return pedigree.breed || '-';
     if (key === 'index_no') return pedigree.indexNo || '-';
     if (key === 'ok_date') {
@@ -437,7 +443,13 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       return pedigree.okDate || (pedigree.okStat === 'Y' ? '기록 확인' : '-');
     }
     if (key === 'birth_litter') return `Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}`;
-    if (key === 'dog_relate') return pedigree.specRelate || '-';
+    if (key === 'dog_relate') {
+      const val = pedigree.specRelate || '-';
+      if (type === 'shepherd' && val !== '-') {
+        return val.replace(/\//g, ' ').replace(/\s+/g, ' ').trim();
+      }
+      return val;
+    }
     if (key === 'litter_birth_m') return getLitterValue('birth_M') || '0';
     if (key === 'litter_birth_f') return getLitterValue('birth_F') || '0';
     if (key === 'litter_dead_m') return getLitterValue('dead_M') || '0';
@@ -1909,9 +1921,10 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                           <div
                             key={key}
                             onMouseDown={e => handleDragStart(e, key)}
-                            className={`absolute select-none pointer-events-auto border transition-all text-left whitespace-nowrap
+                            className={`absolute select-none pointer-events-auto border transition-all text-left
                               ${isEditingCoords ? 'cursor-move' : 'cursor-pointer'}
-                              ${key.startsWith('ancestor_') ? '' : 'truncate'}
+                              ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter') ? 'whitespace-normal break-words' : 'whitespace-nowrap'}
+                              ${(key !== 'dog_relate' && key !== 'dongtae_no' && key !== 'dog_litter' && !key.startsWith('ancestor_')) ? 'truncate' : ''}
                               ${genStyle} ${highlightStyle} ${opacityStyle}
                             `}
                             style={{
