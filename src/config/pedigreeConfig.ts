@@ -36,6 +36,7 @@ export const DEFAULT_PEDIGREE_LAYOUTS: Record<'shepherd' | 'jindo' | 'general', 
       dog_owner: { left: 24.5, top: 71.5, fontSize: 0.8 },
       dog_owner_addr: { left: 24.5, top: 74.5, fontSize: 0.8, width: 55 },
       reg_no: { left: 145, top: 37.4, fontSize: 0.8 },
+      microchip: { left: 145, top: 42.4, fontSize: 0.8 },
 
       foreign_no: { left: 145, top: 47.7, fontSize: 0.8 },
       dongtae_no: { left: 145, top: 54.4, fontSize: 0.8, width: 42 },

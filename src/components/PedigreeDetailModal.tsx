@@ -252,7 +252,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'dog_owner') return '김기흥';
       if (key === 'dog_owner_addr') return '경남 김해시 한림면 금곡리 590-1';
       if (key === 'reg_no') return 'KSZ-C40386';
-      if (key === 'microchip') return '';
+      if (key === 'microchip') return '981189900142765';
       if (key === 'foreign_no') return 'SZ-2385565';
       if (key === 'dongtae_no') return 'Xamo sb KSZ-C40386';
       if (key === 'ok_date') return '';
@@ -373,14 +373,17 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'dog_gender') return 'FEMALE (암컷)';
       if (key === 'dog_birth') return '2025년 10월 23일';
       if (key === 'dog_color') return '황구';
-      if (key === 'microchip') return '';
+      if (key === 'microchip') {
+      if (type === 'shepherd') return pedigree.microchip || (pedigree as any).micro || '-';
+      return '';
+    }
       if (key === 'index_no') return '-';
       if (key === 'dog_litter') return '보미 황구 KJ-C60028';
       if (key === 'dog_breeder') return '최하식';
       if (key === 'dog_breeder_addr') return '충북 충주시 금가면 하담리 35-5';
       if (key === 'dog_owner') return '최하식';
       if (key === 'dog_owner_addr') return '충북 충주시 금가면 하담리 35-5';
-      if (key === 'issue_date') return '2026-03-17';
+      if (key === 'issue_date') return '2026년 3월 17일';
       
       if (key.startsWith('ancestor_')) {
         const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
@@ -432,14 +435,17 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'dog_gender') return 'FEMALE (암컷)';
       if (key === 'dog_birth') return '2025년 10월 23일';
       if (key === 'dog_color') return 'sb';
-      if (key === 'microchip') return '';
+      if (key === 'microchip') {
+      if (type === 'shepherd') return pedigree.microchip || (pedigree as any).micro || '-';
+      return '';
+    }
       if (key === 'index_no') return '-';
       if (key === 'dog_litter') return 'Arin sb KSZ-C60236';
       if (key === 'dog_breeder') return '최하식';
       if (key === 'dog_breeder_addr') return '충북 충주시 금가면 하담리 35-5';
       if (key === 'dog_owner') return '최하식';
       if (key === 'dog_owner_addr') return '충북 충주시 금가면 하담리 35-5';
-      if (key === 'issue_date') return '2026-03-17';
+      if (key === 'issue_date') return '2026년 3월 17일';
 
       if (key.startsWith('ancestor_')) {
         const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
@@ -509,7 +515,10 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       return colorVal;
     }
     if (key === 'dog_birth') return formatDateKr(pedigree.birthDate);
-    if (key === 'dog_join') return formatDateHyphen(pedigree.joinDate);
+    if (key === 'dog_join') {
+      if (type === 'shepherd') return pedigree.joinDate || '-';
+      return formatDateHyphen(pedigree.joinDate);
+    }
     if (key === 'dog_owner_change') {
       const latest = ownerHistory[0];
       let dateVal = '';
@@ -530,7 +539,10 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'dog_owner') return pedigree.owner || '-';
     if (key === 'dog_owner_addr') return pedigree.ownerAddr || '-';
     if (key === 'reg_no') return pedigree.regNo || '-';
-    if (key === 'microchip') return '';
+    if (key === 'microchip') {
+      if (type === 'shepherd') return pedigree.microchip || (pedigree as any).micro || '-';
+      return '';
+    }
     if (key === 'foreign_no') return pedigree.foreignNo || pedigree.domesticNo || '-';
     if (key === 'dongtae_no' || key === 'dog_litter') {
       const val = fullLitterList || '-';
@@ -595,10 +607,13 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'reg_count') return `Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}`;
     if (key === 'issue_date') {
       const today = new Date();
-      const y = today.getFullYear();
-      const m = String(today.getMonth() + 1).padStart(2, '0');
-      const d = String(today.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
+      if (type === 'shepherd') {
+        const y = today.getFullYear();
+        const m = String(today.getMonth() + 1).padStart(2, '0');
+        const d = String(today.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+      return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(today);
     }
     
     // Ancestors
