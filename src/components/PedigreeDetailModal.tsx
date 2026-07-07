@@ -1116,7 +1116,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
       fieldsHtml += `
         <div class="field" 
-             style="left: ${coord.left}mm; top: ${coord.top}mm; font-size: ${coord.fontSize || 0.95}em; ${fontStyle} ${widthStyle} ${wrapStyle}">
+             style="left: ${coord.left - 210}mm; top: ${coord.top}mm; font-size: ${coord.fontSize || 0.95}em; ${fontStyle} ${widthStyle} ${wrapStyle}">
           ${formattedVal}
         </div>
       `;
@@ -1156,9 +1156,9 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       position: absolute;
       top: 0;
       left: 0;
-      width: ${pageWidth};
-      height: ${pageHeight};
-      transform: translate(calc(-210mm + ${savedLeft}mm), ${savedTop}mm);
+      width: 210mm;
+      height: 297mm;
+      transform: translate(${savedLeft}mm, ${savedTop}mm);
       font-size: calc(9pt * (${savedScale} / 100));
       font-weight: ${savedBold ? 'bold' : 'normal'};
       color: black;
