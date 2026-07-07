@@ -194,7 +194,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'microchip') return '981189900142765';
       if (key === 'foreign_no') return 'SZ-2385565';
       if (key === 'dongtae_no') return 'Xamo sb KSZ-C40386';
-      if (key === 'ok_date') return 'HD ED / BH IGP1';
+      if (key === 'ok_date') return '';
       if (key === 'ok_term') {
         if (type === 'shepherd') return '2025-06-01~2027-06-01';
         return '2025년 6월 1일 ~ 2027년 6월 1일';
@@ -444,6 +444,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'dog_breed') return pedigree.breed || '-';
     if (key === 'index_no') return pedigree.indexNo || '-';
     if (key === 'ok_date') {
+      if (type === 'shepherd') return '';
       const parts = [pedigree.specWin, pedigree.specDna, pedigree.specBone, pedigree.specTrain].map(s => (s || '').trim()).filter(Boolean);
       if (parts.length > 0) return parts.join(' / ');
       return pedigree.okDate || (pedigree.okStat === 'Y' ? '기록 확인' : '-');
