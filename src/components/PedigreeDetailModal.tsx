@@ -1155,7 +1155,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       left: 0;
       width: ${pageWidth};
       height: ${pageHeight};
-      transform: translate(calc(-210mm + ${savedLeft}mm), ${savedTop}mm);
+      transform: translate(${savedLeft}mm, ${savedTop}mm);
       font-size: calc(9pt * (${savedScale} / 100));
       font-weight: ${savedBold ? 'bold' : 'normal'};
       color: black;
@@ -2488,7 +2488,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                             key={key}
                             onMouseDown={e => handleDragStart(e, key)}
                             className={`absolute select-none pointer-events-auto border transition-all
-                              ${key === 'dog_name' ? 'text-center' : 'text-left'}
+                              ${(key === 'dog_name' && activePrintType === 'general') ? 'text-center' : 'text-left'}
                               ${isEditingCoords ? 'cursor-move' : 'cursor-pointer'}
                               ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter') ? 'whitespace-pre-line break-words' : 'whitespace-nowrap'}
                               ${(key !== 'dog_relate' && key !== 'dongtae_no' && key !== 'dog_litter' && !key.startsWith('ancestor_')) ? 'truncate' : ''}
@@ -2499,8 +2499,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                               top: `${coord.top}mm`,
                               fontSize: `${coord.fontSize || 0.95}em`,
                               fontWeight: isBold ? 'bold' : 'inherit',
-                              fontFamily: key === 'dog_name' ? 'Georgia, serif' : 'inherit',
-                              width: (coord.width || (key === 'dog_name' ? 150 : undefined)) && !key.startsWith('ancestor_') ? `${coord.width || 150}mm` : 'auto',
+                              fontFamily: (key === 'dog_name' && activePrintType === 'general') ? 'Georgia, serif' : 'inherit',
+                              width: (coord.width || (key === 'dog_name' && activePrintType === 'general' ? 150 : undefined)) && !key.startsWith('ancestor_') ? `${coord.width || 150}mm` : 'auto',
                               padding: '1px 2px',
                               minHeight: '4mm'
                             }}

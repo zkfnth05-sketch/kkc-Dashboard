@@ -262,10 +262,10 @@ export const DEFAULT_PEDIGREE_LAYOUTS: Record<'shepherd' | 'jindo' | 'general', 
   general: {
     title: '일반 견 혈통서 인쇄',
     bgImage: '/pedigree_templates/KakaoTalk_20260706_141944995.jpg',
-    pageWidth: 420,
+    pageWidth: 210,
     pageHeight: 297,
     pageSize: 'A4 portrait',
-    isLandscape: true,
+    isLandscape: false,
     fields: {
       dog_name: { left: 255.0, top: 37.5, fontSize: 1.05 },
       reg_no: { left: 255.0, top: 55.0, fontSize: 1.05 },
