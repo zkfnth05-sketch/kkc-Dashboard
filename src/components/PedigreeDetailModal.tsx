@@ -105,6 +105,27 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     return dateStr;
   };
 
+  const formatDateHyphen = (dateStr: string) => {
+    if (!dateStr || dateStr === '0000-00-00' || dateStr === '-') return '-';
+    try {
+      const clean = dateStr.trim().split(' ')[0];
+      const parts = clean.split(/[-./]/);
+      if (parts.length === 3) {
+        const y = parts[0];
+        const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+        const d = String(parseInt(parts[2], 10)).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+      if (clean.length === 8 && /^\d+$/.test(clean)) {
+        const y = clean.substring(0, 4);
+        const m = clean.substring(4, 6);
+        const d = clean.substring(6, 8);
+        return `${y}-${m}-${d}`;
+      }
+    } catch (e) {}
+    return dateStr;
+  };
+
   const getColorAbbr = (color: string) => {
     if (!color) return '';
     const c = color.trim().toLowerCase();
@@ -162,7 +183,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'dog_color') return 'schwarz braun';
       if (key === 'dog_birth') return '2022년 11월 28일';
       if (key === 'dog_join') return '2024-10-28';
-      if (key === 'dog_owner_change') return '2025년 10월 19일';
+      if (key === 'dog_owner_change') return '2025-10-19';
       if (key === 'dog_breeder') return 'Dirk Scheerer';
       if (key === 'dog_breeder_addr') return 'Bergweg 3, 56179 Vallendar';
       if (key === 'dog_owner') return '김기흥';
@@ -391,37 +412,12 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         dateVal = latest.sign_date;
       }
       
-      // 1. 승인일 문자열 우선 체크
-      if (!isValidDate(dateVal) && isValidDate(pedigree.editDate)) {
-        dateVal = pedigree.editDate!;
-      }
-      
-      // 2. UNIX 타임스탬프 기반 승인일(signdate) 변환 체크 (최우선 폴백)
       if (!isValidDate(dateVal)) {
-        const ts = pedigree.signdate || (pedigree as any).signdate || (pedigree as any).moddate;
-        if (ts && !isNaN(Number(ts)) && Number(ts) > 0) {
-          const dObj = new Date(Number(ts) * 1000);
-          const y = dObj.getFullYear();
-          const m = String(dObj.getMonth() + 1).padStart(2, '0');
-          const d = String(dObj.getDate()).padStart(2, '0');
-          dateVal = `${y}-${m}-${d}`;
-        }
+        return '';
       }
 
-      // 3. 기타 DB 상의 원본 sign_date 체크
-      if (!isValidDate(dateVal) && isValidDate((pedigree as any).sign_date)) {
-        dateVal = (pedigree as any).sign_date;
-      }
-      
-      // 4. 소유자 변경 기록이나 승인일이 모두 부재할 경우에만 최종적으로 등록일(joinDate / reg_date)로 폴백
-      if (!isValidDate(dateVal)) {
-        if (isValidDate(pedigree.joinDate)) {
-          dateVal = pedigree.joinDate!;
-        } else if (isValidDate((pedigree as any).reg_date)) {
-          dateVal = (pedigree as any).reg_date;
-        } else if (isValidDate((pedigree as any).registrationDate)) {
-          dateVal = (pedigree as any).registrationDate;
-        }
+      if (type === 'shepherd') {
+        return formatDateHyphen(dateVal);
       }
       return formatDateKr(dateVal);
     }
