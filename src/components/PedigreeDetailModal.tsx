@@ -48,6 +48,67 @@ interface PedigreeDetailModalProps {
   dogClasses?: any[];
 }
 
+const getFieldLabel = (key: string): string => {
+  if (key.startsWith('ancestor_')) {
+    const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash\d)$/);
+    if (match) {
+      const node = match[1];
+      const field = match[2];
+      const fieldName = field === 'name' ? '견명' 
+                      : field === 'reg' ? '등록번호'
+                      : field === 'extra' ? '모색/특징'
+                      : field === 'win' ? '수상내역'
+                      : field === 'train' ? '훈련자격'
+                      : field === 'dna' ? 'DNA'
+                      : field === 'bone' ? '관절평가'
+                      : field === 'color' ? '모색'
+                      : field === 'micro' ? '마이크로칩'
+                      : '구분선';
+      return `조상 ${node} ${fieldName}`;
+    }
+    return key;
+  }
+  
+  const labels: Record<string, string> = {
+    dog_name: '견명',
+    dog_gender: '성별',
+    dog_coat: '모질',
+    dog_color: '모색',
+    dog_birth: '생년월일',
+    dog_join: '입회일',
+    dog_owner_change: '소유자변경일',
+    dog_breeder: '번식자',
+    dog_breeder_addr: '번식자 주소',
+    dog_owner: '소유자',
+    dog_owner_addr: '소유자 주소',
+    reg_no: '등록번호',
+    microchip: '마이크로칩',
+    foreign_no: '타단체번호',
+    dongtae_no: '동태자 번호',
+    dog_litter: '동태자 목록',
+    ok_date: '종견인정검사일/결과',
+    ok_term: '종견인정검사 기간',
+    dog_relate: '근친번식',
+    issue_date: '발행일',
+    litter_birth_m: '출산 수컷',
+    litter_birth_f: '출산 암컷',
+    litter_dead_m: '사산 수컷',
+    litter_dead_f: '사산 암컷',
+    litter_cancel_m: '기권 수컷',
+    litter_cancel_f: '기권 암컷',
+    litter_dead2_m: '생후사 수컷',
+    litter_dead2_f: '생후사 암컷',
+    litter_missing_m: '행불 수컷',
+    litter_missing_f: '행불 암컷',
+    litter_bringup_m: '육성 수컷',
+    litter_bringup_f: '육성 암컷',
+    litter_reg_m: '등록 수컷',
+    litter_reg_f: '등록 암컷',
+  };
+  
+  return labels[key] || key;
+};
+
 export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({ 
     pedigree, onClose, onEdit, onOpenDongtaeForm, onEditOwner, onEditEvaluation, onManagePoints, onDelete,
     onViewPedigreeByUid,
