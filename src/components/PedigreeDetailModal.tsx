@@ -517,6 +517,22 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         if (!dog) return '';
         
          if (field === 'name') {
+           if (type !== 'shepherd' && (nodeId === 2 || nodeId === 3)) {
+             let dogName = (dog.name || '').trim();
+             let saho = (dog.saho || dog.saho_eng || '').trim();
+             if (!dogName && !saho && dog.fullname) {
+               const parts = dog.fullname.trim().split(/\s+/);
+               if (parts.length > 1) {
+                 dogName = parts[0];
+                 saho = parts.slice(1).join(' ');
+               }
+             }
+             if (dogName && saho) {
+               return `${dogName}\n${saho}`;
+             }
+             return dog.fullname || dogName || saho || '';
+           }
+
            const nameVal = dog.fullname || dog.name || '';
            if (type === 'shepherd' && nodeId >= 4 && nodeId <= 31) {
              const dnaVal = (dog.spec_dna || '').trim();
