@@ -81,7 +81,7 @@ const wrapTextAt = (text: string, limit: number): string => {
 };
 
 const wrapTextAt25 = (text: string): string => wrapTextAt(text, 25);
-const wrapTextAt40 = (text: string): string => wrapTextAt(text, 40);
+const wrapTextAt45 = (text: string): string => wrapTextAt(text, 45);
 
 const getFieldLabel = (key: string): string => {
   if (key.startsWith('ancestor_')) {
@@ -393,7 +393,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                  const nameVal = `${s.name || ''} DNA gpr.`;
                  let regLine = `${s.reg || ''} IGP3 HD ED`;
                  if (regLine.length >= 45) {
-                   regLine = wrapTextAt40(regLine);
+                   regLine = wrapTextAt45(regLine);
                  }
                  return `${nameVal}\n${regLine}`;
                }
@@ -875,7 +875,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                const winVal = (dog.spec_win || '').trim();
                let regLine = [regVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
                if (regLine.length >= 45) {
-                 regLine = wrapTextAt40(regLine);
+                 regLine = wrapTextAt45(regLine);
                }
                return regLine ? `${baseName}\n${regLine}` : baseName;
              }
