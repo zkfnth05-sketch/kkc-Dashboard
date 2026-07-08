@@ -868,19 +868,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                   nameVal = dog.fullname || dogName || sahoEng || '';
                 }
               } else {
-                if (dogName) {
-                  if (sahoEng && !dogName.toLowerCase().includes(sahoEng.toLowerCase())) {
-                    nameVal = `${dogName} ${sahoEng}`;
-                  } else {
-                    nameVal = dogName;
-                  }
-                } else if (dog.fullname) {
-                  const fn = dog.fullname.trim();
-                  if (sahoEng && !fn.toLowerCase().includes(sahoEng.toLowerCase())) {
-                    nameVal = `${fn} ${sahoEng}`;
-                  } else {
-                    nameVal = fn;
-                  }
+                const base = (dog.fullname || dog.name || '').trim();
+                if (sahoEng && !base.toLowerCase().includes(sahoEng.toLowerCase())) {
+                  nameVal = `${base} ${sahoEng}`;
+                } else {
+                  nameVal = base;
                 }
               }
             }
