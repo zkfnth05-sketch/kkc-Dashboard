@@ -424,9 +424,9 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         dog_gender: 'MALE 수컷',
         dog_birth: '2025-01-19',
         dog_color: 'FN BLK MSK',
-        microchip: '981189900142765 / 12345',
-        index_no: '12345',
-        dog_dna: 'DNA-GPR12345',
+        microchip: '',
+        index_no: '',
+        dog_dna: '',
         dog_litter: 'BM-C50071~BM-C50079',
         dog_breeder: 'Lee Tae Won',
         dog_breeder_addr: '대전 유성구 학하동 114-14',
@@ -533,6 +533,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     }
     if (key === 'dog_color') {
       const colorVal = pedigree.color || '-';
+      if (type === 'general') {
+        const coatVal = (pedigree.coatType || '').trim();
+        const parts: string[] = [];
+        const cleanColor = colorVal.trim();
+        if (cleanColor && cleanColor !== '-' && cleanColor !== '0') parts.push(cleanColor);
+        if (coatVal && coatVal !== '-' && coatVal !== '0') parts.push(coatVal);
+        return parts.join(' ') || '-';
+      }
       if (type === 'shepherd' && colorVal !== '-') {
         const c = colorVal.trim().toLowerCase();
         if (c === 'sb' || c.includes('schwarz braun') || c.includes('black & brown') || c.includes('black brown') || c.includes('블랙브라운') || c.includes('블랙 브라운')) {
@@ -584,8 +592,9 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'dog_owner') return pedigree.owner || '-';
     if (key === 'dog_owner_addr') return pedigree.ownerAddr || '-';
     if (key === 'reg_no') return pedigree.regNo || '-';
-    if (key === 'dog_dna') return pedigree.specDna || '-';
+    if (key === 'dog_dna') return type === 'general' ? '' : (pedigree.specDna || '-');
     if (key === 'microchip') {
+      if (type === 'general') return '';
       if (type === 'shepherd') return pedigree.microchip || (pedigree as any).micro || '-';
       const micro = (pedigree.microchip || (pedigree as any).micro || '').trim();
       const index = (pedigree.indexNo || '').trim();
@@ -608,7 +617,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       return jindoLitterList || '-';
     }
     if (key === 'dog_breed') return pedigree.breed || '-';
-    if (key === 'index_no') return pedigree.indexNo || '-';
+    if (key === 'index_no') return type === 'general' ? '' : (pedigree.indexNo || '-');
     if (key === 'ok_date') {
       if (type === 'shepherd') return '';
       const parts = [pedigree.specWin, pedigree.specDna, pedigree.specBone, pedigree.specTrain].map(s => (s || '').trim()).filter(Boolean);
@@ -682,7 +691,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
          if (field === 'name') {
            if (type !== 'shepherd' && (nodeId === 2 || nodeId === 3)) {
              let dogName = (dog.name || '').trim();
-             let saho = (dog.saho || dog.saho_eng || '').trim();
+             let saho = (type === 'general' ? (dog.saho_eng || dog.saho || '') : (dog.saho || dog.saho_eng || '')).trim();
              if (!dogName && !saho && dog.fullname) {
                const parts = dog.fullname.trim().split(/\s+/);
                if (parts.length > 1) {
@@ -1098,12 +1107,12 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       let val = useSample ? getSampleValue(key, type) : getRealValue(key, type);
       if (val === undefined || val === null) val = '';
 
-      const isBold = key === 'dog_name' || key === 'reg_no' || key.endsWith('_name');
-      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: Georgia, serif; text-align: center;' : '');
+      const isBold = (key === 'dog_name' ? false : (key === 'reg_no' || key.endsWith('_name')));
+      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? " font-family: 'Times New Roman', Georgia, serif; text-align: center; font-weight: 300; letter-spacing: -0.03em; transform: scaleX(0.85); transform-origin: center; display: inline-block;" : '');
       const isAncestor = key.startsWith('ancestor_');
       const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter';
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
-      const widthStyle = (coord.width || (key === 'dog_name' ? 150 : undefined)) && !isAncestor ? `width: ${coord.width || 150}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+      const widthStyle = (coord.width || (key === 'dog_name' ? 120 : undefined)) && !isAncestor && key !== 'dog_color' ? `width: ${coord.width || 120}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
       const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
 
@@ -2403,7 +2412,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                         const coord = editorCoords[key];
                         const val = useSampleMode ? getSampleValue(key, activePrintType) : getRealValue(key, activePrintType);
                         const isSelected = selectedFieldKey === key;
-                        const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
+                        const isBold = (key === 'dog_name' && activePrintType === 'general') ? false : (key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name'));
                         
                         let nodeId: number | null = null;
                         if (key.startsWith('ancestor_')) {
@@ -2477,22 +2486,29 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                               ${(key === 'dog_name' && activePrintType === 'general') ? 'text-center' : 'text-left'}
                               ${isEditingCoords ? 'cursor-move' : 'cursor-pointer'}
                               ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter') ? 'whitespace-pre-line break-words' : 'whitespace-nowrap'}
-                              ${(key !== 'dog_relate' && key !== 'dongtae_no' && key !== 'dog_litter' && !key.startsWith('ancestor_')) ? 'truncate' : ''}
+                              ${(key !== 'dog_relate' && key !== 'dongtae_no' && key !== 'dog_litter' && !key.startsWith('ancestor_') && (activePrintType !== 'general' || key !== 'dog_color')) ? 'truncate' : ''}
                               ${genStyle} ${highlightStyle} ${opacityStyle}
                             `}
                             style={{
                               left: `${activePrintType === 'general' ? coord.left - 210 : coord.left}mm`,
                               top: `${coord.top}mm`,
                               fontSize: `${coord.fontSize || 0.95}em`,
-                              fontWeight: isBold ? 'bold' : 'inherit',
-                              fontFamily: (key === 'dog_name' && activePrintType === 'general') ? 'Georgia, serif' : 'inherit',
-                              width: (coord.width || (key === 'dog_name' && activePrintType === 'general' ? 150 : undefined)) && !key.startsWith('ancestor_') ? `${coord.width || 150}mm` : 'auto',
+                              fontWeight: isBold ? 'bold' : ((key === 'dog_name' && activePrintType === 'general') ? '300' : 'inherit'),
+                              fontFamily: (key === 'dog_name' && activePrintType === 'general') ? "'Times New Roman', Georgia, serif" : 'inherit',
+                              letterSpacing: (key === 'dog_name' && activePrintType === 'general') ? '-0.03em' : 'normal',
+                              transform: (key === 'dog_name' && activePrintType === 'general') ? 'scaleX(0.85)' : 'none',
+                              transformOrigin: (key === 'dog_name' && activePrintType === 'general') ? 'center' : 'initial',
+                              display: (key === 'dog_name' && activePrintType === 'general') ? 'inline-block' : 'block',
+                              width: (coord.width || (key === 'dog_name' && activePrintType === 'general' ? 120 : undefined)) && !key.startsWith('ancestor_') && (activePrintType !== 'general' || key !== 'dog_color') ? `${coord.width || (key === 'dog_name' && activePrintType === 'general' ? 120 : 150)}mm` : 'auto',
                               padding: '1px 2px',
                               minHeight: '4mm'
                             }}
                             title={`[${key}] L:${coord.left} T:${coord.top} S:${coord.fontSize || 0.95}`}
                           >
                             {(() => {
+                              if (activePrintType === 'general' && (key === 'microchip' || key === 'index_no' || key === 'dog_dna')) {
+                                return '';
+                              }
                               const isLitterStat = key.startsWith('litter_') || key.endsWith('_count');
                               const isEmpty = !val || val === '-' || val.trim() === '' || (!isLitterStat && val === '0');
                               return isEmpty ? (
