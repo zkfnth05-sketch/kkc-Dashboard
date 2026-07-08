@@ -81,7 +81,7 @@ const wrapTextAt = (text: string, limit: number): string => {
 };
 
 const wrapTextAt25 = (text: string): string => wrapTextAt(text, 25);
-const wrapTextAt45 = (text: string): string => wrapTextAt(text, 45);
+const wrapTextAt40 = (text: string): string => wrapTextAt(text, 40);
 
 const getFieldLabel = (key: string): string => {
   if (key.startsWith('ancestor_')) {
@@ -393,7 +393,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                  const nameVal = `${s.name || ''} DNA gpr.`;
                  let regLine = `${s.reg || ''} IGP3 HD ED`;
                  if (regLine.length >= 45) {
-                   regLine = wrapTextAt45(regLine);
+                   regLine = wrapTextAt40(regLine);
                  }
                  return `${nameVal}\n${regLine}`;
                }
@@ -875,7 +875,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                const winVal = (dog.spec_win || '').trim();
                let regLine = [regVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
                if (regLine.length >= 45) {
-                 regLine = wrapTextAt45(regLine);
+                 regLine = wrapTextAt40(regLine);
                }
                return regLine ? `${baseName}\n${regLine}` : baseName;
              }
@@ -1118,15 +1118,10 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         : '';
 
       const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
+      const linesCount = typeof val === 'string' ? val.split('\n').length : 1;
       let dynamicFontSize = coord.fontSize || 0.95;
-      if (key.startsWith('ancestor_') && key.endsWith('_name')) {
-        const valStr = typeof val === 'string' ? val : '';
-        const linesCount = valStr.split('\n').length;
-        const firstNewlineIdx = valStr.indexOf('\n');
-        const regPart = firstNewlineIdx !== -1 ? valStr.substring(firstNewlineIdx + 1) : '';
-        if (linesCount >= 3 || regPart.replace(/\n/g, ' ').length >= 35) {
-          dynamicFontSize = dynamicFontSize * (0.70 / 0.88);
-        }
+      if (key.startsWith('ancestor_') && key.endsWith('_name') && linesCount >= 3) {
+        dynamicFontSize = dynamicFontSize * (0.70 / 0.88);
       }
 
       fieldsHtml += `
@@ -2874,15 +2869,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                               fontSize: (() => {
                                 const valStr = typeof val === 'string' ? val : '';
                                 const lines = valStr.split('\n').length;
-                                const firstNewlineIdx = valStr.indexOf('\n');
-                                const regPart = firstNewlineIdx !== -1 ? valStr.substring(firstNewlineIdx + 1) : '';
                                 let size = coord.fontSize || 0.95;
-                                if (
-                                  activePrintType === 'shepherd' &&
-                                  key.startsWith('ancestor_') &&
-                                  key.endsWith('_name') &&
-                                  (lines >= 3 || regPart.replace(/\n/g, ' ').length >= 35)
-                                ) {
+                                if (activePrintType === 'shepherd' && key.startsWith('ancestor_') && key.endsWith('_name') && lines >= 3) {
                                   size = size * (0.70 / 0.88);
                                 }
                                 return `${size}em`;
