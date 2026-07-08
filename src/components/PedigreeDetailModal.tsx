@@ -877,13 +877,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
               }
             }
             if (type === 'shepherd' && nodeId >= 4 && nodeId <= 31) {
-              let dnaVal = (dog.spec_dna || '').trim();
-              if (dnaVal) {
-                const lower = dnaVal.toLowerCase();
-                if (lower === 'dna' || lower.startsWith('dna') || dnaVal.startsWith('#')) {
-                  dnaVal = 'DNA gpr.';
-                }
-              }
+              const dnaVal = (dog.spec_dna || '').trim();
               const baseName = [nameVal, dnaVal].filter(Boolean).join(' ');
              if (nodeId >= 16) {
                 const rVal = (dog.reg_no || '').trim();
