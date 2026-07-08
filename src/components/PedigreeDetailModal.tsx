@@ -1104,7 +1104,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const linesCount = typeof val === 'string' ? val.split('\n').length : 1;
       let dynamicFontSize = coord.fontSize || 0.95;
       if (key.startsWith('ancestor_') && key.endsWith('_name') && linesCount >= 3) {
-        dynamicFontSize = dynamicFontSize * (0.75 / 0.88);
+        dynamicFontSize = dynamicFontSize * (0.70 / 0.88);
       }
 
       fieldsHtml += `
@@ -2854,7 +2854,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                                 const lines = valStr.split('\n').length;
                                 let size = coord.fontSize || 0.95;
                                 if (activePrintType === 'shepherd' && key.startsWith('ancestor_') && key.endsWith('_name') && lines >= 3) {
-                                  size = size * (0.75 / 0.88);
+                                  size = size * (0.70 / 0.88);
                                 }
                                 return `${size}em`;
                               })(),
