@@ -737,7 +737,31 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         if (field === 'litter') {
           if (type === 'shepherd' && (nodeId === 2 || nodeId === 3)) {
             const dbRange = nodeId === 2 ? sireLitterRange : damLitterRange;
-            const rawVal = dbRange ? dbRange : (parentRegVal === '-' || parentRegVal === '0' ? '' : parentRegVal);
+            
+            let fallbackVal = '';
+            const dog = ancestorTree[nodeId];
+            if (dog) {
+              const rVal = (dog.reg_no || '').trim();
+              if (!rVal || rVal === '0' || rVal === '-') {
+                const dom = (dog.foreign100 || '').trim();
+                if (dom && dom !== '0' && dom !== '-') {
+                  fallbackVal = dom;
+                } else {
+                  const f1 = (dog.foreign_no || '').trim();
+                  const f2 = (dog.foreign_no2 || '').trim();
+                  fallbackVal = (f1 && f2) ? `${f1}~${f2}` : (f1 || f2 || '');
+                }
+              } else {
+                fallbackVal = rVal;
+              }
+            }
+            if (!fallbackVal || fallbackVal === '0' || fallbackVal === '-') {
+              const fallbackReg = nodeId === 2 ? pedigree.sireRegNo : pedigree.damRegNo;
+              const fallbackRegText = nodeId === 2 ? pedigree.sireRegNoText : pedigree.damRegNoText;
+              fallbackVal = (fallbackRegText || fallbackReg || '').toString().trim();
+            }
+
+            const rawVal = dbRange ? dbRange : fallbackVal;
             if (rawVal.length >= 25) {
               return rawVal.replace('~', '~\n');
             }
