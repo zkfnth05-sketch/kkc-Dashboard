@@ -914,20 +914,37 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
              regVal = (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
            }
            if (type === 'shepherd') {
-             if (nodeId === 2 || nodeId === 3) {
-               const dnaVal = (dog.spec_dna || '').trim();
-               const boneVal = (dog.spec_bone || '').trim();
-               return [regVal, dnaVal, boneVal].filter(Boolean).join(' ');
-             }
-             if (nodeId >= 8 && nodeId <= 15) {
-               const trainVal = (dog.spec_train || '').trim();
-               return [regVal, trainVal].filter(Boolean).join(' ');
-             }
-             if (nodeId >= 16 && nodeId <= 31) {
-               return '';
-             }
-           }
-           return regVal;
+              if (nodeId === 2 || nodeId === 3) {
+                const dnaVal = (dog.spec_dna || '').trim();
+                const boneVal = (dog.spec_bone || '').trim();
+                return [regVal, dnaVal, boneVal].filter(Boolean).join(' ');
+              }
+              if (nodeId >= 4 && nodeId <= 7) {
+                const rVal2 = (dog.reg_no || '').trim();
+                const dom2 = (dog.foreign100 || '').trim();
+                const f1 = (dog.foreign_no || '').trim();
+                const f2 = (dog.foreign_no2 || '').trim();
+                const parts = [rVal2, dom2, f1, f2]
+                  .map(s => s.trim())
+                  .filter(s => s && s !== '0' && s !== '-');
+                return parts.join(' ');
+              }
+              if (nodeId >= 8 && nodeId <= 15) {
+                const rVal2 = (dog.reg_no || '').trim();
+                const dom2 = (dog.foreign100 || '').trim();
+                const f1 = (dog.foreign_no || '').trim();
+                const f2 = (dog.foreign_no2 || '').trim();
+                const trainVal = (dog.spec_train || '').trim();
+                const parts = [rVal2, dom2, f1, f2, trainVal]
+                  .map(s => s.trim())
+                  .filter(s => s && s !== '0' && s !== '-');
+                return parts.join(' ');
+              }
+              if (nodeId >= 16 && nodeId <= 31) {
+                return '';
+              }
+            }
+            return regVal;
          }
         if (field === 'extra') {
           const extraList = [
