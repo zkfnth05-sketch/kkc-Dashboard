@@ -387,7 +387,12 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
              }
              if (node >= 16 && node <= 31) {
                if (field === 'name') {
-                 return `${s.name || ''} DNA gpr.\n${s.reg || ''} IGP3 HD ED`;
+                 const nameVal = `${s.name || ''} DNA gpr.`;
+                 let regLine = `${s.reg || ''} IGP3 HD ED`;
+                 if (regLine.length >= 45) {
+                   regLine = wrapTextAt25(regLine);
+                 }
+                 return `${nameVal}\n${regLine}`;
                }
                if (field === 'reg') {
                  return '';
@@ -872,7 +877,10 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                const trainVal = (dog.spec_train || '').trim();
                const boneVal = (dog.spec_bone || '').trim();
                const winVal = (dog.spec_win || '').trim();
-               const regLine = [regVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
+               let regLine = [regVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
+               if (regLine.length >= 45) {
+                 regLine = wrapTextAt25(regLine);
+               }
                return regLine ? `${baseName}\n${regLine}` : baseName;
              }
              return baseName;
@@ -1081,10 +1089,15 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const widthStyle = coord.width && !isAncestor ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
       const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
+      const linesCount = typeof val === 'string' ? val.split('\n').length : 1;
+      let dynamicFontSize = coord.fontSize || 0.95;
+      if (key.startsWith('ancestor_') && key.endsWith('_name') && linesCount >= 3) {
+        dynamicFontSize = dynamicFontSize * (0.75 / 0.88);
+      }
 
       fieldsHtml += `
         <div class="field" 
-             style="left: ${coord.left}mm; top: ${coord.top}mm; font-size: ${coord.fontSize || 0.95}em; ${fontStyle} ${widthStyle} ${wrapStyle}">
+             style="left: ${coord.left}mm; top: ${coord.top}mm; font-size: ${dynamicFontSize}em; ${fontStyle} ${widthStyle} ${wrapStyle}">
           ${formattedVal}
         </div>
       `;
@@ -2808,7 +2821,15 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                             style={{
                               left: `${activePrintType === 'general' ? coord.left - 210 : coord.left}mm`,
                               top: `${coord.top}mm`,
-                              fontSize: `${coord.fontSize || 0.95}em`,
+                              fontSize: (() => {
+                                const valStr = typeof val === 'string' ? val : '';
+                                const lines = valStr.split('\n').length;
+                                let size = coord.fontSize || 0.95;
+                                if (activePrintType === 'shepherd' && key.startsWith('ancestor_') && key.endsWith('_name') && lines >= 3) {
+                                  size = size * (0.75 / 0.88);
+                                }
+                                return `${size}em`;
+                              })(),
                               fontWeight: isBold ? 'bold' : ((key === 'dog_name' && activePrintType === 'general') ? '300' : 'inherit'),
                               fontFamily: (key === 'dog_name' && activePrintType === 'general') ? "'Times New Roman', Georgia, serif" : 'inherit',
                               letterSpacing: (key === 'dog_name' && activePrintType === 'general') ? '-0.03em' : 'normal',
