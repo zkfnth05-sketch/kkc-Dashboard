@@ -861,22 +861,30 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
             if (type === 'shepherd') {
               const dogName = (dog.name || '').trim();
               const sahoEng = (dog.saho_eng || '').trim();
-              if (dogName) {
-                if (sahoEng && !dogName.toLowerCase().includes(sahoEng.toLowerCase())) {
-                  nameVal = `${dogName} ${sahoEng}`;
+              if (nodeId === 2 || nodeId === 3) {
+                if (dogName && sahoEng) {
+                  nameVal = `${dogName}\n${sahoEng}`;
                 } else {
-                  nameVal = dogName;
+                  nameVal = dog.fullname || dogName || sahoEng || '';
                 }
-              } else if (dog.fullname) {
-                const fn = dog.fullname.trim();
-                if (sahoEng && !fn.toLowerCase().includes(sahoEng.toLowerCase())) {
-                  nameVal = `${fn} ${sahoEng}`;
-                } else {
-                  nameVal = fn;
+              } else {
+                if (dogName) {
+                  if (sahoEng && !dogName.toLowerCase().includes(sahoEng.toLowerCase())) {
+                    nameVal = `${dogName} ${sahoEng}`;
+                  } else {
+                    nameVal = dogName;
+                  }
+                } else if (dog.fullname) {
+                  const fn = dog.fullname.trim();
+                  if (sahoEng && !fn.toLowerCase().includes(sahoEng.toLowerCase())) {
+                    nameVal = `${fn} ${sahoEng}`;
+                  } else {
+                    nameVal = fn;
+                  }
                 }
               }
             }
-           if (type === 'shepherd' && nodeId >= 4 && nodeId <= 31) {
+            if (type === 'shepherd' && nodeId >= 4 && nodeId <= 31) {
              const dnaVal = (dog.spec_dna || '').trim();
              const baseName = [nameVal, dnaVal].filter(Boolean).join(' ');
              if (nodeId >= 16) {
