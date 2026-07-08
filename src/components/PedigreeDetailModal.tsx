@@ -1095,8 +1095,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         if (matchName) {
           const nodeId = parseInt(matchName[1]);
           if (nodeId >= 16 && nodeId <= 31) {
-            if (!coordWidth || coordWidth < 50) {
-              coordWidth = 50;
+            if (!coordWidth || coordWidth < 60) {
+              coordWidth = 60;
             }
           }
         }
@@ -1248,8 +1248,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         if (matchName) {
           const nodeId = parseInt(matchName[1]);
           if (nodeId >= 16 && nodeId <= 31) {
-            if (!coordWidth || coordWidth < 50) {
-              coordWidth = 50;
+            if (!coordWidth || coordWidth < 60) {
+              coordWidth = 60;
             }
           }
         }
@@ -2878,7 +2878,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                                   if (match) {
                                     const nodeId = parseInt(match[1]);
                                     if (nodeId >= 16 && nodeId <= 31) {
-                                      if (!w || w < 50) w = 50;
+                                      if (!w || w < 60) w = 60;
                                     }
                                   }
                                 }
