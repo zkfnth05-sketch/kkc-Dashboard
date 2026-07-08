@@ -24,6 +24,7 @@ interface CompetitionApplicantManagementProps {
     applicantTable?: string;
     showAlert: (title: string, message: string) => void;
     showConfirm: (title: string, message: string, onConfirm: () => void) => void;
+    onGoToMember?: (loginId: string) => void;
 }
 
 export const CompetitionApplicantManagement: React.FC<CompetitionApplicantManagementProps> = ({
@@ -32,7 +33,8 @@ export const CompetitionApplicantManagement: React.FC<CompetitionApplicantManage
     onClose,
     applicantTable = 'dogshow_applicant',
     showAlert,
-    showConfirm
+    showConfirm,
+    onGoToMember
 }) => {
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -201,7 +203,21 @@ export const CompetitionApplicantManagement: React.FC<CompetitionApplicantManage
         }
     };
 
-    const handleDelete = (id: string, name: string) => {
+        const formatCreatedAt = (dateStr?: string) => {
+        if (!dateStr) return '-';
+        const parts = dateStr.split(' ');
+        if (parts.length < 1) return '-';
+        const datePart = parts[0].replace(/-/g, '.');
+        const timePart = parts[1] ? parts[1].substring(0, 5) : '';
+        return (
+            <div className="flex flex-col items-center justify-center">
+                <span className="font-bold text-gray-700">{datePart}</span>
+                {timePart && <span className="text-gray-400 text-[11px] mt-0.5">{timePart}</span>}
+            </div>
+        );
+    };
+
+const handleDelete = (id: string, name: string) => {
         showConfirm('신청자 삭제', `'${name}' 신청자를 삭제하시겠습니까 ? `, async () => {
             setIsLoading(true);
             try {
@@ -294,14 +310,15 @@ export const CompetitionApplicantManagement: React.FC<CompetitionApplicantManage
                 <table className="w-full text-[13px] border-collapse text-center">
                     <thead>
                         <tr className="bg-[#f8f9fa] border-b border-gray-200 text-gray-600 font-bold sticky top-0 z-10 shadow-sm">
-                            <th className="py-4 px-4 w-[12%]">이름</th>
-                            <th className="py-4 px-4 w-[12%]">회원 ID</th>
-                            <th className="py-4 px-4 w-[15%]">연락처</th>
-                            <th className="py-4 px-4 w-[15%]">혈통서 번호</th>
+                            <th className="py-4 px-4 w-[12%]">신청날짜</th>
+                            <th className="py-4 px-4 w-[11%]">회원 ID</th>
+                            <th className="py-4 px-4 w-[11%]">이름</th>
+                            <th className="py-4 px-4 w-[13%]">연락처</th>
+                            <th className="py-4 px-4 w-[13%]">혈통서 번호</th>
                             <th className="py-4 px-4 w-[10%]">참가비</th>
                             <th className="py-4 px-4 w-[10%]">신청옵션</th>
                             <th className="py-4 px-4 w-[10%]">입금상태</th>
-                            <th className="py-4 px-4 w-[15%]">관리</th>
+                            <th className="py-4 px-4 w-[10%]">관리</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -311,8 +328,21 @@ export const CompetitionApplicantManagement: React.FC<CompetitionApplicantManage
                             .filter(app => !showUnpaidOnly || app.payment_status === '미입금')
                             .map((item) => (
                             <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                                <td className="py-4 px-4">{formatCreatedAt((item as any).created_at)}</td>
+                                <td className="py-4 px-4 font-bold text-blue-600 font-mono text-[12px]">
+                                    {item.handler_id ? (
+                                        <button
+                                            onClick={() => onGoToMember?.(item.handler_id!)}
+                                            className="hover:underline text-blue-600 hover:text-blue-800 transition-colors cursor-pointer font-bold"
+                                            title="회원 정보 보기"
+                                        >
+                                            {item.handler_id}
+                                        </button>
+                                    ) : (
+                                        <span className="text-gray-300">-</span>
+                                    )}
+                                </td>
                                 <td className="py-4 px-4 font-bold">{item.name}</td>
-                                <td className="py-4 px-4 font-bold text-blue-600 font-mono text-[12px]">{item.handler_id || '-'}</td>
                                 <td className="py-4 px-4">{item.contact || '-'}</td>
                                 <td className="py-4 px-4 font-black text-slate-700 tracking-tighter">{(item as any).pedigree_number || item.reg_no || '-'}</td>
                                 <td className="py-4 px-4 font-bold text-teal-600">

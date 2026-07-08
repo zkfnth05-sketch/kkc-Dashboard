@@ -7,7 +7,7 @@ import {
   ArrowLeft, Check, Upload, Image as ImageIcon,
   Clock, Building2, Save
 } from 'lucide-react';
-import { fetchBridge, SECRET_KEY, BRIDGE_URL } from '../services/memberService';
+import { fetchBridge, SECRET_KEY, BRIDGE_URL, uploadFile } from '../services/memberService';
 import { fetchDogShows, createDogShow, updateDogShow, deleteDogShow, fetchApplicants, fetchEventOptions, saveEventOptions } from '../services/eventService';
 import { CustomEditor } from './EventManagementPage';
 import { CompetitionApplicantManagement } from './CompetitionApplicantManagement';
@@ -22,7 +22,6 @@ import Papa from 'papaparse';
 import { downloadCsv } from '../lib/downloadUtils';
 import { exportDogShowCatalog } from '../lib/catalogExport';
 import FeeOptionEditor, { FeeOption } from './common/FeeOptionEditor';
-import imageCompression from 'browser-image-compression';
 
 // 🛡️ [DATA MAPPING] wp_posts (kkf_event) 기반 데이터 규격
 interface Competition {
@@ -61,6 +60,7 @@ interface CompetitionManagementPageProps {
   onClearEditData?: () => void;
   initialTab?: string;
   forcedCategory?: string;
+  onGoToMember?: (loginId: string) => void;
 }
 
 /**
@@ -167,30 +167,13 @@ const CompetitionCreateForm: React.FC<{
   }, [initialData]);
 
   const internalImageUpload = async (file: File) => {
-    let fileToUpload = file;
     try {
-      const options = { maxSizeMB: 0.2, maxWidthOrHeight: 1200, useWebWorker: true };
-      fileToUpload = await imageCompression(file, options);
-    } catch (e) {
-      console.warn('이미지 압축 실패:', e);
+      const result = await uploadFile(file);
+      return result && result.success ? { url: result.url, id: result.id } : null;
+    } catch (err) {
+      console.error('Upload failed:', err);
+      return null;
     }
-
-    const formData = new FormData();
-    formData.append('mode', 'upload_image');
-    formData.append('image_file', fileToUpload, file.name);
-    formData.append('filename', file.name);
-
-    const uploadUrl = `${BRIDGE_URL}${BRIDGE_URL.includes('?') ? '&' : '?'}mode=upload_image`;
-    try {
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: { 'X-Auth-Token': SECRET_KEY },
-        body: formData
-      });
-      if (!response.ok) return null;
-      const res = await response.json();
-      return res.success ? { url: res.url, id: res.id } : null;
-    } catch (err) { return null; }
   };
 
   const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -512,10 +495,28 @@ const CompetitionCreateForm: React.FC<{
     </div>
   );
 };
+const getRegistrationStatus = (item: Competition) => {
+  if (!item.reg_start_date || !item.reg_end_date) {
+    return { text: '기간 미설정', color: 'text-gray-400 bg-gray-50 border-gray-200' };
+  }
 
+  const now = new Date();
+  const startStr = `${item.reg_start_date} ${item.reg_start_h || '00'}:${item.reg_start_m || '00'}:00`;
+  const startDate = new Date(startStr.replace(/-/g, '/'));
+  const endStr = `${item.reg_end_date} ${item.reg_end_h || '23'}:${item.reg_end_m || '59'}:00`;
+  const endDate = new Date(endStr.replace(/-/g, '/'));
+
+  if (now < startDate) {
+    return { text: '접수예정', color: 'text-blue-600 bg-blue-50 border-blue-200 font-bold' };
+  } else if (now >= startDate && now <= endDate) {
+    return { text: '접수중', color: 'text-emerald-600 bg-emerald-50 border-emerald-200 font-bold' };
+  } else {
+    return { text: '접수마감', color: 'text-rose-600 bg-rose-50 border-rose-200 font-bold' };
+  }
+};
 
 export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps & { portalUser?: any }> = ({
-  tableName, showAlert, showConfirm, editData, onClearEditData, initialTab, forcedCategory, portalUser
+  tableName, showAlert, showConfirm, editData, onClearEditData, initialTab, forcedCategory, portalUser, onGoToMember
 }) => {
   const [data, setData] = useState<Competition[]>([]);
   const [total, setTotal] = useState(0);
@@ -955,15 +956,15 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
     const isSeminar = idStr.startsWith('sm_');
     const isBreedExam = idStr.startsWith('be_');
 
-    if (isSeminar) return <SeminarApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} />;
-    if (isBreedExam) return <CompetitionApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} applicantTable="breed_exam_applicant" showAlert={showAlert} showConfirm={showConfirm} />;
-    if (isStylistIntl) return <StylistIntlApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} />;
+    if (isSeminar) return <SeminarApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} onGoToMember={onGoToMember} />;
+    if (isBreedExam) return <CompetitionApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} applicantTable="breed_exam_applicant" showAlert={showAlert} showConfirm={showConfirm} onGoToMember={onGoToMember} />;
+    if (isStylistIntl) return <StylistIntlApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} onGoToMember={onGoToMember} />;
     if (isStylist) return <StylistCompetitionApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} />;
-    if (isAgility) return <AgilityApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} />;
-    if (isDiscDog) return <DiscDogApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} />;
-    if (isTraining) return <TrainingApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} />;
-    if (isFlyball) return <FlyballApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} />;
-    return <CompetitionApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} />;
+    if (isAgility) return <AgilityApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} onGoToMember={onGoToMember} />;
+    if (isDiscDog) return <DiscDogApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} onGoToMember={onGoToMember} />;
+    if (isTraining) return <TrainingApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} onGoToMember={onGoToMember} />;
+    if (isFlyball) return <FlyballApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} onGoToMember={onGoToMember} />;
+    return <CompetitionApplicantManagement competitionId={selectedComp.id} competitionTitle={selectedComp.title} onClose={() => { setViewMode('list'); loadData(currentPage); }} showAlert={showAlert} showConfirm={showConfirm} onGoToMember={onGoToMember} />;
   }
 
   return (
@@ -984,14 +985,15 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
         <table className="w-full text-[13px] border-collapse text-left">
           <thead>
             <tr className="bg-white border-b border-gray-200 text-gray-400 font-bold">
-              <th className="py-4 px-4 w-[25%] font-bold">대회명</th>
-              <th className="py-4 px-4 w-[12%] font-bold">장소</th>
-              <th className="py-4 px-4 w-[13%] font-bold">심사위원</th>
-              <th className="py-4 px-4 w-[15%] font-bold">접수기간</th>
-              <th className="py-4 px-4 w-[12%] font-bold">대회일자</th>
-              <th className="py-4 px-4 w-[8%] font-bold">신청자 수</th>
-              <th className="py-4 px-4 w-[15%] text-center font-bold">신청자 관리</th>
-              <th className="py-4 px-4 w-[8%] text-center font-bold">관리</th>
+              <th className="py-4 px-4 w-[22%] font-bold">대회명</th>
+              <th className="py-4 px-4 w-[11%] font-bold">장소</th>
+              <th className="py-4 px-4 w-[11%] font-bold">심사위원</th>
+              <th className="py-4 px-4 w-[14%] font-bold">접수기간</th>
+              <th className="py-4 px-4 w-[9%] text-center font-bold">접수상태</th>
+              <th className="py-4 px-4 w-[11%] font-bold">대회일자</th>
+              <th className="py-4 px-4 w-[7%] font-bold">신청자 수</th>
+              <th className="py-4 px-4 w-[12%] text-center font-bold">신청자 관리</th>
+              <th className="py-4 px-4 w-[7%] text-center font-bold">관리</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -1001,6 +1003,16 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
                 <td className="py-5 px-4 text-gray-600">{item.venue || '-'}</td>
                 <td className="py-5 px-4 text-blue-600 font-bold">{item.judges || '-'}</td>
                 <td className="py-5 px-4 text-gray-500">{item.reg_start_date ? <div className="flex flex-col"><span>{item.reg_start_date} ({item.reg_start_h}:{item.reg_start_m})</span><span className="text-gray-400 text-[11px]">~ {item.reg_end_date} ({item.reg_end_h}:{item.reg_end_m})</span></div> : '-'}</td>
+                <td className="py-5 px-4 text-center whitespace-nowrap">
+                  {(() => {
+                    const status = getRegistrationStatus(item);
+                    return (
+                      <span className={`inline-flex items-center justify-center px-2.5 py-1 text-[11px] border rounded-full ${status.color}`}>
+                        {status.text}
+                      </span>
+                    );
+                  })()}
+                </td>
                 <td className="py-5 px-4 text-gray-700 font-medium whitespace-nowrap">{item.startDate ? <div className="flex flex-col"><span className="font-bold">{item.startDate} {item.startTime}</span>{item.endDate && item.endDate !== '-' && item.endDate !== item.startDate && <span className="text-gray-400 text-[11px] font-normal">~ {item.endDate} {item.endTime}</span>}</div> : '-'}</td>
                 <td className="py-5 px-4 text-gray-600 font-bold">{item.applicant_count || 0}명</td>
                 <td className="py-5 px-4">
@@ -1017,7 +1029,7 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
                 </td>
               </tr>
             )) : !isLoading && (
-              <tr><td colSpan={8} className="py-40 text-center text-gray-400 italic">등록된 대회 내역이 없습니다.</td></tr>
+              <tr><td colSpan={9} className="py-40 text-center text-gray-400 italic">등록된 대회 내역이 없습니다.</td></tr>
             )}
           </tbody>
         </table>

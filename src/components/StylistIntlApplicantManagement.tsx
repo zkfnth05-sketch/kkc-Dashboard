@@ -28,6 +28,7 @@ interface StylistIntlApplicantManagementProps {
     onClose: () => void;
     showAlert: (title: string, message: string) => void;
     showConfirm: (title: string, message: string, onConfirm: () => void) => void;
+    onGoToMember?: (loginId: string) => void;
 }
 
 export const StylistIntlApplicantManagement: React.FC<StylistIntlApplicantManagementProps> = ({
@@ -35,7 +36,7 @@ export const StylistIntlApplicantManagement: React.FC<StylistIntlApplicantManage
     competitionTitle,
     onClose,
     showAlert,
-    showConfirm
+    showConfirm, onGoToMember
 }) => {
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -183,7 +184,21 @@ export const StylistIntlApplicantManagement: React.FC<StylistIntlApplicantManage
         }
     };
 
-    const handleDelete = (id: string, name: string) => {
+        const formatCreatedAt = (dateStr?: string) => {
+        if (!dateStr) return '-';
+        const parts = dateStr.split(' ');
+        if (parts.length < 1) return '-';
+        const datePart = parts[0].replace(/-/g, '.');
+        const timePart = parts[1] ? parts[1].substring(0, 5) : '';
+        return (
+            <div className="flex flex-col items-center justify-center">
+                <span className="font-bold text-gray-700">{datePart}</span>
+                {timePart && <span className="text-gray-400 text-[11px] mt-0.5">{timePart}</span>}
+            </div>
+        );
+    };
+
+const handleDelete = (id: string, name: string) => {
         showConfirm('삭제', `'${name}' 신청자를 삭제하시겠습니까?`, async () => {
             setIsLoading(true);
             try {
@@ -232,7 +247,8 @@ export const StylistIntlApplicantManagement: React.FC<StylistIntlApplicantManage
                 <table className="w-full text-[13px] border-collapse text-center">
                     <thead>
                         <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold sticky top-0 z-10">
-                            <th className="py-4 px-2 w-[8%] border-r border-gray-100">아이디</th>
+                                                        <th className="py-4 px-2 w-[10%] font-black uppercase tracking-wider border-r border-gray-100">신청날짜</th>
+<th className="py-4 px-2 w-[8%] border-r border-gray-100">아이디</th>
                             <th className="py-4 px-2 w-[8%] border-r border-gray-100">이름</th>
                             <th className="py-4 px-2 w-[10%] border-r border-gray-100">연락처</th>
                             <th className="py-4 px-2 w-[8%] border-r border-gray-100 font-medium">생년월일</th>
@@ -251,7 +267,20 @@ export const StylistIntlApplicantManagement: React.FC<StylistIntlApplicantManage
                     <tbody className="divide-y divide-gray-100">
                         {applicants.length > 0 ? applicants.map((item) => (
                             <tr key={item.id} className="hover:bg-gray-50/80 transition-colors">
-                                <td className="py-4 px-2 border-r border-gray-50 text-[11px] text-gray-400">{item.handler_id || '-'}</td>
+                                <td className="py-4 px-2 border-r border-gray-50 text-[12px]">{formatCreatedAt((item as any).created_at)}</td>
+                                <td className="py-4 px-2 border-r border-gray-50 text-[11px] text-blue-500 font-medium">
+                                    {item.handler_id ? (
+                                        <button
+                                            onClick={() => onGoToMember?.(item.handler_id)}
+                                            className="hover:underline text-blue-600 hover:text-blue-800 transition-colors cursor-pointer font-bold"
+                                            title="회원 정보 보기"
+                                        >
+                                            {item.handler_id}
+                                        </button>
+                                    ) : (
+                                        <span className="text-gray-300">-</span>
+                                    )}
+                                </td>
                                 <td className="py-4 px-2 border-r border-gray-50 font-bold">{item.name}</td>
                                 <td className="py-4 px-2 border-r border-gray-50">{item.contact || '-'}</td>
                                 <td className="py-4 px-2 border-r border-gray-50 text-gray-500">{item.birthdate || '-'}</td>
@@ -291,7 +320,7 @@ export const StylistIntlApplicantManagement: React.FC<StylistIntlApplicantManage
                             </tr>
                         )) : !isLoading && (
                             <tr>
-                                <td colSpan={14} className="py-32 text-center text-gray-400 font-bold">등록된 신청자가 없습니다.</td>
+                                <td colSpan={15} className="py-32 text-center text-gray-400 font-bold">등록된 신청자가 없습니다.</td>
                             </tr>
                         )}
                     </tbody>

@@ -22,6 +22,7 @@ interface FlyballApplicantManagementProps {
     onClose: () => void;
     showAlert: (title: string, message: string) => void;
     showConfirm: (title: string, message: string, onConfirm: () => void) => void;
+    onGoToMember?: (loginId: string) => void;
 }
 
 export const FlyballApplicantManagement: React.FC<FlyballApplicantManagementProps> = ({
@@ -29,7 +30,7 @@ export const FlyballApplicantManagement: React.FC<FlyballApplicantManagementProp
     competitionTitle,
     onClose,
     showAlert,
-    showConfirm
+    showConfirm, onGoToMember
 }) => {
     const [applicants, setApplicants] = useState<FlyballApplicant[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -168,7 +169,21 @@ export const FlyballApplicantManagement: React.FC<FlyballApplicantManagementProp
         }
     };
 
-    const handleDelete = (id: string, name: string) => {
+        const formatCreatedAt = (dateStr?: string) => {
+        if (!dateStr) return '-';
+        const parts = dateStr.split(' ');
+        if (parts.length < 1) return '-';
+        const datePart = parts[0].replace(/-/g, '.');
+        const timePart = parts[1] ? parts[1].substring(0, 5) : '';
+        return (
+            <div className="flex flex-col items-center justify-center">
+                <span className="font-bold text-gray-700">{datePart}</span>
+                {timePart && <span className="text-gray-400 text-[11px] mt-0.5">{timePart}</span>}
+            </div>
+        );
+    };
+
+const handleDelete = (id: string, name: string) => {
         showConfirm('신청자 삭제', `'${name}' 신청자를 삭제하시겠습니까?`, async () => {
             setIsLoading(true);
             try {
@@ -227,7 +242,8 @@ export const FlyballApplicantManagement: React.FC<FlyballApplicantManagementProp
                 <table className="w-full text-[13px] border-collapse text-center">
                     <thead>
                         <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold sticky top-0 z-10">
-                            <th className="py-4 px-2 w-[8%] font-black uppercase tracking-wider border-r border-gray-100">핸들러(ID)</th>
+                                                        <th className="py-4 px-2 w-[10%] font-black uppercase tracking-wider border-r border-gray-100">신청날짜</th>
+<th className="py-4 px-2 w-[8%] font-black uppercase tracking-wider border-r border-gray-100">핸들러(ID)</th>
                             <th className="py-4 px-2 w-[10%] font-black uppercase tracking-wider border-r border-gray-100">이름</th>
                             <th className="py-4 px-2 w-[12%] font-black uppercase tracking-wider border-r border-gray-100 text-left px-4">연락처</th>
                             <th className="py-4 px-2 w-[12%] font-black uppercase tracking-wider border-r border-gray-100">견종</th>
@@ -240,7 +256,20 @@ export const FlyballApplicantManagement: React.FC<FlyballApplicantManagementProp
                     <tbody className="divide-y divide-gray-100">
                         {applicants.length > 0 ? applicants.map((item) => (
                             <tr key={item.id} className="hover:bg-gray-50/80 transition-colors group">
-                                <td className="py-4 px-2 border-r border-gray-50 text-[11px] text-gray-400 font-medium">{item.handler_id || '-'}</td>
+                                <td className="py-4 px-2 border-r border-gray-50 text-[12px]">{formatCreatedAt((item as any).created_at)}</td>
+                                <td className="py-4 px-2 border-r border-gray-50 text-[11px] text-blue-500 font-medium">
+                                    {item.handler_id ? (
+                                        <button
+                                            onClick={() => onGoToMember?.(item.handler_id)}
+                                            className="hover:underline text-blue-600 hover:text-blue-800 transition-colors cursor-pointer font-bold"
+                                            title="회원 정보 보기"
+                                        >
+                                            {item.handler_id}
+                                        </button>
+                                    ) : (
+                                        <span className="text-gray-300">-</span>
+                                    )}
+                                </td>
                                 <td className="py-4 px-2 border-r border-gray-50 font-bold text-gray-900">{item.name}</td>
                                 <td className="py-4 px-4 border-r border-gray-50 text-left text-gray-700">{item.contact || '-'}</td>
                                 <td className="py-4 px-2 border-r border-gray-50 text-gray-600 font-medium">{item.dog_breed || '-'}</td>
@@ -268,7 +297,7 @@ export const FlyballApplicantManagement: React.FC<FlyballApplicantManagementProp
                             </tr>
                         )) : !isLoading && (
                             <tr>
-                                <td colSpan={8} className="py-40 text-center text-gray-300 font-bold">
+                                <td colSpan={9} className="py-40 text-center text-gray-300 font-bold">
                                     <div className="flex flex-col items-center gap-3">
                                         <div className="p-4 bg-gray-50 rounded-full">
                                             <Plus size={32} className="text-gray-200" />

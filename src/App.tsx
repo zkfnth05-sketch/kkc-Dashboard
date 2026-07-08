@@ -186,6 +186,10 @@ const App: React.FC = () => {
           showConfirm={showConfirm}
           editData={competitionEditData}
           onClearEditData={() => setCompetitionEditData(null)}
+          onGoToMember={(loginId) => {
+            setMemberSearch({ query: loginId, field: 'id' });
+            jumpToTab('회원 관리');
+          }}
         />
       );
       case '직능관리': return (
