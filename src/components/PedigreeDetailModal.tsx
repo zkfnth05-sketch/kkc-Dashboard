@@ -234,6 +234,25 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     return dateStr;
   };
 
+  const formatYearMonth = (dateStr: string) => {
+    if (!dateStr || dateStr === '0000-00-00' || dateStr === '-') return '';
+    try {
+      const clean = dateStr.trim().split(' ')[0];
+      const parts = clean.split(/[-./]/);
+      if (parts.length >= 2) {
+        const y = parts[0];
+        const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+        return `${y}-${m}`;
+      }
+      if (clean.length >= 6 && /^\d+$/.test(clean)) {
+        const y = clean.substring(0, 4);
+        const m = clean.substring(4, 6);
+        return `${y}-${m}`;
+      }
+    } catch (e) {}
+    return '';
+  };
+
   const getColorAbbr = (color: string) => {
     if (!color) return '';
     const c = color.trim().toLowerCase();
@@ -302,8 +321,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'dongtae_no' || key === 'dog_litter') return 'Xamo vom Grafenbrunn schwarz braun\nKSZ-C40386~KSZ-C40388';
       if (key === 'ok_date') return '';
       if (key === 'ok_term') {
-        if (type === 'shepherd') return '2025-06-01~2027-06-01';
-        return '2025년 6월 1일 ~ 2027년 6월 1일';
+        return '2025-06~2027-06';
       }
       if (key === 'dog_relate') return '*Ursa v. Ghattas(3-3)\n*Enosch v. Amasis *Bella v. Ghattas(4-4)';
       if (key === 'litter_birth_m') return '1';
@@ -347,7 +365,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                   return rawVal;
                 }
                 if (field === 'ok_term') {
-                  return '2025-04-25~2027-04-26';
+                  return '2025-04~2027-04';
                 }
                 if (field === 'ok_content') {
                   return wrapTextAt25('2025.11.15 Wiederankorung 2년');
@@ -689,6 +707,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       return pedigree.okDate || (pedigree.okStat === 'Y' ? '기록 확인' : '-');
     }
     if (key === 'ok_term') {
+      if (type === 'shepherd') {
+        const start = formatYearMonth(okStartDate);
+        const end = formatYearMonth(okEndDate);
+        if (!start && !end) return '';
+        if (start && end) return `${start}~${end}`;
+        if (start) return `${start}~`;
+        return `~${end}`;
+      }
       const start = formatDateHyphen(okStartDate) || '';
       const end = formatDateHyphen(okEndDate) || '';
       if (type === 'jindo') {
@@ -1852,11 +1878,12 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
               });
               if (res.success && res.data && res.data.length > 0) {
                 const evalItem = res.data[0];
-                const start = evalItem.start_date || '';
-                const end = evalItem.end_date || '';
+                const start = formatYearMonth(evalItem.start_date);
+                const end = formatYearMonth(evalItem.end_date);
+                if (!start && !end) return '';
                 if (start && end) return `${start}~${end}`;
                 if (start) return `${start}~`;
-                if (end) return `~${end}`;
+                return `~${end}`;
               }
             } catch (e) {
               console.error("Failed to fetch parent ok term:", e);
