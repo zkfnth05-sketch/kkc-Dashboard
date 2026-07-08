@@ -297,7 +297,9 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
            if (s) {
              if (node === 2 || node === 3) {
                if (field === 'reg') {
-                 return `${s.reg || ''} DNA gpr. HD ED`;
+                 const reg = s.reg || '';
+                 const regRange = (reg && reg !== '-') ? `${reg}~${reg}` : reg;
+                 return `${regRange} DNA gpr. HD ED`;
                }
              }
              if (node >= 4 && node <= 7) {
@@ -751,7 +753,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
              if (nodeId === 2 || nodeId === 3) {
                const dnaVal = (dog.spec_dna || '').trim();
                const boneVal = (dog.spec_bone || '').trim();
-               return [regVal, dnaVal, boneVal].filter(Boolean).join(' ');
+               const formattedReg = (regVal && regVal !== '-' && regVal !== '0') ? `${regVal}~${regVal}` : regVal;
+               return [formattedReg, dnaVal, boneVal].filter(Boolean).join(' ');
              }
              if (nodeId >= 8 && nodeId <= 15) {
                const trainVal = (dog.spec_train || '').trim();
