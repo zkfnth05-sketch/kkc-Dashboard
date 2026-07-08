@@ -389,7 +389,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                if (field === 'name') {
                  const nameVal = `${s.name || ''} DNA gpr.`;
                  let regLine = `${s.reg || ''} IGP3 HD ED`;
-                 if (regLine.length >= 45) {
+                 if (regLine.length >= 40) {
                    regLine = wrapTextAt25(regLine);
                  }
                  return `${nameVal}\n${regLine}`;
@@ -878,7 +878,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                const boneVal = (dog.spec_bone || '').trim();
                const winVal = (dog.spec_win || '').trim();
                let regLine = [regVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
-               if (regLine.length >= 45) {
+               if (regLine.length >= 40) {
                  regLine = wrapTextAt25(regLine);
                }
                return regLine ? `${baseName}\n${regLine}` : baseName;
