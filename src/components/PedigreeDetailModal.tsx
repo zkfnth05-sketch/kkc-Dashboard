@@ -311,7 +311,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                  return node === 4 ? 'VA(BSZS)' : node === 5 ? 'V' : node === 6 ? 'SG' : 'V';
                }
                if (field === 'color') {
-                 return 'sb';
+                 return 'schwarz braun';
                }
                if (field === 'micro') {
                  return node === 4 ? '963007000778111' : node === 5 ? '963004001035222' : node === 6 ? '963007000778333' : '963004001035444';
@@ -344,7 +344,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
              if (field === 'train') return 'IGP3';
              if (field === 'dna') return 'DNA gpr.';
              if (field === 'bone') return 'HD ED';
-             if (field === 'color') return 'sb';
+             if (field === 'color') return 'schwarz braun';
              if (field === 'micro') return node === 2 ? '963007000778785' : node === 3 ? '963004001035661' : node === 4 ? '963007000778111' : node === 5 ? '963004001035222' : node === 6 ? '963007000778333' : node === 7 ? '963004001035444' : '';
              return s[field as keyof typeof s] || '';
            }
@@ -793,7 +793,10 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         }
         if (field === 'dna') return dog.spec_dna || '';
         if (field === 'bone') return dog.spec_bone || '';
-        if (field === 'color') return getColorAbbr(dog.hair) || '';
+        if (field === 'color') {
+          if (type === 'shepherd') return dog.hair || '';
+          return getColorAbbr(dog.hair) || '';
+        }
         if (field === 'micro') return dog.micro || (dog as any).microchip || '';
         if (field === 'birth') return formatDateHyphen(dog.birth) || '';
         if (field === 'foreign') {
