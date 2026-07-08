@@ -155,9 +155,9 @@ export const DEFAULT_PEDIGREE_LAYOUTS: Record<'shepherd' | 'jindo' | 'general', 
   jindo: {
     title: '한국견 혈통서 인쇄',
     bgImage: '/pedigree_templates/KakaoTalk_20260706_141920649.jpg',
-    pageWidth: 420,
-    pageHeight: 297,
-    pageSize: 'A3 landscape',
+    pageWidth: 380,
+    pageHeight: 260,
+    pageSize: '380mm 260mm',
     isLandscape: true,
     fields: {
       dog_name: { left: 34, top: 59, fontSize: 1.05 },

@@ -1036,14 +1036,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
   <title>${layout.title}</title>
   <style>
     @page {
-      size: landscape;
+      size: ${pageSize};
       margin: 0;
     }
     body {
       margin: 0;
       padding: 0;
-      width: 420mm;
-      height: 297mm;
+      width: ${pageWidth};
+      height: ${pageHeight};
       overflow: hidden;
       background-color: transparent;
       font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Dotum', sans-serif;
