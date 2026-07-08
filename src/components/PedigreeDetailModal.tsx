@@ -387,10 +387,10 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
              }
              if (node >= 16 && node <= 31) {
                if (field === 'name') {
-                 return `${s.name || ''} DNA gpr.`;
+                 return `${s.name || ''} DNA gpr.\n${s.reg || ''} IGP3 HD ED`;
                }
                if (field === 'reg') {
-                 return `${s.reg || ''} IGP3 HD ED`;
+                 return '';
                }
              }
              if (field === 'win') return node === 2 ? 'SG' : node === 3 ? 'V(BSZS)' : '';
@@ -852,7 +852,30 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
            const nameVal = dog.fullname || dog.name || '';
            if (type === 'shepherd' && nodeId >= 4 && nodeId <= 31) {
              const dnaVal = (dog.spec_dna || '').trim();
-             return [nameVal, dnaVal].filter(Boolean).join(' ');
+             const baseName = [nameVal, dnaVal].filter(Boolean).join(' ');
+             if (nodeId >= 16) {
+               const rVal = (dog.reg_no || '').trim();
+               const dom = (dog.foreign100 || '').trim();
+               let regVal = '';
+               if (rVal && rVal !== '0' && rVal !== '-') {
+                 regVal = rVal;
+                 if (dom && dom !== '0' && dom !== '-') {
+                   regVal += ' ' + dom;
+                 }
+               } else if (dom && dom !== '0' && dom !== '-') {
+                 regVal = dom;
+               } else {
+                 const f1 = (dog.foreign_no || '').trim();
+                 const f2 = (dog.foreign_no2 || '').trim();
+                 regVal = (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
+               }
+               const trainVal = (dog.spec_train || '').trim();
+               const boneVal = (dog.spec_bone || '').trim();
+               const winVal = (dog.spec_win || '').trim();
+               const regLine = [regVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
+               return regLine ? `${baseName}\n${regLine}` : baseName;
+             }
+             return baseName;
            }
            return nameVal;
          }
@@ -897,10 +920,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                return [regVal, trainVal].filter(Boolean).join(' ');
              }
              if (nodeId >= 16 && nodeId <= 31) {
-               const trainVal = (dog.spec_train || '').trim();
-               const boneVal = (dog.spec_bone || '').trim();
-               const winVal = (dog.spec_win || '').trim();
-               return [regVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
+               return '';
              }
            }
            return regVal;
@@ -1051,7 +1071,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
       const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: inherit; text-align: left;' : '');
       const isAncestor = key.startsWith('ancestor_');
-      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_ok_term') || key.endsWith('_ok_content');
+      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_ok_term') || key.endsWith('_ok_content') || (key.startsWith('ancestor_') && key.endsWith('_name'));
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all; line-height: 1.15;' : '';
       const widthStyle = coord.width && !isAncestor ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
@@ -2759,7 +2779,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                             className={`absolute select-none pointer-events-auto border transition-all
                               ${(key === 'dog_name' && activePrintType === 'general') ? 'text-center' : 'text-left'}
                               ${isEditingCoords ? 'cursor-move' : 'cursor-pointer'}
-                              ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_ok_term') || key.endsWith('_ok_content')) ? 'whitespace-pre-line break-words' : 'whitespace-nowrap'}
+                              ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_ok_term') || key.endsWith('_ok_content') || (key.startsWith('ancestor_') && key.endsWith('_name'))) ? 'whitespace-pre-line break-words' : 'whitespace-nowrap'}
                               ${(key !== 'dog_relate' && key !== 'dongtae_no' && key !== 'dog_litter' && !key.startsWith('ancestor_') && (activePrintType !== 'general' || key !== 'dog_color')) ? 'truncate' : ''}
                               ${genStyle} ${highlightStyle} ${opacityStyle}
                             `}
