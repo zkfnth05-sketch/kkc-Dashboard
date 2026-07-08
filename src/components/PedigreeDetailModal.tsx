@@ -136,6 +136,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
   const [activePrintType, setActivePrintType] = useState<'shepherd' | 'jindo' | 'general' | null>(null);
   const [ancestorTree, setAncestorTree] = useState<Record<number, ParentDogInfo>>({});
   const [fullLitterList, setFullLitterList] = useState<string>('');
+  const [sireLitterRange, setSireLitterRange] = useState<string>('');
+  const [damLitterRange, setDamLitterRange] = useState<string>('');
   const [jindoLitterList, setJindoLitterList] = useState<string>('');
   const [okStartDate, setOkStartDate] = useState<string>('');
   const [okEndDate, setOkEndDate] = useState<string>('');
@@ -302,7 +304,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                }
                if (field === 'litter') {
                  const reg = s.reg || '';
-                 const rawVal = (reg && reg !== '-') ? `${reg}~${reg}` : reg;
+                 const rawVal = (reg === '-' ? '' : reg);
                  if (rawVal.length >= 25) {
                    return rawVal.replace('~', '~\n');
                  }
@@ -734,7 +736,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
         if (field === 'litter') {
           if (type === 'shepherd' && (nodeId === 2 || nodeId === 3)) {
-            const rawVal = (parentRegVal && parentRegVal !== '-' && parentRegVal !== '0') ? `${parentRegVal}~${parentRegVal}` : parentRegVal;
+            const dbRange = nodeId === 2 ? sireLitterRange : damLitterRange;
+            const rawVal = dbRange ? dbRange : (parentRegVal === '-' || parentRegVal === '0' ? '' : parentRegVal);
             if (rawVal.length >= 25) {
               return rawVal.replace('~', '~\n');
             }
@@ -1596,6 +1599,55 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         jindoLitterListVal = pedigree.regNo || '-';
       }
       setJindoLitterList(jindoLitterListVal);
+
+      // 2세대 부모견 동태 등록번호 범위(Litter Range) 로드
+      let sireRangeVal = '';
+      let damRangeVal = '';
+      if (type === 'shepherd') {
+        const sireDog = tree[2];
+        const damDog = tree[3];
+
+        const fetchRange = async (dog: any) => {
+          if (!dog) return '';
+          const dongtae = (dog.dongtae_no || '').trim();
+          if (dongtae && dongtae !== '-' && dongtae !== '0') {
+            try {
+              const res = await fetchBridge({
+                mode: 'list',
+                table: 'dogTab',
+                search: dongtae,
+                field: 'dongtae_no',
+                exact: true,
+                limit: 100
+              });
+              if (res.success && res.data && res.data.length > 0) {
+                const regNos = res.data
+                  .map((d: any) => (d.reg_no || '').trim())
+                  .filter((r: string) => r && r !== '-' && r !== '0');
+                if (regNos.length > 0) {
+                  regNos.sort((a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+                  const minReg = regNos[0];
+                  const maxReg = regNos[regNos.length - 1];
+                  return minReg === maxReg ? minReg : `${minReg}~${maxReg}`;
+                }
+              }
+            } catch (e) {
+              console.error("Failed to fetch parent sibling range:", e);
+            }
+          }
+          return '';
+        };
+
+        if (sireDog) {
+          sireRangeVal = await fetchRange(sireDog);
+        }
+        if (damDog) {
+          damRangeVal = await fetchRange(damDog);
+        }
+      }
+
+      setSireLitterRange(sireRangeVal);
+      setDamLitterRange(damRangeVal);
 
       // 종견인정검사 시작/끝 날짜 조회
       let start_date = '';
