@@ -49,9 +49,9 @@ interface PedigreeDetailModalProps {
   dogClasses?: any[];
 }
 
-const wrapTextAt25 = (text: string): string => {
+const wrapTextAt = (text: string, limit: number): string => {
   if (!text) return '';
-  if (text.length < 25) return text;
+  if (text.length < limit) return text;
   if (text.includes('~')) {
     return text.replace('~', '~\n');
   }
@@ -61,7 +61,7 @@ const wrapTextAt25 = (text: string): string => {
   for (const w of words) {
     if (!current) {
       current = w;
-    } else if ((current + ' ' + w).length >= 25) {
+    } else if ((current + ' ' + w).length >= limit) {
       lines.push(current);
       current = w;
     } else {
@@ -71,14 +71,17 @@ const wrapTextAt25 = (text: string): string => {
   if (current) lines.push(current);
   
   return lines.map(line => {
-    if (line.length < 25) return line;
+    if (line.length < limit) return line;
     const chunks: string[] = [];
-    for (let i = 0; i < line.length; i += 25) {
-      chunks.push(line.substring(i, i + 25));
+    for (let i = 0; i < line.length; i += limit) {
+      chunks.push(line.substring(i, i + limit));
     }
     return chunks.join('\n');
   }).join('\n');
 };
+
+const wrapTextAt25 = (text: string): string => wrapTextAt(text, 25);
+const wrapTextAt30 = (text: string): string => wrapTextAt(text, 30);
 
 const getFieldLabel = (key: string): string => {
   if (key.startsWith('ancestor_')) {
@@ -390,7 +393,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                  const nameVal = `${s.name || ''} DNA gpr.`;
                  let regLine = `${s.reg || ''} IGP3 HD ED`;
                  if (regLine.length >= 45) {
-                   regLine = wrapTextAt25(regLine);
+                   regLine = wrapTextAt30(regLine);
                  }
                  return `${nameVal}\n${regLine}`;
                }
@@ -879,7 +882,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                const winVal = (dog.spec_win || '').trim();
                let regLine = [regVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
                if (regLine.length >= 45) {
-                 regLine = wrapTextAt25(regLine);
+                 regLine = wrapTextAt30(regLine);
                }
                return regLine ? `${baseName}\n${regLine}` : baseName;
              }
@@ -1086,7 +1089,23 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const isAncestor = key.startsWith('ancestor_');
       const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_ok_term') || key.endsWith('_ok_content') || (key.startsWith('ancestor_') && key.endsWith('_name'));
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all; line-height: 1.15;' : '';
-      const widthStyle = coord.width && !isAncestor ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+      let coordWidth = coord.width;
+      if (type === 'shepherd') {
+        const matchName = key.match(/^ancestor_(\d+)_name$/);
+        if (matchName) {
+          const nodeId = parseInt(matchName[1]);
+          if (nodeId >= 16 && nodeId <= 31) {
+            if (!coordWidth || coordWidth < 43.43) {
+              coordWidth = 43.43;
+            }
+          }
+        }
+      }
+      const widthStyle = coordWidth 
+        ? (isAncestor 
+            ? `width: ${coordWidth}mm;` 
+            : `width: ${coordWidth}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;`)
+        : '';
 
       const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
       const linesCount = typeof val === 'string' ? val.split('\n').length : 1;
@@ -1223,7 +1242,23 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const isAncestor = key.startsWith('ancestor_');
       const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter';
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
-      const widthStyle = coord.width && !isAncestor ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
+      let coordWidth = coord.width;
+      if ((type as string) === 'shepherd') {
+        const matchName = key.match(/^ancestor_(\d+)_name$/);
+        if (matchName) {
+          const nodeId = parseInt(matchName[1]);
+          if (nodeId >= 16 && nodeId <= 31) {
+            if (!coordWidth || coordWidth < 43.43) {
+              coordWidth = 43.43;
+            }
+          }
+        }
+      }
+      const widthStyle = coordWidth 
+        ? (isAncestor 
+            ? `width: ${coordWidth}mm;` 
+            : `width: ${coordWidth}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;`)
+        : '';
 
       const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
 
@@ -2836,7 +2871,19 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                               transform: (key === 'dog_name' && activePrintType === 'general') ? 'scaleX(0.85)' : 'none',
                               transformOrigin: (key === 'dog_name' && activePrintType === 'general') ? 'center' : 'initial',
                               display: (key === 'dog_name' && activePrintType === 'general') ? 'inline-block' : 'block',
-                              width: (coord.width || (key === 'dog_name' && activePrintType === 'general' ? 120 : undefined)) && !key.startsWith('ancestor_') && (activePrintType !== 'general' || key !== 'dog_color') ? `${coord.width || (key === 'dog_name' && activePrintType === 'general' ? 120 : 150)}mm` : 'auto',
+                              width: (() => {
+                                let w = coord.width || (key === 'dog_name' && activePrintType === 'general' ? 120 : undefined);
+                                if (activePrintType === 'shepherd') {
+                                  const match = key.match(/^ancestor_(\d+)_name$/);
+                                  if (match) {
+                                    const nodeId = parseInt(match[1]);
+                                    if (nodeId >= 16 && nodeId <= 31) {
+                                      if (!w || w < 43.43) w = 43.43;
+                                    }
+                                  }
+                                }
+                                return w && (activePrintType !== 'general' || key !== 'dog_color') ? `${w}mm` : 'auto';
+                              })(),
                               padding: '1px 2px',
                               minHeight: '4mm'
                             }}
