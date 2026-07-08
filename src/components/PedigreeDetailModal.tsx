@@ -51,7 +51,7 @@ interface PedigreeDetailModalProps {
 
 const getFieldLabel = (key: string): string => {
   if (key.startsWith('ancestor_')) {
-    const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|birth|foreign|slash\d)$/);
+    const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|litter|birth|foreign|slash\d)$/);
     if (match) {
       const node = match[1];
       const field = match[2];
@@ -64,6 +64,7 @@ const getFieldLabel = (key: string): string => {
                       : field === 'bone' ? '관절평가'
                       : field === 'color' ? '모색'
                       : field === 'micro' ? '마이크로칩'
+                      : field === 'litter' ? '동태 등록번호'
                       : field === 'birth' ? '생년월일'
                       : field === 'foreign' ? '외국타단체 번호'
                       : '구분선';
@@ -288,7 +289,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'issue_date') return '2026-07-06';
       
       if (key.startsWith('ancestor_')) {
-        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
+        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|litter|slash1|slash2|slash3|slash4)$/);
         if (match) {
           const node = parseInt(match[1]);
           const field = match[2];
@@ -299,7 +300,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                if (field === 'reg') {
                  return `${s.reg || ''} DNA gpr. HD ED`;
                }
-               if (field === 'micro') {
+               if (field === 'litter') {
                  const reg = s.reg || '';
                  return (reg && reg !== '-') ? `${reg}~${reg}` : reg;
                }
@@ -693,11 +694,44 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     
     // Ancestors
     if (key.startsWith('ancestor_')) {
-      const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|birth|foreign|slash1|slash2|slash3|slash4)$/);
+      const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|litter|birth|foreign|slash1|slash2|slash3|slash4)$/);
       if (match) {
         const nodeId = parseInt(match[1]);
         const field = match[2];
         if (field.startsWith('slash')) return '/';
+
+        let parentRegVal = '';
+        if (nodeId === 2 || nodeId === 3) {
+          const dog = ancestorTree[nodeId];
+          if (dog) {
+            let rVal = (dog.reg_no || '').trim();
+            if (!rVal || rVal === '0' || rVal === '-') {
+              const dom = (dog.foreign100 || '').trim();
+              if (dom && dom !== '0' && dom !== '-') {
+                parentRegVal = dom;
+              } else {
+                const f1 = (dog.foreign_no || '').trim();
+                const f2 = (dog.foreign_no2 || '').trim();
+                parentRegVal = (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
+              }
+            } else {
+              parentRegVal = rVal;
+            }
+          }
+          if (!parentRegVal || parentRegVal === '0' || parentRegVal === '-') {
+            const fallbackReg = nodeId === 2 ? pedigree.sireRegNo : pedigree.damRegNo;
+            const fallbackRegText = nodeId === 2 ? pedigree.sireRegNoText : pedigree.damRegNoText;
+            parentRegVal = (fallbackRegText || fallbackReg || '').toString().trim();
+          }
+        }
+
+        if (field === 'litter') {
+          if (type === 'shepherd' && (nodeId === 2 || nodeId === 3)) {
+            return (parentRegVal && parentRegVal !== '-' && parentRegVal !== '0') ? `${parentRegVal}~${parentRegVal}` : parentRegVal;
+          }
+          return '';
+        }
+
         const dog = ancestorTree[nodeId];
         if (!dog) return '';
         
@@ -801,23 +835,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
           if (type === 'shepherd') return dog.hair || '';
           return getColorAbbr(dog.hair) || '';
         }
-        if (field === 'micro') {
-          if (type === 'shepherd' && (nodeId === 2 || nodeId === 3)) {
-            let regVal = (dog.reg_no || '').trim();
-            if (!regVal || regVal === '0' || regVal === '-') {
-              const dom = (dog.foreign100 || '').trim();
-              if (dom && dom !== '0' && dom !== '-') {
-                regVal = dom;
-              } else {
-                const f1 = (dog.foreign_no || '').trim();
-                const f2 = (dog.foreign_no2 || '').trim();
-                regVal = (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
-              }
-            }
-            return (regVal && regVal !== '-' && regVal !== '0') ? `${regVal}~${regVal}` : regVal;
-          }
-          return dog.micro || (dog as any).microchip || '';
-        }
+        if (field === 'micro') return dog.micro || (dog as any).microchip || '';
         if (field === 'birth') return formatDateHyphen(dog.birth) || '';
         if (field === 'foreign') {
           const f1 = (dog.foreign_no || '').trim();
