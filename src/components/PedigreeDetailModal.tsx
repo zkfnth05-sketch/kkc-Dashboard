@@ -305,7 +305,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                if (field === 'litter') {
                  const reg = s.reg || '';
                  const rawVal = (reg === '-' ? '' : reg);
-                 if (rawVal.length >= 25) {
+                 if (rawVal.includes('~')) {
                    return rawVal.replace('~', '~\n');
                  }
                  return rawVal;
@@ -762,7 +762,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
             }
 
             const rawVal = dbRange ? dbRange : fallbackVal;
-            if (rawVal.length >= 25) {
+            if (rawVal.includes('~')) {
               return rawVal.replace('~', '~\n');
             }
             return rawVal;
