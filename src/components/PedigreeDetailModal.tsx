@@ -977,10 +977,31 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     `;
   };
 
+  const getJindoScaledCoords = (coords: Record<string, any>) => {
+    const reg = coords['reg_no'];
+    if (reg && reg.left > 200) {
+      const scaled: Record<string, any> = {};
+      Object.keys(coords).forEach(k => {
+        const c = coords[k];
+        if (c) {
+          scaled[k] = {
+            ...c,
+            left: Number((c.left * (380 / 420)).toFixed(2)),
+            top: Number((c.top * (260 / 297)).toFixed(2)),
+            fontSize: c.fontSize ? Number((c.fontSize * (260 / 297)).toFixed(2)) : undefined,
+            width: c.width ? Number((c.width * (380 / 420)).toFixed(2)) : undefined
+          };
+        }
+      });
+      return scaled;
+    }
+    return coords;
+  };
+
   const generateJindoPrintHtml = (useSample: boolean) => {
     const type = 'jindo';
     const layout = DEFAULT_PEDIGREE_LAYOUTS[type];
-    const finalCoords = { ...layout.fields };
+    let finalCoords = { ...layout.fields };
     const saved = localStorage.getItem(`pedigree_coords_${type}`);
     if (saved) {
       try {
@@ -995,6 +1016,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         });
       } catch (e) {}
     }
+    finalCoords = getJindoScaledCoords(finalCoords);
 
     let fieldsHtml = '';
     Object.keys(finalCoords).forEach(key => {
@@ -1562,6 +1584,9 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
             });
           } catch (e) {}
         }
+      }
+      if (type === 'jindo') {
+        initialCoords = getJindoScaledCoords(initialCoords);
       }
       setEditorCoords(initialCoords);
 
