@@ -297,9 +297,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
            if (s) {
              if (node === 2 || node === 3) {
                if (field === 'reg') {
+                 return `${s.reg || ''} DNA gpr. HD ED`;
+               }
+               if (field === 'micro') {
                  const reg = s.reg || '';
-                 const regRange = (reg && reg !== '-') ? `${reg}~${reg}` : reg;
-                 return `${regRange} DNA gpr. HD ED`;
+                 return (reg && reg !== '-') ? `${reg}~${reg}` : reg;
                }
              }
              if (node >= 4 && node <= 7) {
@@ -753,8 +755,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
              if (nodeId === 2 || nodeId === 3) {
                const dnaVal = (dog.spec_dna || '').trim();
                const boneVal = (dog.spec_bone || '').trim();
-               const formattedReg = (regVal && regVal !== '-' && regVal !== '0') ? `${regVal}~${regVal}` : regVal;
-               return [formattedReg, dnaVal, boneVal].filter(Boolean).join(' ');
+               return [regVal, dnaVal, boneVal].filter(Boolean).join(' ');
              }
              if (nodeId >= 8 && nodeId <= 15) {
                const trainVal = (dog.spec_train || '').trim();
@@ -800,7 +801,23 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
           if (type === 'shepherd') return dog.hair || '';
           return getColorAbbr(dog.hair) || '';
         }
-        if (field === 'micro') return dog.micro || (dog as any).microchip || '';
+        if (field === 'micro') {
+          if (type === 'shepherd' && (nodeId === 2 || nodeId === 3)) {
+            let regVal = (dog.reg_no || '').trim();
+            if (!regVal || regVal === '0' || regVal === '-') {
+              const dom = (dog.foreign100 || '').trim();
+              if (dom && dom !== '0' && dom !== '-') {
+                regVal = dom;
+              } else {
+                const f1 = (dog.foreign_no || '').trim();
+                const f2 = (dog.foreign_no2 || '').trim();
+                regVal = (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
+              }
+            }
+            return (regVal && regVal !== '-' && regVal !== '0') ? `${regVal}~${regVal}` : regVal;
+          }
+          return dog.micro || (dog as any).microchip || '';
+        }
         if (field === 'birth') return formatDateHyphen(dog.birth) || '';
         if (field === 'foreign') {
           const f1 = (dog.foreign_no || '').trim();
