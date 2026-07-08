@@ -138,6 +138,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
   const [fullLitterList, setFullLitterList] = useState<string>('');
   const [sireLitterRange, setSireLitterRange] = useState<string>('');
   const [damLitterRange, setDamLitterRange] = useState<string>('');
+  const [sireOkTerm, setSireOkTerm] = useState<string>('');
+  const [damOkTerm, setDamOkTerm] = useState<string>('');
   const [jindoLitterList, setJindoLitterList] = useState<string>('');
   const [okStartDate, setOkStartDate] = useState<string>('');
   const [okEndDate, setOkEndDate] = useState<string>('');
@@ -291,7 +293,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'issue_date') return '2026-07-06';
       
       if (key.startsWith('ancestor_')) {
-        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|litter|slash1|slash2|slash3|slash4)$/);
+        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|litter|ok_term|ok_content|slash1|slash2|slash3|slash4)$/);
         if (match) {
           const node = parseInt(match[1]);
           const field = match[2];
@@ -302,14 +304,20 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                if (field === 'reg') {
                  return `${s.reg || ''} DNA gpr. HD ED`;
                }
-               if (field === 'litter') {
-                 const reg = s.reg || '';
-                 const rawVal = (reg === '-' ? '' : reg);
-                 if (rawVal.length >= 25) {
-                   return rawVal.replace('~', '~\n');
-                 }
-                 return rawVal;
-               }
+                if (field === 'litter') {
+                  const reg = s.reg || '';
+                  const rawVal = (reg === '-' ? '' : reg);
+                  if (rawVal.length >= 25) {
+                    return rawVal.replace('~', '~\n');
+                  }
+                  return rawVal;
+                }
+                if (field === 'ok_term') {
+                  return '2025-04-25~2027-04-26';
+                }
+                if (field === 'ok_content') {
+                  return '2025.11.15 Wiederankorung 2년';
+                }
                if (field === 'micro') {
                  return node === 2 ? '963007000778785' : '963007000778888';
                }
@@ -703,7 +711,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     
     // Ancestors
     if (key.startsWith('ancestor_')) {
-      const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|litter|birth|foreign|slash1|slash2|slash3|slash4)$/);
+      const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|litter|ok_term|ok_content|birth|foreign|slash1|slash2|slash3|slash4)$/);
       if (match) {
         const nodeId = parseInt(match[1]);
         const field = match[2];
@@ -762,6 +770,29 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
             }
 
             const rawVal = dbRange ? dbRange : fallbackVal;
+            if (rawVal.length >= 25) {
+              return rawVal.replace('~', '~\n');
+            }
+            return rawVal;
+          }
+          return '';
+        }
+
+        if (field === 'ok_term') {
+          if (type === 'shepherd' && (nodeId === 2 || nodeId === 3)) {
+            const rawVal = nodeId === 2 ? sireOkTerm : damOkTerm;
+            if (rawVal.length >= 25) {
+              return rawVal.replace('~', '~\n');
+            }
+            return rawVal;
+          }
+          return '';
+        }
+
+        if (field === 'ok_content') {
+          if (type === 'shepherd' && (nodeId === 2 || nodeId === 3)) {
+            const dog = ancestorTree[nodeId];
+            const rawVal = dog ? (dog.spec_male || '').trim() : '';
             if (rawVal.length >= 25) {
               return rawVal.replace('~', '~\n');
             }
@@ -988,7 +1019,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
       const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: inherit; text-align: left;' : '');
       const isAncestor = key.startsWith('ancestor_');
-      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter');
+      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_ok_term') || key.endsWith('_ok_content');
       const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all; line-height: 1.15;' : '';
       const widthStyle = coord.width && !isAncestor ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
@@ -1624,9 +1655,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       }
       setJindoLitterList(jindoLitterListVal);
 
-      // 2세대 부모견 동태 등록번호 범위(Litter Range) 로드
+      // 2세대 부모견 동태 등록번호 범위(Litter Range) 및 종견인정검사 기간 로드
       let sireRangeVal = '';
       let damRangeVal = '';
+      let sireOkTermVal = '';
+      let damOkTermVal = '';
       if (type === 'shepherd') {
         const sireDog = tree[2];
         const damDog = tree[3];
@@ -1662,16 +1695,47 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
           return '';
         };
 
+        const fetchOkTerm = async (dog: any) => {
+          if (!dog) return '';
+          const regNo = (dog.reg_no || '').trim();
+          if (regNo && regNo !== '-' && regNo !== '0') {
+            try {
+              const res = await fetchBridge({
+                mode: 'list',
+                table: 'breed_dogTab',
+                search: regNo,
+                field: 'reg_no',
+                limit: 1
+              });
+              if (res.success && res.data && res.data.length > 0) {
+                const evalItem = res.data[0];
+                const start = evalItem.start_date || '';
+                const end = evalItem.end_date || '';
+                if (start && end) return `${start}~${end}`;
+                if (start) return `${start}~`;
+                if (end) return `~${end}`;
+              }
+            } catch (e) {
+              console.error("Failed to fetch parent ok term:", e);
+            }
+          }
+          return '';
+        };
+
         if (sireDog) {
           sireRangeVal = await fetchRange(sireDog);
+          sireOkTermVal = await fetchOkTerm(sireDog);
         }
         if (damDog) {
           damRangeVal = await fetchRange(damDog);
+          damOkTermVal = await fetchOkTerm(damDog);
         }
       }
 
       setSireLitterRange(sireRangeVal);
       setDamLitterRange(damRangeVal);
+      setSireOkTerm(sireOkTermVal);
+      setDamOkTerm(damOkTermVal);
 
       // 종견인정검사 시작/끝 날짜 조회
       let start_date = '';
@@ -2663,7 +2727,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                             className={`absolute select-none pointer-events-auto border transition-all
                               ${(key === 'dog_name' && activePrintType === 'general') ? 'text-center' : 'text-left'}
                               ${isEditingCoords ? 'cursor-move' : 'cursor-pointer'}
-                              ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter')) ? 'whitespace-pre-line break-words' : 'whitespace-nowrap'}
+                              ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_ok_term') || key.endsWith('_ok_content')) ? 'whitespace-pre-line break-words' : 'whitespace-nowrap'}
                               ${(key !== 'dog_relate' && key !== 'dongtae_no' && key !== 'dog_litter' && !key.startsWith('ancestor_') && (activePrintType !== 'general' || key !== 'dog_color')) ? 'truncate' : ''}
                               ${genStyle} ${highlightStyle} ${opacityStyle}
                             `}
