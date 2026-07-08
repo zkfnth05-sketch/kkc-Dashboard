@@ -49,6 +49,37 @@ interface PedigreeDetailModalProps {
   dogClasses?: any[];
 }
 
+const wrapTextAt25 = (text: string): string => {
+  if (!text) return '';
+  if (text.length < 25) return text;
+  if (text.includes('~')) {
+    return text.replace('~', '~\n');
+  }
+  const words = text.split(/\s+/);
+  let lines: string[] = [];
+  let current = '';
+  for (const w of words) {
+    if (!current) {
+      current = w;
+    } else if ((current + ' ' + w).length >= 25) {
+      lines.push(current);
+      current = w;
+    } else {
+      current += ' ' + w;
+    }
+  }
+  if (current) lines.push(current);
+  
+  return lines.map(line => {
+    if (line.length < 25) return line;
+    const chunks: string[] = [];
+    for (let i = 0; i < line.length; i += 25) {
+      chunks.push(line.substring(i, i + 25));
+    }
+    return chunks.join('\n');
+  }).join('\n');
+};
+
 const getFieldLabel = (key: string): string => {
   if (key.startsWith('ancestor_')) {
     const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|litter|birth|foreign|slash\d)$/);
@@ -316,7 +347,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                   return '2025-04-25~2027-04-26';
                 }
                 if (field === 'ok_content') {
-                  return '2025.11.15 Wiederankorung 2년';
+                  return wrapTextAt25('2025.11.15 Wiederankorung 2년');
                 }
                if (field === 'micro') {
                  return node === 2 ? '963007000778785' : '963007000778888';
@@ -793,10 +824,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
           if (type === 'shepherd' && (nodeId === 2 || nodeId === 3)) {
             const dog = ancestorTree[nodeId];
             const rawVal = dog ? (dog.spec_male || '').trim() : '';
-            if (rawVal.length >= 25) {
-              return rawVal.replace('~', '~\n');
-            }
-            return rawVal;
+            return wrapTextAt25(rawVal);
           }
           return '';
         }
