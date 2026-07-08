@@ -354,7 +354,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
     if (type === 'jindo') {
       if (key === 'dog_name') return '보미';
-      if (key === 'ok_term') return '2025-06-01~2027-06-01';
+      if (key === 'ok_term') return '종견인정검사 기간 2025-06-01~2027-06-01';
       if (key === 'dog_relate') return '백호(3-3)\n천룡(4-4)';
       if (key === 'litter_birth_m') return '3';
       if (key === 'litter_birth_f') return '2';
@@ -627,6 +627,12 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'ok_term') {
       const start = formatDateHyphen(okStartDate) || '';
       const end = formatDateHyphen(okEndDate) || '';
+      if (type === 'jindo') {
+        if (!start && !end) return '종견인정검사 기간 -';
+        if (start && end) return `종견인정검사 기간 ${start}~${end}`;
+        if (start) return `종견인정검사 기간 ${start}~`;
+        return `종견인정검사 기간 ~${end}`;
+      }
       if (!start && !end) return '-';
       if (start && end) return `${start}~${end}`;
       if (start) return `${start}~`;
