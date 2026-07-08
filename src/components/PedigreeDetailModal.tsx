@@ -862,22 +862,15 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
              const dnaVal = (dog.spec_dna || '').trim();
              const baseName = [nameVal, dnaVal].filter(Boolean).join(' ');
              if (nodeId >= 16) {
-               const rVal = (dog.reg_no || '').trim();
-               const dom = (dog.foreign100 || '').trim();
-               let regVal = '';
-               if (rVal && rVal !== '0' && rVal !== '-') {
-                 regVal = rVal;
-                 if (dom && dom !== '0' && dom !== '-') {
-                   regVal += ' ' + dom;
-                 }
-               } else if (dom && dom !== '0' && dom !== '-') {
-                 regVal = dom;
-               } else {
-                 const f1 = (dog.foreign_no || '').trim();
-                 const f2 = (dog.foreign_no2 || '').trim();
-                 regVal = (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
-               }
-               const trainVal = (dog.spec_train || '').trim();
+                const rVal = (dog.reg_no || '').trim();
+                const dom = (dog.foreign100 || '').trim();
+                const f1 = (dog.foreign_no || '').trim();
+                const f2 = (dog.foreign_no2 || '').trim();
+                const regParts = [rVal, dom, f1, f2]
+                  .map(s => s.trim())
+                  .filter(s => s && s !== '0' && s !== '-');
+                const regVal = regParts.join(' ');
+                const trainVal = (dog.spec_train || '').trim();
                const boneVal = (dog.spec_bone || '').trim();
                const winVal = (dog.spec_win || '').trim();
                let regLine = [regVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
