@@ -857,7 +857,25 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
              return dog.fullname || dogName || saho || '';
            }
 
-           const nameVal = dog.fullname || dog.name || '';
+            let nameVal = dog.fullname || dog.name || '';
+            if (type === 'shepherd') {
+              const dogName = (dog.name || '').trim();
+              const sahoEng = (dog.saho_eng || '').trim();
+              if (dogName) {
+                if (sahoEng && !dogName.toLowerCase().includes(sahoEng.toLowerCase())) {
+                  nameVal = `${dogName} ${sahoEng}`;
+                } else {
+                  nameVal = dogName;
+                }
+              } else if (dog.fullname) {
+                const fn = dog.fullname.trim();
+                if (sahoEng && !fn.toLowerCase().includes(sahoEng.toLowerCase())) {
+                  nameVal = `${fn} ${sahoEng}`;
+                } else {
+                  nameVal = fn;
+                }
+              }
+            }
            if (type === 'shepherd' && nodeId >= 4 && nodeId <= 31) {
              const dnaVal = (dog.spec_dna || '').trim();
              const baseName = [nameVal, dnaVal].filter(Boolean).join(' ');
