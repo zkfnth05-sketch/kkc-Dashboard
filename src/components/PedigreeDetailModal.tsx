@@ -302,7 +302,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                }
                if (field === 'litter') {
                  const reg = s.reg || '';
-                 return (reg && reg !== '-') ? `${reg}~${reg}` : reg;
+                 const rawVal = (reg && reg !== '-') ? `${reg}~${reg}` : reg;
+                 if (rawVal.length >= 25) {
+                   return rawVal.replace('~', '~\n');
+                 }
+                 return rawVal;
+               }
+               if (field === 'micro') {
+                 return node === 2 ? '963007000778785' : '963007000778888';
                }
              }
              if (node >= 4 && node <= 7) {
@@ -727,7 +734,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
         if (field === 'litter') {
           if (type === 'shepherd' && (nodeId === 2 || nodeId === 3)) {
-            return (parentRegVal && parentRegVal !== '-' && parentRegVal !== '0') ? `${parentRegVal}~${parentRegVal}` : parentRegVal;
+            const rawVal = (parentRegVal && parentRegVal !== '-' && parentRegVal !== '0') ? `${parentRegVal}~${parentRegVal}` : parentRegVal;
+            if (rawVal.length >= 25) {
+              return rawVal.replace('~', '~\n');
+            }
+            return rawVal;
           }
           return '';
         }
@@ -950,8 +961,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
       const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: inherit; text-align: left;' : '');
       const isAncestor = key.startsWith('ancestor_');
-      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter';
-      const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
+      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter');
+      const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all; line-height: 1.15;' : '';
       const widthStyle = coord.width && !isAncestor ? `width: ${coord.width}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
 
       const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
@@ -1631,7 +1642,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
             initialCoords[k] = { ...initialCoords[k], ...serverCoords[k] };
           }
         });
-        localStorage.setItem(`pedigree_coords_${type}`, JSON.stringify(serverCoords));
+        localStorage.setItem(`pedigree_coords_${type}`, JSON.stringify(initialCoords));
       } else {
         // 2. 서버에 저장된 좌표가 없는 경우 로컬 브라우저 저장소 데이터 활용
         const savedCoords = localStorage.getItem(`pedigree_coords_${type}`);
@@ -2576,7 +2587,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                             className={`absolute select-none pointer-events-auto border transition-all
                               ${(key === 'dog_name' && activePrintType === 'general') ? 'text-center' : 'text-left'}
                               ${isEditingCoords ? 'cursor-move' : 'cursor-pointer'}
-                              ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter') ? 'whitespace-pre-line break-words' : 'whitespace-nowrap'}
+                              ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter')) ? 'whitespace-pre-line break-words' : 'whitespace-nowrap'}
                               ${(key !== 'dog_relate' && key !== 'dongtae_no' && key !== 'dog_litter' && !key.startsWith('ancestor_') && (activePrintType !== 'general' || key !== 'dog_color')) ? 'truncate' : ''}
                               ${genStyle} ${highlightStyle} ${opacityStyle}
                             `}
