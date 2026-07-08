@@ -260,7 +260,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       if (key === 'reg_no') return 'KSZ-C40386';
       if (key === 'microchip') return '981189900142765';
       if (key === 'foreign_no') return 'SZ-2385565';
-      if (key === 'dongtae_no') return 'Xamo sb KSZ-C40386';
+      if (key === 'dongtae_no' || key === 'dog_litter') return 'Xamo vom Grafenbrunn schwarz braun\nKSZ-C40386~KSZ-C40388';
       if (key === 'ok_date') return '';
       if (key === 'ok_term') {
         if (type === 'shepherd') return '2025-06-01~2027-06-01';
@@ -615,11 +615,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     if (key === 'domestic_no') return pedigree.domesticNo || '-';
     if (key === 'dongtae_no' || key === 'dog_litter') {
       if (type === 'shepherd') {
-        const val = fullLitterList || '-';
-        if (val !== '-') {
-          return val.replace(/\//g, ' ').replace(/\s+/g, ' ').trim();
-        }
-        return val;
+        return fullLitterList || '-';
       }
       return jindoLitterList || '-';
     }
@@ -1503,20 +1499,36 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         }
       }
 
-      const siblingListFormatted = siblings.map(s => {
-        const sName = s.fullname || s.name || '';
-        const sReg = s.reg_no || '';
-        const sColor = s.hair || '';
-        const sColorAbbr = getColorAbbr(sColor);
-        return `${sName} ${sColorAbbr} / ${sReg}`;
-      }).join(', ');
-
-      const mainDogColorAbbr = getColorAbbr(pedigree.color);
-      const fullLitterList = `${pedigree.fullName || pedigree.name} ${mainDogColorAbbr} / ${pedigree.regNo}${siblingListFormatted ? ', ' + siblingListFormatted : ''}`;
-
       const regNos = [pedigree.regNo, ...siblings.map(s => s.reg_no)]
         .map(r => (r || '').trim())
         .filter(r => r && r !== '-' && r !== '0');
+
+      let fullLitterList = '';
+      if (type === 'shepherd') {
+        const name = (pedigree.name || '').trim();
+        const kennelEng = (pedigree.kennelNameEng || '').trim();
+        const ownFormattedName = kennelEng ? `${name} ${kennelEng}` : name;
+        const ownColor = (pedigree.color || '').trim();
+
+        const sortedRegs = [...regNos];
+        sortedRegs.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+        const minReg = sortedRegs[0] || pedigree.regNo || '-';
+        const maxReg = sortedRegs[sortedRegs.length - 1] || pedigree.regNo || '-';
+        const regRange = sortedRegs.length > 1 ? `${minReg}~${maxReg}` : minReg;
+
+        fullLitterList = `${ownFormattedName} ${ownColor}\n${regRange}`;
+      } else {
+        const siblingListFormatted = siblings.map(s => {
+          const sName = s.fullname || s.name || '';
+          const sReg = s.reg_no || '';
+          const sColor = s.hair || '';
+          const sColorAbbr = getColorAbbr(sColor);
+          return `${sName} ${sColorAbbr} / ${sReg}`;
+        }).join(', ');
+
+        const mainDogColorAbbr = getColorAbbr(pedigree.color);
+        fullLitterList = `${pedigree.fullName || pedigree.name} ${mainDogColorAbbr} / ${pedigree.regNo}${siblingListFormatted ? ', ' + siblingListFormatted : ''}`;
+      }
       
       let jindoLitterListVal = '';
       if (regNos.length > 0) {
