@@ -1064,6 +1064,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
     let fieldsHtml = '';
     Object.keys(finalCoords).forEach(key => {
+      const matchReg = key.match(/^ancestor_(\d+)_reg$/);
+      if (matchReg) {
+        const nodeId = parseInt(matchReg[1]);
+        if (nodeId >= 16 && nodeId <= 31) return;
+      }
       const coord = finalCoords[key];
       let val = useSample ? getSampleValue(key, type) : getRealValue(key, type);
       if (val === undefined || val === null) val = '';
@@ -1191,6 +1196,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
     let fieldsHtml = '';
     Object.keys(finalCoords).forEach(key => {
+      const matchReg = key.match(/^ancestor_(\d+)_reg$/);
+      if (matchReg) {
+        const nodeId = parseInt(matchReg[1]);
+        if (nodeId >= 16 && nodeId <= 31) return;
+      }
       const coord = finalCoords[key];
       let val = useSample ? getSampleValue(key, type) : getRealValue(key, type);
       if (val === undefined || val === null) val = '';
@@ -1296,6 +1306,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
     let fieldsHtml = '';
     Object.keys(finalCoords).forEach(key => {
+      const matchReg = key.match(/^ancestor_(\d+)_reg$/);
+      if (matchReg) {
+        const nodeId = parseInt(matchReg[1]);
+        if (nodeId >= 16 && nodeId <= 31) return;
+      }
       const coord = finalCoords[key];
       let val = useSample ? getSampleValue(key, type) : getRealValue(key, type);
       if (val === undefined || val === null) val = '';
@@ -2702,7 +2717,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                       }}
                     >
                       {/* Render Coordinates */}
-                      {Object.keys(editorCoords).map(key => {
+                      {Object.keys(editorCoords).filter(key => {
+                        const matchReg = key.match(/^ancestor_(\d+)_reg$/);
+                        if (matchReg) {
+                          const nodeId = parseInt(matchReg[1]);
+                          if (nodeId >= 16 && nodeId <= 31) return false;
+                        }
+                        return true;
+                      }).map(key => {
                         const coord = editorCoords[key];
                         const val = useSampleMode ? getSampleValue(key, activePrintType) : getRealValue(key, activePrintType);
                         const isSelected = selectedFieldKey === key;
