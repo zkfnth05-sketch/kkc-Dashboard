@@ -511,7 +511,14 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       return str !== '' && str !== '0000-00-00' && str !== '0' && str !== '-';
     };
 
-    if (key === 'dog_name') return pedigree.fullName || pedigree.name || '-';
+    if (key === 'dog_name') {
+      if (type === 'shepherd') {
+        const name = (pedigree.name || '').trim();
+        const kennelEng = (pedigree.kennelNameEng || '').trim();
+        return kennelEng ? `${name} ${kennelEng}` : name;
+      }
+      return pedigree.fullName || pedigree.name || '-';
+    }
     if (key === 'dog_gender') {
       const gVal = formatGender(pedigree.gender);
       if (gVal === '수컷') return 'MALE 수컷';
