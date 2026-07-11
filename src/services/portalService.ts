@@ -62,3 +62,51 @@ export const portalDeleteMembershipApplications = (uids: number[]) =>
 
 export const portalApproveMembershipApplication = (uid: number, action: 'approve' | 'reject', memo: string = '') => 
   portalFetch('portal_membership_application_action', { uid, action, memo });
+
+// ==============================================================================
+// 🛡️ [NICE API ADMIN PORTAL SERVICE]
+// ==============================================================================
+const NICE_BRIDGE_URL = 'https://kkc3349.mycafe24.com/nice_api_bridge.php';
+
+export const portalFetchNice = async (mode: string, data: any = {}) => {
+  try {
+    const response = await fetch(`${NICE_BRIDGE_URL}?t=${Date.now()}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Auth-Token': 'kkc-super-secret-key-change-this-now-12345!'
+      },
+      body: JSON.stringify({
+        mode,
+        ...data
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`Nice Portal API Error (${mode}):`, error);
+    return { success: false, error: '서버 통신 중 오류가 발생했습니다.' };
+  }
+};
+
+// NICE Member Admin
+export const niceAdminFetchMembers = (page: number, search: string, field: string = 'all') =>
+  portalFetchNice('admin_nice_member_list', { page, search, field });
+
+export const niceAdminDeleteMember = (mid: number) =>
+  portalFetchNice('admin_nice_member_delete', { mid });
+
+// NICE Pedigree Admin
+export const niceAdminFetchPedigrees = (page: number, search: string, field: string = 'all', status: string = 'all') =>
+  portalFetchNice('admin_nice_pedigree_list', { page, search, field, status });
+
+export const niceAdminPedigreeAction = (uid: number, action: 'approve' | 'reject', memo: string) =>
+  portalFetchNice('admin_nice_pedigree_action', { uid, action, memo });
+
+export const niceAdminDeletePedigree = (uid: number) =>
+  portalFetchNice('admin_nice_pedigree_delete', { uid });
+

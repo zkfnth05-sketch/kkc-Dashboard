@@ -422,7 +422,7 @@ export const updateMember = async (table: string, data: any) => {
     // 🎯 프론트엔드 속성명을 DB 컬럼명으로 정밀 역매핑 (HeidiSQL 구조 기준)
     const dbData: any = {};
 
-    if (table === 'memTab') {
+    if (table === 'memTab' || table === 'nice_memTab') {
         const pKey = data.mid || data.id || data.mem_no;
         if (!pKey) {
             console.error("No primary key found in:", data);
@@ -476,7 +476,7 @@ export const updateMember = async (table: string, data: any) => {
 
 export const createMember = async (table: string, data: any) => {
     const dbData: any = {};
-    if (table === 'memTab') {
+    if (table === 'memTab' || table === 'nice_memTab') {
         if (data.mem_no) dbData.mid = parseInt(data.mem_no, 10); // 🚀 [FIX] 수동 입력된 회원번호(mid) 처리
         dbData.id = data.loginId || '';
         dbData.name = data.name || '';

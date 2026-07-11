@@ -355,14 +355,21 @@ function kkf_portal_register($input) {
             'mem_type' => 'P',   // 개인회원 기본값
             'signdate' => time(),
             'firstdate' => time(), // 🚀 [FIX] 가입일(1970-01-01 표기 오류) 누락 수정
-            'client_ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'
+            'client_ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
+            'nice_ci' => $conn->real_escape_string(trim($src['nice_ci'] ?? '')),
+            'nice_di' => $conn->real_escape_string(trim($src['nice_di'] ?? '')),
+            'nice_verified_at' => !empty($src['nice_ci']) ? date('Y-m-d H:i:s') : null
         ];
 
         $fields = []; $values = [];
         foreach ($data_map as $key => $val) {
             if (in_array($key, $actual_cols)) {
                 $fields[] = "`$key`";
-                $values[] = "'$val'";
+                if ($val === null) {
+                    $values[] = "NULL";
+                } else {
+                    $values[] = "'$val'";
+                }
             }
         }
 
@@ -541,8 +548,13 @@ function kkf_portal_update_my_data($input) {
             'passwd' => 'plain', 'name' => 'euc-kr', 'name_eng' => 'euc-kr', // 🔠 영문명도 EUC-KR 처리 (DB 충돌 방지)
             'birth' => 'plain', 'email' => 'plain', 'hp' => 'plain', 'phone' => 'plain',
             'zipcode' => 'plain', 'addr' => 'euc-kr', 'addr_1' => 'euc-kr',
-            'zipcode2' => 'plain', 'addr2' => 'euc-kr', 'addr2_1' => 'euc-kr'
+            'zipcode2' => 'plain', 'addr2' => 'euc-kr', 'addr2_1' => 'euc-kr',
+            'nice_ci' => 'plain', 'nice_di' => 'plain', 'nice_verified_at' => 'plain'
         ];
+
+        if (isset($src['nice_ci']) && !isset($src['nice_verified_at'])) {
+            $src['nice_verified_at'] = date('Y-m-d H:i:s');
+        }
 
         foreach ($allowed_fields as $key => $type) {
             if (isset($src[$key]) && in_array($key, $actual_cols)) {
@@ -552,8 +564,12 @@ function kkf_portal_update_my_data($input) {
                 if ($type === 'euc-kr') {
                     $val = kkc_convert($val, 'EUC-KR', false);
                 }
-                $safe_val = $conn->real_escape_string($val);
-                $fields_to_update[] = "`$key` = '$safe_val'";
+                if ($val === '') {
+                    $fields_to_update[] = "`$key` = NULL";
+                } else {
+                    $safe_val = $conn->real_escape_string($val);
+                    $fields_to_update[] = "`$key` = '$safe_val'";
+                }
             }
         }
 

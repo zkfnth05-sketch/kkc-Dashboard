@@ -21,7 +21,9 @@ export const NAV_ITEMS = [
   '포인트 관리',
   '서식 자료실',
   '협회소식/공지',
-  '데이터 통합'
+  '데이터 통합',
+  'NICE 회원관리',
+  'NICE 혈통서'
 ];
 
 export const Header: React.FC<HeaderProps> = ({ onLogout, activeTab, onTabChange, onRefresh }) => {

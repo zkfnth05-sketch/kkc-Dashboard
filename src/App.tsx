@@ -15,6 +15,8 @@ import { SkillManagementPage } from './components/SkillManagementPage';
 import { DataIntegrationPage } from './components/DataIntegrationPage';
 import { MemberExportPage } from './components/MemberExportPage';
 import { MembershipApplicationPage } from './components/MembershipApplicationPage';
+import { NiceMemberManagement } from './components/NiceMemberManagement';
+import { NicePedigreeManagement } from './components/NicePedigreeManagement';
 import { DbNavigator } from './components/DbNavigator';
 import { LoginModal } from './components/LoginModal';
 import { PortalLogin } from './components/PortalLogin';
@@ -79,6 +81,8 @@ const App: React.FC = () => {
 
   const [pointSearch, setPointSearch] = useState<{ query: string, field: string } | null>(null);
   const [memberSearch, setMemberSearch] = useState<{ query: string, field: string } | null>(null);
+  const [niceMemberSearch, setNiceMemberSearch] = useState<{ query: string, field: string } | null>(null);
+  const [nicePedigreeSearch, setNicePedigreeSearch] = useState<{ query: string, field: string } | null>(null);
   const [competitionEditData, setCompetitionEditData] = useState<any>(null);
 
   const [modal, setModal] = useState<{ isOpen: boolean; type: 'alert' | 'confirm'; title: string; message: string; onConfirm: () => void; }>({
@@ -122,6 +126,8 @@ const App: React.FC = () => {
     setActiveTab(t);
     if (t !== '포인트 관리') setPointSearch(null);
     if (t !== '회원 관리') setMemberSearch(null);
+    if (t !== 'NICE 회원관리') setNiceMemberSearch(null);
+    if (t !== 'NICE 혈통서') setNicePedigreeSearch(null);
   };
 
   const jumpToTab = (t: string) => {
@@ -167,6 +173,34 @@ const App: React.FC = () => {
           구조적으로 보호된 상태로 렌더링됩니다.
         */
         return <DataIntegrationPage />;
+      case 'NICE 회원관리': return (
+        <NiceMemberManagement
+          showAlert={showAlert}
+          showConfirm={showConfirm}
+          initialSearch={niceMemberSearch}
+          onSearchHandled={() => setNiceMemberSearch(null)}
+          onSearchPedigree={(regNo) => {
+            setNicePedigreeSearch({ query: regNo, field: 'reg_no' });
+            jumpToTab('NICE 혈통서');
+          }}
+        />
+      );
+      case 'NICE 혈통서': return (
+        <NicePedigreeManagement
+          showAlert={showAlert}
+          showConfirm={showConfirm}
+          onGoToPoints={(regNo) => { setPointSearch({ query: regNo, field: 'regNo' }); jumpToTab('포인트 관리'); }}
+          onGoToPrizes={() => jumpToTab('상력 관리')}
+          onGoToMember={(loginId) => {
+            // 회원 ID가 CI형태면 ci 필드로 검색, 일반 ID면 id 필드로 검색
+            const isCI = loginId.length > 20 && !loginId.includes('@');
+            setNiceMemberSearch({ query: loginId, field: isCI ? 'ci' : 'id' });
+            jumpToTab('NICE 회원관리');
+          }}
+          initialSearch={nicePedigreeSearch}
+          onSearchHandled={() => setNicePedigreeSearch(null)}
+        />
+      );
       case '회원 대량추출': return <MemberExportPage />;
       case '행사 관리': return (
         <EventManagementPage
