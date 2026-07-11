@@ -181,7 +181,7 @@ export const MemberManagementPage: React.FC<MemberManagementPageProps> = ({
   };
 
   return (
-    <div className="flex h-full overflow-hidden relative">
+    <div className="flex h-full min-h-0 overflow-hidden relative">
       <MemberTable
         members={members}
         totalCount={totalMembers}
