@@ -7,6 +7,9 @@ import { fetchDongtaeInfo } from '../services/dongtaeService'; // 👈 분리된
 import { AlertCircle } from 'lucide-react';
 import { DEFAULT_PEDIGREE_LAYOUTS } from '../config/pedigreeConfig';
 import { fetchPedigreeLayout, savePedigreeLayout } from '../services/pedigreeService';
+import { generateShepherdPrintHtml, getShepherdRealValue, getShepherdSampleValue } from '../utils/pedigreeShepherd';
+import { generateJindoPrintHtml, getJindoRealValue, getJindoSampleValue, getJindoScaledCoords } from '../utils/pedigreeJindo';
+import { generateGeneralPrintHtml, getGeneralRealValue, getGeneralSampleValue } from '../utils/pedigreeGeneral';
 
 const CustomConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "확인", cancelText = "취소", isDanger = false }: any) => {
   if (!isOpen) return null;
@@ -269,785 +272,6 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     return color;
   };
 
-  const shepherdSamples: Record<number, { name: string, reg: string, extra: string }> = {
-    2: { name: 'Tarzan z Lomeckeho polesi', reg: 'KSZ-C00647', extra: 'BH IGP1 / WLF GR' },
-    3: { name: 'C-Jessi vom Priapus', reg: 'KSZ-C10228', extra: 'BH / WLF GR' },
-    4: { name: 'Butsch von der Schiffslaeche', reg: 'KSZ-B60839', extra: 'HD' },
-    5: { name: 'Sharon von Der Schwarzen...', reg: 'KSZ-B80159', extra: 'V3 VA1 DNA HD ED AD' },
-    6: { name: 'Basko of Sunqsim Cas Ken...', reg: 'KSZ-B00250', extra: 'SG HD ED' },
-    7: { name: 'Hera of Dog School', reg: 'KSZ-A90045', extra: 'VA1(CH) V SG 6 BSZS HD ED' },
-    8: { name: 'Allegro ze Zdeneho mlyna', reg: '2', extra: '' },
-    9: { name: 'Perla z Vojanky', reg: 'SZ-2312796 IPO3 IGP3', extra: '' },
-    10: { name: 'Butsch von der Schiffslaeche', reg: 'KSZ-B60839', extra: '' },
-    11: { name: 'Sharon von Der Schwarzen...', reg: 'KSZ-B80159', extra: '' },
-    12: { name: 'Basko of Sunqsim Cas Ken...', reg: 'KSZ-B00250', extra: '' },
-    13: { name: 'Hera of Dog School', reg: 'KSZ-A90045', extra: '' },
-    14: { name: 'Zwack vom Holzwinkel', reg: 'SBCPA-197768 IPO1', extra: '' },
-    15: { name: 'Diva de Renaudloup', reg: 'SZ-2280805 ZB IPO1 IPO2', extra: '' },
-    16: { name: 'Fantom ze Stribrneho kam...', reg: '1', extra: '' },
-    17: { name: 'Baira Suche Lazce', reg: '0', extra: '' },
-    18: { name: 'Norbert Aritar Bastet', reg: '15', extra: '' },
-    19: { name: 'Luna z Vojanky', reg: 'VA HD ED', extra: '' },
-    20: { name: 'Mistr sveta WUSV *Bolle J...', reg: 'SZ-2292360 FI-45845/14', extra: '' },
-    21: { name: '*Gambana von der Schiffl...', reg: 'V3 VA1 DNA HD ED AD', extra: '' },
-    22: { name: 'Qvido Vepeden', reg: 'SBCPA-197768 IPO1', extra: '' },
-    23: { name: 'Kobra z Kraje Husitu', reg: 'SZ-2280805 ZB', extra: '' },
-    24: { name: 'Quasi vom Fuchsstein', reg: 'KSZ-A80905', extra: '' },
-    25: { name: 'Anka of 15 Kennel', reg: 'KSZ-A80751', extra: '' },
-    26: { name: 'Fyl du Triangle Magique', reg: 'KSZ-A60862', extra: '' },
-    27: { name: 'Diva vom Hermes', reg: 'KSZ-A70053', extra: '' },
-    28: { name: '*Javir vom Talka Marda', reg: 'SZ-2242016', extra: '' },
-    29: { name: 'Quixie vom Holzwinkel', reg: 'SZ-2258762', extra: '' },
-    30: { name: 'Como vom Rurdamm', reg: 'SBCPA-192325', extra: '' },
-    31: { name: 'Zaire de Renaudloup', reg: 'KSZ-B50938', extra: '' }
-  };
-
-  const getSampleValue = (key: string, type: string) => {
-    if (type === 'shepherd') {
-      if (key === 'dog_name') return 'Xamo vom Grafenbrunn';
-      if (key === 'dog_gender') return 'MALE 수컷';
-      if (key === 'dog_coat') return 'stock hair';
-      if (key === 'dog_color') return 'schwarz braun';
-      if (key === 'dog_birth') return '2022년 11월 28일';
-      if (key === 'dog_join') return '2024-10-28';
-      if (key === 'dog_owner_change') return '2025-10-19';
-      if (key === 'dog_breeder') return 'Dirk Scheerer';
-      if (key === 'dog_breeder_addr') return 'Bergweg 3, 56179 Vallendar';
-      if (key === 'dog_owner') return '김기흥';
-      if (key === 'dog_owner_addr') return '경남 김해시 한림면 금곡리 590-1';
-      if (key === 'reg_no') return 'KSZ-C40386';
-      if (key === 'microchip') return '981189900142765';
-      if (key === 'foreign_no') return 'SZ-2385565';
-      if (key === 'dongtae_no' || key === 'dog_litter') return 'Xamo vom Grafenbrunn schwarz braun\nKSZ-C40386~KSZ-C40388';
-      if (key === 'ok_date') return '';
-      if (key === 'ok_term') {
-        return '2025-06~2027-06';
-      }
-      if (key === 'dog_relate') return '*Ursa v. Ghattas(3-3)\n*Enosch v. Amasis *Bella v. Ghattas(4-4)';
-      if (key === 'litter_birth_m') return '1';
-      if (key === 'litter_birth_f') return '0';
-      if (key === 'litter_dead_m') return '0';
-      if (key === 'litter_dead_f') return '0';
-      if (key === 'litter_cancel_m') return '0';
-      if (key === 'litter_cancel_f') return '0';
-      if (key === 'litter_dead2_m') return '0';
-      if (key === 'litter_dead2_f') return '0';
-      if (key === 'litter_missing_m') return '0';
-      if (key === 'litter_missing_f') return '0';
-      if (key === 'litter_bringup_m') return '0';
-      if (key === 'litter_bringup_f') return '0';
-      if (key === 'litter_reg_m') return '1';
-      if (key === 'litter_reg_f') return '0';
-      if (key === 'birth_litter') return 'Male: 1 / Female: 0';
-      if (key === 'birth_count') return '1';
-      if (key === 'dead_count') return '0';
-      if (key === 'reg_count') return 'Male: 1 / Female: 0';
-      if (key === 'issue_date') return '2026-07-06';
-      
-      if (key.startsWith('ancestor_')) {
-        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|litter|ok_term|ok_content|slash1|slash2|slash3|slash4)$/);
-        if (match) {
-          const node = parseInt(match[1]);
-          const field = match[2];
-          if (field.startsWith('slash')) return '/';
-           const s = shepherdSamples[node];
-           if (s) {
-             if (node === 2 || node === 3) {
-               if (field === 'reg') {
-                 return `${s.reg || ''} DNA gpr. HD ED`;
-               }
-                if (field === 'litter') {
-                  const reg = s.reg || '';
-                  const rawVal = (reg === '-' ? '' : reg);
-                  if (rawVal.length >= 25) {
-                    return rawVal.replace('~', '~\n');
-                  }
-                  return rawVal;
-                }
-                if (field === 'ok_term') {
-                  return '2025-04~2027-04';
-                }
-                if (field === 'ok_content') {
-                  return wrapTextAt25('2025.11.15 Wiederankorung 2년');
-                }
-               if (field === 'micro') {
-                 return node === 2 ? '963007000778785' : '963007000778888';
-               }
-             }
-             if (node >= 4 && node <= 7) {
-               if (field === 'name') {
-                 return `${s.name || ''} DNA gpr.`;
-               }
-               if (field === 'train') {
-                 return 'IGP3 HD ED';
-               }
-               if (field === 'win') {
-                 return node === 4 ? 'VA(BSZS)' : node === 5 ? 'V' : node === 6 ? 'SG' : 'V';
-               }
-               if (field === 'color') {
-                 return 'schwarz braun';
-               }
-               if (field === 'micro') {
-                 return node === 4 ? '963007000778111' : node === 5 ? '963004001035222' : node === 6 ? '963007000778333' : '963004001035444';
-               }
-               if (field === 'reg') {
-                 return s.reg || '';
-               }
-             }
-             if (node >= 8 && node <= 15) {
-               if (field === 'name') {
-                 return `${s.name || ''} DNA gpr.`;
-               }
-               if (field === 'reg') {
-                 return `${s.reg || ''} IGP3`;
-               }
-               if (field === 'win') {
-                 const sampleWin = node === 8 ? 'SG' : node === 9 ? 'V' : '';
-                 return [sampleWin, 'HD ED'].filter(Boolean).join(' ');
-               }
-             }
-             if (node >= 16 && node <= 31) {
-               if (field === 'name') {
-                 const nameVal = `${s.name || ''} DNA gpr.`;
-                 let regLine = `${s.reg || ''} IGP3 HD ED`;
-                 if (regLine.length >= 40) {
-                   regLine = wrapTextAt40(regLine);
-                 }
-                 return `${nameVal}\n${regLine}`;
-               }
-               if (field === 'reg') {
-                 return '';
-               }
-             }
-             if (field === 'win') return node === 2 ? 'SG' : node === 3 ? 'V(BSZS)' : '';
-             if (field === 'train') return 'IGP3';
-             if (field === 'dna') return 'DNA gpr.';
-             if (field === 'bone') return 'HD ED';
-             if (field === 'color') return 'schwarz braun';
-             if (field === 'micro') return node === 2 ? '963007000778785' : node === 3 ? '963004001035661' : node === 4 ? '963007000778111' : node === 5 ? '963004001035222' : node === 6 ? '963007000778333' : node === 7 ? '963004001035444' : '';
-             return s[field as keyof typeof s] || '';
-           }
-        }
-      }
-    }
-
-    if (type === 'jindo') {
-      if (key === 'dog_name') return '보미';
-      if (key === 'ok_term') return '종견인정검사 기간 2025-06-01~2027-06-01';
-      if (key === 'dog_relate') return '백호(3-3)\n천룡(4-4)';
-      if (key === 'litter_birth_m') return '3';
-      if (key === 'litter_birth_f') return '2';
-      if (key === 'litter_dead_m') return '0';
-      if (key === 'litter_dead_f') return '0';
-      if (key === 'litter_cancel_m') return '0';
-      if (key === 'litter_cancel_f') return '0';
-      if (key === 'litter_dead2_m') return '0';
-      if (key === 'litter_dead2_f') return '0';
-      if (key === 'litter_missing_m') return '0';
-      if (key === 'litter_missing_f') return '0';
-      if (key === 'litter_bringup_m') return '3';
-      if (key === 'litter_bringup_f') return '2';
-      if (key === 'litter_reg_m') return '3';
-      if (key === 'litter_reg_f') return '2';
-      if (key === 'birth_litter') return 'Male: 3 / Female: 2';
-      if (key === 'birth_count') return '5';
-      if (key === 'dead_count') return '0';
-      if (key === 'reg_count') return 'Male: 3 / Female: 2';
-      if (key === 'reg_no') return 'KJ-C60028';
-      if (key === 'dog_breed') return '진돗개';
-      if (key === 'dog_gender') return 'FEMALE 암컷';
-      if (key === 'dog_birth') return '2025-10-23';
-      if (key === 'dog_color') return '황구';
-      if (key === 'microchip') return '';
-      if (key === 'index_no') return '-';
-      if (key === 'dog_litter') return '보미\nKJ-C60028';
-      if (key === 'dog_breeder') return '최하식';
-      if (key === 'dog_breeder_addr') return '충북 충주시 금가면 하담리 35-5';
-      if (key === 'dog_owner') return '최하식';
-      if (key === 'dog_owner_addr') return '충북 충주시 금가면 하담리 35-5';
-      if (key === 'dog_join') return '2025-10-28';
-      if (key === 'dog_owner_change') return '2025-11-05';
-      if (key === 'issue_date') return '2026-03-17';
-      
-      if (key.startsWith('ancestor_')) {
-        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|slash1|slash2|slash3|slash4)$/);
-        if (match) {
-          const node = parseInt(match[1]);
-          const field = match[2];
-          if (field.startsWith('slash')) return '/';
-          if (node === 2) {
-            if (field === 'name') return '삼호 충주금가견사';
-            if (field === 'reg') return 'KJ-C10092';
-            if (field === 'extra') return '지정 전람회 우수';
-            if (field === 'color') return '황구';
-            return '';
-          }
-          if (node === 3) {
-            if (field === 'name') return '홍 피어리스';
-            if (field === 'reg') return 'KJ-C10077';
-            if (field === 'extra') return '';
-            if (field === 'color') return '황구';
-            return '';
-          }
-          if (field === 'color') return '황구';
-          return field === 'name' ? `진도 조상 ${node}` : field === 'reg' ? `KJ-A00${node}` : '';
-        }
-      }
-    }
-
-    if (type === 'general') {
-      const generalData: Record<string, string> = {
-        dog_name: 'A-ISAM OF DOG MASTER',
-        reg_no: 'BM-C50074',
-        dog_breed: 'Belgian Malinois',
-        dog_gender: 'MALE 수컷',
-        dog_birth: '2025-01-19',
-        dog_color: 'FN BLK MSK',
-        microchip: '',
-        index_no: '',
-        dog_dna: '',
-        dog_litter: 'BM-C50071~BM-C50079',
-        dog_breeder: 'Lee Tae Won',
-        dog_breeder_addr: '대전 유성구 학하동 114-14',
-        dog_owner: 'Lee Tae Won',
-        dog_owner_addr: '대전 유성구 학하동 114-14',
-        dog_join: '2025-03-14',
-        dog_owner_change: '2025-03-14',
-        issue_date: '2025-03-14',
-        foreign_no: 'SZ-2385565',
-        foreign_no2: 'SZ-2385565-2',
-        domestic_no: 'KKC-D12345',
-        ok_term: '-',
-        dog_relate: '-',
-        litter_birth_m: '0',
-        litter_birth_f: '0',
-        litter_dead_m: '0',
-        litter_dead_f: '0',
-        litter_cancel_m: '0',
-        litter_cancel_f: '0',
-        litter_dead2_m: '0',
-        litter_dead2_f: '0',
-        litter_missing_m: '0',
-        litter_missing_f: '0',
-        litter_bringup_m: '0',
-        litter_bringup_f: '0',
-        litter_reg_m: '0',
-        litter_reg_f: '0',
-        birth_litter: 'Male: 0 / Female: 0',
-        birth_count: '0',
-        dead_count: '0',
-        reg_count: 'Male: 0 / Female: 0'
-      };
-
-      if (key in generalData) {
-        return generalData[key];
-      }
-
-      if (key.startsWith('ancestor_')) {
-        const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|birth|foreign|slash1|slash2|slash3|slash4)$/);
-        if (match) {
-          const node = parseInt(match[1]);
-          const field = match[2];
-          if (field.startsWith('slash')) return '/';
-
-          const ancestors: Record<number, { name: string; reg: string; extra: string }> = {
-            2: { name: 'IKE OF DOGMASTER', reg: 'BM-B70073 BGS-14-0001374-ROK', extra: 'BR BLK MSK' },
-            3: { name: 'SUZY OF CHANEE HOUSE', reg: 'BM-C10083', extra: 'FN, BLK MSK' },
-            4: { name: 'BILL OF MONAMI LAND FCI', reg: 'BM-B00211 BGS-08-0001038-ROK', extra: 'FN&BLK MSK' },
-            5: { name: 'EASY VOM HORNBACHTAL', reg: 'BM-B00208 BGS-09-0001165-ROK', extra: 'grdgew' },
-            6: { name: 'ELDO OF CHANEE HOUSE', reg: 'BM-C10075', extra: 'FN BLK MSK' },
-            7: { name: 'MOLLY OF CHANEE HOUSE', reg: 'BM-B50226', extra: 'FN&BLK MSK' },
-            8: { name: 'EGOR VOM TEUFELHUND', reg: 'BGS-06-0000872-ROK', extra: 'FN BLK' },
-            9: { name: 'ELLIE OT VITOSHA', reg: 'BGS-07-0000883-ROK', extra: 'FN&BLK MSK' },
-            10: { name: 'BUTSCH VON DER BOESEN NACHBARSCHAFT', reg: '', extra: 'FN BLK MSK' },
-            11: { name: 'UNIC VON DER SCHOENEN ECKE(M)', reg: '', extra: 'grdgew' },
-            12: { name: 'CLARA OF JONGHO HOUSE', reg: 'BM-B30262', extra: 'SBL BLK MSK' },
-            13: { name: 'DASAN BILL OF JJS MALINOIS FCI', reg: 'BM-C10074 BGS-15-0004107-ROK', extra: 'FN BLK MSK' },
-            14: { name: 'DOBI OF ILWOL NONGJANG', reg: 'BM-B30266', extra: 'FN' },
-            15: { name: 'T2-SAEND OF TITI HOUSE', reg: 'BM-B20117', extra: 'FN' }
-          };
-
-          const dog = ancestors[node];
-          if (dog) {
-            if (field === 'name') return dog.name;
-            if (field === 'reg') return dog.reg || '-';
-            if (field === 'color') return dog.extra || '';
-            if (field === 'extra') return node === 2 ? 'BH IGP1' : node === 3 ? 'BH' : '';
-            if (field === 'birth') return '2021-06-15';
-            if (field === 'foreign') return 'AKC-1234567';
-          }
-          return '';
-        }
-      }
-    }
-    return '';
-  };
-
-  const getRealValue = (key: string, type: 'shepherd' | 'jindo' | 'general') => {
-    const isValidDate = (d: any) => {
-      if (!d) return false;
-      const str = String(d).trim();
-      return str !== '' && str !== '0000-00-00' && str !== '0' && str !== '-';
-    };
-
-    if (key === 'dog_name') {
-      if (type === 'shepherd') {
-        const name = (pedigree.name || '').trim();
-        const kennelEng = (pedigree.kennelNameEng || '').trim();
-        return kennelEng ? `${name} ${kennelEng}` : name;
-      }
-      return pedigree.fullName || pedigree.name || '-';
-    }
-    if (key === 'dog_gender') {
-      const gVal = formatGender(pedigree.gender);
-      if (gVal === '수컷') return 'MALE 수컷';
-      if (gVal === '암컷') return 'FEMALE 암컷';
-      return gVal;
-    }
-    if (key === 'dog_coat') {
-      const coatVal = pedigree.coatType || (type === 'shepherd' ? 'stock hair' : '-');
-      if (type === 'shepherd') {
-        const c = coatVal.trim().toLowerCase();
-        if (c.includes('long stock') || c.includes('long coat') || c.includes('장모') || c.includes('롱')) {
-          return 'Long stock hair';
-        }
-        if (c.includes('stock') || c.includes('단모') || c.includes('숏') || c.includes('이중모')) {
-          return 'stock hair';
-        }
-      }
-      return coatVal;
-    }
-    if (key === 'dog_color') {
-      const colorVal = pedigree.color || '-';
-      if (type === 'general') {
-        const coatVal = (pedigree.coatType || '').trim();
-        const parts: string[] = [];
-        const cleanColor = colorVal.trim();
-        if (cleanColor && cleanColor !== '-' && cleanColor !== '0') parts.push(cleanColor);
-        if (coatVal && coatVal !== '-' && coatVal !== '0') parts.push(coatVal);
-        return parts.join(' ') || '-';
-      }
-      if (type === 'shepherd' && colorVal !== '-') {
-        const c = colorVal.trim().toLowerCase();
-        if (c === 'sb' || c.includes('schwarz braun') || c.includes('black & brown') || c.includes('black brown') || c.includes('블랙브라운') || c.includes('블랙 브라운')) {
-          return 'schwarz braun';
-        }
-        if (c === 'wlf gr' || c.includes('wolf gray') || c.includes('wolf grey') || c.includes('울프그레이') || c.includes('울프 그레이')) {
-          return 'wolf gray';
-        }
-        if (c === 'b&t' || c.includes('black and tan') || c.includes('black tan') || c.includes('블랙탄') || c.includes('블랙 탄')) {
-          return 'black & tan';
-        }
-        if (c === 's' || c.includes('black') || c.includes('검정') || c.includes('블랙')) {
-          return 'black';
-        }
-        if (c === 'w' || c.includes('white') || c.includes('백색') || c.includes('화이트')) {
-          return 'white';
-        }
-        if (c === 'gr' || c.includes('gray') || c.includes('grey') || c.includes('회색')) {
-          return 'gray';
-        }
-      }
-      return colorVal;
-    }
-    if (key === 'dog_birth') {
-      if (type === 'shepherd') return formatDateKr(pedigree.birthDate);
-      return formatDateHyphen(pedigree.birthDate);
-    }
-    if (key === 'dog_join') {
-      if (type === 'shepherd') return pedigree.joinDate || '-';
-      return formatDateHyphen(pedigree.joinDate);
-    }
-    if (key === 'dog_owner_change') {
-      const latest = ownerHistory[0];
-      let dateVal = '';
-      if (latest && isValidDate(latest.change_date)) {
-        dateVal = latest.change_date;
-      } else if (latest && isValidDate(latest.sign_date)) {
-        dateVal = latest.sign_date;
-      }
-      
-      if (!isValidDate(dateVal)) {
-        return '';
-      }
-
-      return formatDateHyphen(dateVal);
-    }
-    if (key === 'dog_breeder') return pedigree.breeder || '-';
-    if (key === 'dog_breeder_addr') return pedigree.breederAddr || '-';
-    if (key === 'dog_owner') return pedigree.owner || '-';
-    if (key === 'dog_owner_addr') return pedigree.ownerAddr || '-';
-    if (key === 'reg_no') return pedigree.regNo || '-';
-    if (key === 'dog_dna') return type === 'general' ? '' : (pedigree.specDna || '-');
-    if (key === 'microchip') {
-      if (type === 'general') return '';
-      if (type === 'shepherd') return pedigree.microchip || (pedigree as any).micro || '-';
-      const micro = (pedigree.microchip || (pedigree as any).micro || '').trim();
-      const index = (pedigree.indexNo || '').trim();
-      const parts: string[] = [];
-      if (micro && micro !== '0' && micro !== '-') parts.push(micro);
-      if (index && index !== '0' && index !== '-') parts.push(index);
-      return parts.join(' / ') || '-';
-    }
-    if (key === 'foreign_no') return pedigree.foreignNo || '-';
-    if (key === 'foreign_no2') return pedigree.foreignNo2 || '-';
-    if (key === 'domestic_no') return pedigree.domesticNo || '-';
-    if (key === 'dongtae_no' || key === 'dog_litter') {
-      if (type === 'shepherd') {
-        return fullLitterList || '-';
-      }
-      return jindoLitterList || '-';
-    }
-    if (key === 'dog_breed') return pedigree.breed || '-';
-    if (key === 'index_no') return type === 'general' ? '' : (pedigree.indexNo || '-');
-    if (key === 'ok_date') {
-      if (type === 'shepherd') return '';
-      const parts = [pedigree.specWin, pedigree.specDna, pedigree.specBone, pedigree.specTrain].map(s => (s || '').trim()).filter(Boolean);
-      if (parts.length > 0) return parts.join(' / ');
-      return pedigree.okDate || (pedigree.okStat === 'Y' ? '기록 확인' : '-');
-    }
-    if (key === 'ok_term') {
-      if (type === 'shepherd') {
-        const start = formatYearMonth(okStartDate);
-        const end = formatYearMonth(okEndDate);
-        if (!start && !end) return '';
-        if (start && end) return `${start}~${end}`;
-        if (start) return `${start}~`;
-        return `~${end}`;
-      }
-      const start = formatDateHyphen(okStartDate) || '';
-      const end = formatDateHyphen(okEndDate) || '';
-      if (type === 'jindo') {
-        if (!start && !end) return '종견인정검사 기간 -';
-        if (start && end) return `종견인정검사 기간 ${start}~${end}`;
-        if (start) return `종견인정검사 기간 ${start}~`;
-        return `종견인정검사 기간 ~${end}`;
-      }
-      if (!start && !end) return '-';
-      if (start && end) return `${start}~${end}`;
-      if (start) return `${start}~`;
-      return `~${end}`;
-    }
-    if (key === 'birth_litter') return `Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}`;
-    if (key === 'dog_relate') {
-      const val = pedigree.specRelate || '-';
-      if (val !== '-') {
-        return val.split('/').map(part => part.trim().replace(/\s+/g, ' ')).filter(Boolean).join('\n');
-      }
-      return val;
-    }
-    if (key === 'litter_birth_m') return getLitterValue('birth_M') || '0';
-    if (key === 'litter_birth_f') return getLitterValue('birth_F') || '0';
-    if (key === 'litter_dead_m') return getLitterValue('dead_M') || '0';
-    if (key === 'litter_dead_f') return getLitterValue('dead_F') || '0';
-    if (key === 'litter_cancel_m') return getLitterValue('cancel_M') || '0';
-    if (key === 'litter_cancel_f') return getLitterValue('cancel_F') || '0';
-    if (key === 'litter_dead2_m') return getLitterValue('dead2_M') || '0';
-    if (key === 'litter_dead2_f') return getLitterValue('dead2_F') || '0';
-    if (key === 'litter_missing_m') return getLitterValue('missing_M') || '0';
-    if (key === 'litter_missing_f') return getLitterValue('missing_F') || '0';
-    if (key === 'litter_bringup_m') return getLitterValue('bringup_M') || '0';
-    if (key === 'litter_bringup_f') return getLitterValue('bringup_F') || '0';
-    if (key === 'litter_reg_m') return getLitterValue('reg_count_M') || '0';
-    if (key === 'litter_reg_f') return getLitterValue('reg_count_F') || '0';
-
-    if (key === 'birth_litter') return `Male: ${getLitterValue('birth_M')} / Female: ${getLitterValue('birth_F')}`;
-    if (key === 'birth_count') {
-      const bm = parseInt(getLitterValue('birth_M')) || 0;
-      const bf = parseInt(getLitterValue('birth_F')) || 0;
-      const total = bm + bf;
-      return total > 0 ? total.toString() : '1';
-    }
-    if (key === 'dead_count') {
-      const dm = parseInt(getLitterValue('dead_M')) || 0;
-      const df = parseInt(getLitterValue('dead_F')) || 0;
-      const d2m = parseInt(getLitterValue('dead2_M')) || 0;
-      const d2f = parseInt(getLitterValue('dead2_F')) || 0;
-      return (dm + df + d2m + d2f).toString();
-    }
-    if (key === 'reg_count') return `Male: ${getLitterValue('reg_count_M')} / Female: ${getLitterValue('reg_count_F')}`;
-    if (key === 'issue_date') {
-      const today = new Date();
-      const y = today.getFullYear();
-      const m = String(today.getMonth() + 1).padStart(2, '0');
-      const d = String(today.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-    
-    // Ancestors
-    if (key.startsWith('ancestor_')) {
-      const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|litter|ok_term|ok_content|birth|foreign|slash1|slash2|slash3|slash4)$/);
-      if (match) {
-        const nodeId = parseInt(match[1]);
-        const field = match[2];
-        if (field.startsWith('slash')) return '/';
-
-        let parentRegVal = '';
-        if (nodeId === 2 || nodeId === 3) {
-          const dog = ancestorTree[nodeId];
-          if (dog) {
-            let rVal = (dog.reg_no || '').trim();
-            if (!rVal || rVal === '0' || rVal === '-') {
-              const dom = (dog.foreign100 || '').trim();
-              if (dom && dom !== '0' && dom !== '-') {
-                parentRegVal = dom;
-              } else {
-                const f1 = (dog.foreign_no || '').trim();
-                const f2 = (dog.foreign_no2 || '').trim();
-                parentRegVal = (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
-              }
-            } else {
-              parentRegVal = rVal;
-            }
-          }
-          if (!parentRegVal || parentRegVal === '0' || parentRegVal === '-') {
-            const fallbackReg = nodeId === 2 ? pedigree.sireRegNo : pedigree.damRegNo;
-            const fallbackRegText = nodeId === 2 ? pedigree.sireRegNoText : pedigree.damRegNoText;
-            parentRegVal = (fallbackRegText || fallbackReg || '').toString().trim();
-          }
-        }
-
-        if (field === 'litter') {
-          if (type === 'shepherd' && (nodeId === 2 || nodeId === 3)) {
-            const dbRange = nodeId === 2 ? sireLitterRange : damLitterRange;
-            
-            let fallbackVal = '';
-            const dog = ancestorTree[nodeId];
-            if (dog) {
-              const rVal = (dog.reg_no || '').trim();
-              if (!rVal || rVal === '0' || rVal === '-') {
-                const dom = (dog.foreign100 || '').trim();
-                if (dom && dom !== '0' && dom !== '-') {
-                  fallbackVal = dom;
-                } else {
-                  const f1 = (dog.foreign_no || '').trim();
-                  const f2 = (dog.foreign_no2 || '').trim();
-                  fallbackVal = (f1 && f2) ? `${f1}~${f2}` : (f1 || f2 || '');
-                }
-              } else {
-                fallbackVal = rVal;
-              }
-            }
-            if (!fallbackVal || fallbackVal === '0' || fallbackVal === '-') {
-              const fallbackReg = nodeId === 2 ? pedigree.sireRegNo : pedigree.damRegNo;
-              const fallbackRegText = nodeId === 2 ? pedigree.sireRegNoText : pedigree.damRegNoText;
-              fallbackVal = (fallbackRegText || fallbackReg || '').toString().trim();
-            }
-
-            const rawVal = dbRange ? dbRange : fallbackVal;
-            if (rawVal.length >= 25) {
-              return rawVal.replace('~', '~\n');
-            }
-            return rawVal;
-          }
-          return '';
-        }
-
-        if (field === 'ok_term') {
-          if (type === 'shepherd' && (nodeId === 2 || nodeId === 3)) {
-            const rawVal = nodeId === 2 ? sireOkTerm : damOkTerm;
-            if (rawVal.length >= 25) {
-              return rawVal.replace('~', '~\n');
-            }
-            return rawVal;
-          }
-          return '';
-        }
-
-        if (field === 'ok_content') {
-          if (type === 'shepherd' && (nodeId === 2 || nodeId === 3)) {
-            const dog = ancestorTree[nodeId];
-            const rawVal = dog ? (dog.spec_male || '').trim() : '';
-            return wrapTextAt25(rawVal);
-          }
-          return '';
-        }
-
-        const dog = ancestorTree[nodeId];
-        if (!dog) return '';
-        
-         if (field === 'name') {
-           if (type === 'jindo' && (nodeId === 2 || nodeId === 3)) {
-             let dogName = (dog.name || '').trim();
-             let saho = (dog.saho || dog.saho_eng || '').trim();
-             if (!dogName && !saho && dog.fullname) {
-               const parts = dog.fullname.trim().split(/\s+/);
-               if (parts.length > 1) {
-                 dogName = parts[0];
-                 saho = parts.slice(1).join(' ');
-               }
-             }
-              if (dogName && saho) {
-                return `${dogName} ${saho}`;
-              }
-             return dog.fullname || dogName || saho || '';
-           }
-           if (type === 'general' && (nodeId === 2 || nodeId === 3)) {
-             let dogName = (dog.name || '').trim();
-             let saho = (dog.saho_eng || dog.saho || '').trim();
-             if (!dogName && !saho && dog.fullname) {
-               const parts = dog.fullname.trim().split(/\s+/);
-               if (parts.length > 1) {
-                 dogName = parts[0];
-                 saho = parts.slice(1).join(' ');
-               }
-             }
-              if (dogName && saho) {
-                return `${dogName} ${saho}`;
-              }
-             return dog.fullname || dogName || saho || '';
-           }
-
-            let nameVal = dog.fullname || dog.name || '';
-            if (type === 'shepherd') {
-              const dogName = (dog.name || '').trim();
-              const sahoEng = (dog.saho_eng || '').trim();
-              if (nodeId === 2 || nodeId === 3) {
-                if (dogName && sahoEng) {
-                  nameVal = `${dogName}\n${sahoEng}`;
-                } else {
-                  nameVal = dog.fullname || dogName || sahoEng || '';
-                }
-              } else {
-                const base = (dog.fullname || dog.name || '').trim();
-                if (sahoEng && !base.toLowerCase().includes(sahoEng.toLowerCase())) {
-                  nameVal = `${base} ${sahoEng}`;
-                } else {
-                  nameVal = base;
-                }
-              }
-            }
-            if (type === 'shepherd' && nodeId >= 4 && nodeId <= 31) {
-              const dnaVal = (dog.spec_dna || '').trim();
-              const baseName = [nameVal, dnaVal].filter(Boolean).join(' ');
-             if (nodeId >= 16) {
-                const rVal = (dog.reg_no || '').trim();
-                const dom = (dog.foreign100 || '').trim();
-                const f1 = (dog.foreign_no || '').trim();
-                const f2 = (dog.foreign_no2 || '').trim();
-                const regParts = [rVal, dom, f1, f2]
-                  .map(s => s.trim())
-                  .filter(s => s && s !== '0' && s !== '-');
-                const regVal = regParts.join(' ');
-                const trainVal = (dog.spec_train || '').trim();
-               const boneVal = (dog.spec_bone || '').trim();
-               const winVal = (dog.spec_win || '').trim();
-               let regLine = [regVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
-               if (regLine.length >= 40) {
-                 regLine = wrapTextAt40(regLine);
-               }
-               return regLine ? `${baseName}\n${regLine}` : baseName;
-             }
-             return baseName;
-           }
-           return nameVal;
-         }
-         if (field === 'reg') {
-           if (type !== 'shepherd' && nodeId >= 2 && nodeId <= 15) {
-             const rVal = (dog.reg_no || '').trim();
-             const dom = (dog.foreign100 || '').trim(); const train = (dog.spec_train || '').trim(); const micro = (dog.micro || (dog as any).microchip || '').trim();
-             const parts: string[] = [];
-             if (rVal && rVal !== '0' && rVal !== '-') parts.push(rVal);
-             if (dom && dom !== '0' && dom !== '-') parts.push(dom); if (train && train !== '0' && train !== '-') parts.push(train); if (micro && micro !== '0' && micro !== '-') parts.push(micro);
-             if (true) {
-               return parts.join(' ');
-             }
-             // f1
-             // f2
-             return '';
-           }
-
-           const rVal = (dog.reg_no || '').trim();
-           const dom = (dog.foreign100 || '').trim();
-           let regVal = '';
-           if (rVal && rVal !== '0' && rVal !== '-') {
-             regVal = rVal;
-             if (dom && dom !== '0' && dom !== '-') {
-               regVal += ' ' + dom;
-             }
-           } else if (dom && dom !== '0' && dom !== '-') {
-             regVal = dom;
-           } else {
-             const f1 = (dog.foreign_no || '').trim();
-             const f2 = (dog.foreign_no2 || '').trim();
-             regVal = (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
-           }
-           if (type === 'shepherd') {
-              if (nodeId === 2 || nodeId === 3) {
-                const dnaVal = (dog.spec_dna || '').trim();
-                const boneVal = (dog.spec_bone || '').trim();
-                return [regVal, dnaVal, boneVal].filter(Boolean).join(' ');
-              }
-              if (nodeId >= 4 && nodeId <= 7) {
-                const rVal2 = (dog.reg_no || '').trim();
-                const dom2 = (dog.foreign100 || '').trim();
-                const f1 = (dog.foreign_no || '').trim();
-                const f2 = (dog.foreign_no2 || '').trim();
-                const parts = [rVal2, dom2, f1, f2]
-                  .map(s => s.trim())
-                  .filter(s => s && s !== '0' && s !== '-');
-                return parts.join(' ');
-              }
-              if (nodeId >= 8 && nodeId <= 15) {
-                const rVal2 = (dog.reg_no || '').trim();
-                const dom2 = (dog.foreign100 || '').trim();
-                const f1 = (dog.foreign_no || '').trim();
-                const f2 = (dog.foreign_no2 || '').trim();
-                const trainVal = (dog.spec_train || '').trim();
-                const parts = [rVal2, dom2, f1, f2, trainVal]
-                  .map(s => s.trim())
-                  .filter(s => s && s !== '0' && s !== '-');
-                return parts.join(' ');
-              }
-              if (nodeId >= 16 && nodeId <= 31) {
-                return '';
-              }
-            }
-            return regVal;
-         }
-        if (field === 'extra') {
-          const extraList = [
-            dog.spec_win,
-            dog.spec_dna,
-            dog.spec_bone,
-            dog.spec_train
-          ].map(s => (s || '').toString().trim()).filter(Boolean);
-          return extraList.join(' ');
-        }
-        if (field === 'win') {
-          if (type === 'shepherd' && nodeId >= 8 && nodeId <= 15) {
-            const winVal = (dog.spec_win || '').trim();
-            const boneVal = (dog.spec_bone || '').trim();
-            return [winVal, boneVal].filter(Boolean).join(' ');
-          }
-          return dog.spec_win || '';
-        }
-        if (field === 'train') {
-          if (type === 'shepherd' && nodeId >= 4 && nodeId <= 7) {
-            const trainVal = (dog.spec_train || '').trim();
-            const boneVal = (dog.spec_bone || '').trim();
-            return [trainVal, boneVal].filter(Boolean).join(' ');
-          }
-          return dog.spec_train || '';
-        }
-        if (field === 'dna') return dog.spec_dna || '';
-        if (field === 'bone') return dog.spec_bone || '';
-        if (field === 'color') {
-          if (type === 'shepherd') return dog.hair || '';
-          return getColorAbbr(dog.hair) || '';
-        }
-        if (field === 'micro') return dog.micro || (dog as any).microchip || '';
-        if (field === 'birth') return formatDateHyphen(dog.birth) || '';
-        if (field === 'foreign') {
-          const f1 = (dog.foreign_no || '').trim();
-          const f2 = (dog.foreign_no2 || '').trim();
-          return (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
-        }
-      }
-    }
-    return '';
-  };
-
   const fetchDogsByKeys = async (keys: string[]): Promise<Record<string, ParentDogInfo>> => {
     const cleanedKeys = Array.from(new Set(keys.map(k => (k || '').toString().trim()).filter(k => k && k !== '0' && k !== '-' && k !== '미등록')));
     if (cleanedKeys.length === 0) return {};
@@ -1075,7 +299,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
   const handleResetCoords = () => {
     if (!activePrintType) return;
-    if (window.confirm("모든 좌표와 오차 설정을 기본 초기값으로 리셋하시겠습니까?")) {
+    if (window.confirm("모든 좌표 보정값을 기본 초기값으로 리셋하시겠습니까?")) {
       localStorage.removeItem(`pedigree_coords_${activePrintType}`);
       localStorage.removeItem(`pedigree_offset_${activePrintType}_top`);
       localStorage.removeItem(`pedigree_offset_${activePrintType}_left`);
@@ -1096,420 +320,59 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
     const jsonStr = JSON.stringify(editorCoords, null, 2);
     navigator.clipboard.writeText(jsonStr)
       .then(() => {
-        alert("🎉 보정된 좌표 데이터 JSON이 클립보드에 복사되었습니다!\n\n개발자에게 이 JSON 내용을 전달하면 기본 좌표로 저장할 수 있습니다.");
+        alert("보정된 좌표 데이터 JSON이 클립보드에 복사되었습니다.\n\n개발자에게 이 JSON 내용을 전달하면 기본 좌표로 수정할 수 있습니다.");
       })
       .catch(err => {
-        prompt("클립보드 복사에 실패했습니다. 아래 텍스트를 직접 복사하세요:", jsonStr);
+        prompt("클립보드 복사에 실패했습니다. 아래 텍스트를 직접 복사하세요.", jsonStr);
       });
   };
 
   const handleSaveToServer = async () => {
     if (!activePrintType) return;
-    if (window.confirm("현재 조정한 모든 좌표들을 서버 데이터베이스에 영구적으로 저장하시겠습니까?\n이후 다른 PC나 브라우저에서도 이 좌표가 기본값으로 적용됩니다.")) {
+    if (window.confirm("현재 조정한 모든 좌표값을 서버 데이터베이스에 영구적으로 저장하시겠습니까?\n이후 다른 PC나 브라우저에서도 이 좌표가 기본값으로 적용됩니다.")) {
       setIsSavingLayout(true);
       try {
         const res = await savePedigreeLayout(activePrintType, editorCoords);
         if (res.success) {
-          alert("🎉 서버 데이터베이스에 혈통서 좌표 레이아웃이 성공적으로 영구 저장되었습니다!");
+          alert("서버 데이터베이스에 공통 좌표 레이아웃이 성공적으로 영구 저장되었습니다!");
         } else {
-          alert("❌ 서버 저장에 실패했습니다: " + (res.error || "알 수 없는 오류"));
+          alert("서버 저장에 실패했습니다: " + (res.error || "알 수 없는 오류"));
         }
       } catch (err: any) {
         console.error(err);
-        alert("❌ 서버 통신 오류가 발생했습니다: " + err.message);
+        alert("서버 통신 오류가 발생했습니다: " + err.message);
       } finally {
         setIsSavingLayout(false);
       }
     }
   };
 
-  const generateShepherdPrintHtml = (useSample: boolean) => {
-    const type = 'shepherd';
-    const layout = DEFAULT_PEDIGREE_LAYOUTS[type];
-    const finalCoords = { ...layout.fields };
-    const saved = localStorage.getItem(`pedigree_coords_${type}`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        Object.keys(parsed).forEach(k => {
-          if (finalCoords[k]) {
-            const savedItem = parsed[k];
-            if (savedItem && typeof savedItem.left === 'number' && savedItem.left > 0 && typeof savedItem.top === 'number' && savedItem.top > 0) {
-              finalCoords[k] = { ...finalCoords[k], ...savedItem };
-            }
-          }
-        });
-      } catch (e) {}
-    }
-
-    let fieldsHtml = '';
-    Object.keys(finalCoords).forEach(key => {
-      const matchReg = key.match(/^ancestor_(\d+)_reg$/);
-      if (matchReg) {
-        const nodeId = parseInt(matchReg[1]);
-        if (nodeId >= 16 && nodeId <= 31) return;
-      }
-      const coord = finalCoords[key];
-      let val = useSample ? getSampleValue(key, type) : getRealValue(key, type);
-      if (val === undefined || val === null) val = '';
-
-      const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
-      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: inherit; text-align: left;' : '');
-      const isAncestor = key.startsWith('ancestor_');
-      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_ok_term') || key.endsWith('_ok_content') || (key.startsWith('ancestor_') && key.endsWith('_name'));
-      const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all; line-height: 1.15;' : '';
-      let coordWidth = coord.width;
-      if (type === 'shepherd') {
-        const matchName = key.match(/^ancestor_(\d+)_name$/);
-        if (matchName) {
-          const nodeId = parseInt(matchName[1]);
-          if (nodeId >= 16 && nodeId <= 31) {
-            if (!coordWidth || coordWidth < 60) {
-              coordWidth = 60;
-            }
-          }
-        }
-      }
-      const widthStyle = coordWidth 
-        ? (isAncestor 
-            ? `width: ${coordWidth}mm;` 
-            : `width: ${coordWidth}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;`)
-        : '';
-
-      const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
-      const linesCount = typeof val === 'string' ? val.split('\n').length : 1;
-      let dynamicFontSize = coord.fontSize || 0.95;
-      if (key.startsWith('ancestor_') && key.endsWith('_name') && linesCount >= 3) {
-        dynamicFontSize = dynamicFontSize * (0.70 / 0.88);
-      }
-
-      fieldsHtml += `
-        <div class="field" 
-             style="left: ${coord.left}mm; top: ${coord.top}mm; font-size: ${dynamicFontSize}em; ${fontStyle} ${widthStyle} ${wrapStyle}">
-          ${formattedVal}
-        </div>
-      `;
-    });
-
-    const pageWidth = `${layout.pageWidth}mm`;
-    const pageHeight = `${layout.pageHeight}mm`;
-    const pageSize = layout.pageSize;
-
-    const savedTop = localStorage.getItem(`pedigree_offset_${type}_top`) || '0';
-    const savedLeft = localStorage.getItem(`pedigree_offset_${type}_left`) || '0';
-    const savedScale = localStorage.getItem(`pedigree_offset_${type}_scale`) || '100';
-    const savedBold = localStorage.getItem(`pedigree_offset_${type}_bold`) !== 'false';
-
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${layout.title}</title>
-  <style>
-    @page {
-      size: landscape;
-      margin: 0;
-    }
-    body {
-      margin: 0;
-      padding: 0;
-      width: 420mm;
-      height: 297mm;
-      overflow: hidden;
-      background-color: transparent;
-      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Dotum', sans-serif;
-      -webkit-print-color-adjust: exact;
-    }
-    .print-content {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: ${pageWidth};
-      height: ${pageHeight};
-      transform: translate(${savedLeft}mm, ${savedTop}mm);
-      font-size: calc(9pt * (${savedScale} / 100));
-      font-weight: ${savedBold ? 'bold' : 'normal'};
-      color: black;
-      line-height: 1.15;
-    }
-    .field {
-      position: absolute;
-      white-space: nowrap;
-      box-sizing: border-box;
-    }
-    @media print {
-      body {
-        background-color: transparent;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="print-content">
-    ${fieldsHtml}
-  </div>
-</body>
-</html>
-    `;
+  const getRealValue = (key: string, type: 'shepherd' | 'jindo' | 'general') => {
+    const options = {
+      pedigree,
+      useSample: useSampleMode,
+      ancestorTree,
+      ownerHistory,
+      litterInfo,
+      isLoadingLitter,
+      fullLitterList,
+      sireLitterRange,
+      damLitterRange,
+      sireOkTerm,
+      damOkTerm,
+      jindoLitterList,
+      okStartDate,
+      okEndDate,
+    };
+    if (type === 'shepherd') return getShepherdRealValue(key, options);
+    if (type === 'jindo') return getJindoRealValue(key, options);
+    return getGeneralRealValue(key, options);
   };
 
-  const getJindoScaledCoords = (coords: Record<string, any>) => {
-    const reg = coords['reg_no'];
-    if (reg && reg.left > 200) {
-      const scaled: Record<string, any> = {};
-      Object.keys(coords).forEach(k => {
-        const c = coords[k];
-        if (c) {
-          scaled[k] = {
-            ...c,
-            left: Number((c.left * (380 / 420)).toFixed(2)),
-            top: Number((c.top * (260 / 297)).toFixed(2)),
-            fontSize: c.fontSize ? Number((c.fontSize * (260 / 297)).toFixed(2)) : undefined,
-            width: c.width ? Number((c.width * (380 / 420)).toFixed(2)) : undefined
-          };
-        }
-      });
-      return scaled;
-    }
-    return coords;
-  };
-
-  const generateJindoPrintHtml = (useSample: boolean) => {
-    const type = 'jindo';
-    const layout = DEFAULT_PEDIGREE_LAYOUTS[type];
-    let finalCoords = { ...layout.fields };
-    const saved = localStorage.getItem(`pedigree_coords_${type}`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        Object.keys(parsed).forEach(k => {
-          if (finalCoords[k]) {
-            const savedItem = parsed[k];
-            if (savedItem && typeof savedItem.left === 'number' && savedItem.left > 0 && typeof savedItem.top === 'number' && savedItem.top > 0) {
-              finalCoords[k] = { ...finalCoords[k], ...savedItem };
-            }
-          }
-        });
-      } catch (e) {}
-    }
-    finalCoords = getJindoScaledCoords(finalCoords);
-
-    let fieldsHtml = '';
-    Object.keys(finalCoords).forEach(key => {
-      const matchReg = key.match(/^ancestor_(\d+)_reg$/);
-      if (matchReg) {
-        const nodeId = parseInt(matchReg[1]);
-        if (nodeId >= 16 && nodeId <= 31) return;
-      }
-      const coord = finalCoords[key];
-      let val = useSample ? getSampleValue(key, type) : getRealValue(key, type);
-      if (val === undefined || val === null) val = '';
-
-      const isBold = key === 'dog_name' || key === 'reg_no' || key.endsWith('_name');
-      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: inherit; text-align: left;' : '');
-      const isAncestor = key.startsWith('ancestor_');
-      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter';
-      const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
-      let coordWidth = coord.width;
-      if ((type as string) === 'shepherd') {
-        const matchName = key.match(/^ancestor_(\d+)_name$/);
-        if (matchName) {
-          const nodeId = parseInt(matchName[1]);
-          if (nodeId >= 16 && nodeId <= 31) {
-            if (!coordWidth || coordWidth < 60) {
-              coordWidth = 60;
-            }
-          }
-        }
-      }
-      const widthStyle = coordWidth 
-        ? (isAncestor 
-            ? `width: ${coordWidth}mm;` 
-            : `width: ${coordWidth}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;`)
-        : '';
-
-      const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
-
-      fieldsHtml += `
-        <div class="field" 
-             style="left: ${coord.left}mm; top: ${coord.top}mm; font-size: ${coord.fontSize || 0.95}em; ${fontStyle} ${widthStyle} ${wrapStyle}">
-          ${formattedVal}
-        </div>
-      `;
-    });
-
-    const pageWidth = `${layout.pageWidth}mm`;
-    const pageHeight = `${layout.pageHeight}mm`;
-    const pageSize = layout.pageSize;
-
-    const savedTop = localStorage.getItem(`pedigree_offset_${type}_top`) || '0';
-    const savedLeft = localStorage.getItem(`pedigree_offset_${type}_left`) || '0';
-    const savedScale = localStorage.getItem(`pedigree_offset_${type}_scale`) || '100';
-    const savedBold = localStorage.getItem(`pedigree_offset_${type}_bold`) !== 'false';
-
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${layout.title}</title>
-  <style>
-    @page {
-      size: ${pageSize};
-      margin: 0;
-    }
-    body {
-      margin: 0;
-      padding: 0;
-      width: ${pageWidth};
-      height: ${pageHeight};
-      overflow: hidden;
-      background-color: transparent;
-      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Dotum', sans-serif;
-      -webkit-print-color-adjust: exact;
-    }
-    .print-content {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: ${pageWidth};
-      height: ${pageHeight};
-      transform: translate(${savedLeft}mm, ${savedTop}mm);
-      font-size: calc(9pt * (${savedScale} / 100));
-      font-weight: ${savedBold ? 'bold' : 'normal'};
-      color: black;
-      line-height: 1.15;
-    }
-    .field {
-      position: absolute;
-      white-space: nowrap;
-      box-sizing: border-box;
-    }
-    @media print {
-      body {
-        background-color: transparent;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="print-content">
-    ${fieldsHtml}
-  </div>
-</body>
-</html>
-    `;
-  };
-
-  const generateGeneralPrintHtml = (useSample: boolean) => {
-    const type = 'general';
-    const layout = DEFAULT_PEDIGREE_LAYOUTS[type];
-    const finalCoords = { ...layout.fields };
-    const saved = localStorage.getItem(`pedigree_coords_${type}`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        Object.keys(parsed).forEach(k => {
-          if (finalCoords[k]) {
-            const savedItem = parsed[k];
-            if (savedItem && typeof savedItem.left === 'number' && savedItem.left > 0 && typeof savedItem.top === 'number' && savedItem.top > 0) {
-              finalCoords[k] = { ...finalCoords[k], ...savedItem };
-            }
-          }
-        });
-      } catch (e) {}
-    }
-
-    let fieldsHtml = '';
-    Object.keys(finalCoords).forEach(key => {
-      const matchReg = key.match(/^ancestor_(\d+)_reg$/);
-      if (matchReg) {
-        const nodeId = parseInt(matchReg[1]);
-        if (nodeId >= 16 && nodeId <= 31) return;
-      }
-      const coord = finalCoords[key];
-      let val = useSample ? getSampleValue(key, type) : getRealValue(key, type);
-      if (val === undefined || val === null) val = '';
-
-      const isBold = (key === 'dog_name' ? false : (key === 'reg_no' || key.endsWith('_name')));
-      const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? " font-family: 'Times New Roman', Georgia, serif; text-align: center; font-weight: 300; letter-spacing: -0.03em; transform: scaleX(0.85); transform-origin: center; display: inline-block;" : '');
-      const isAncestor = key.startsWith('ancestor_');
-      const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter';
-      const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
-      const widthStyle = (coord.width || (key === 'dog_name' ? 120 : undefined)) && !isAncestor && key !== 'dog_color' ? `width: ${coord.width || 120}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` : '';
-
-      const formattedVal = typeof val === 'string' ? (isWrap ? val.replace(/\n/g, '<br />') : val.replace(/\n/g, ' ')) : val;
-
-      fieldsHtml += `
-        <div class="field" 
-             style="left: ${coord.left - 210}mm; top: ${coord.top}mm; font-size: ${coord.fontSize || 0.95}em; ${fontStyle} ${widthStyle} ${wrapStyle}">
-          ${formattedVal}
-        </div>
-      `;
-    });
-
-    const pageWidth = `${layout.pageWidth}mm`;
-    const pageHeight = `${layout.pageHeight}mm`;
-    const pageSize = layout.pageSize;
-
-    const savedTop = localStorage.getItem(`pedigree_offset_${type}_top`) || '0';
-    const savedLeft = localStorage.getItem(`pedigree_offset_${type}_left`) || '0';
-    const savedScale = localStorage.getItem(`pedigree_offset_${type}_scale`) || '100';
-    const savedBold = localStorage.getItem(`pedigree_offset_${type}_bold`) !== 'false';
-
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${layout.title}</title>
-  <style>
-    @page {
-      size: ${pageSize};
-      margin: 0;
-    }
-    body {
-      margin: 0;
-      padding: 0;
-      width: 210mm;
-      height: 297mm;
-      overflow: hidden;
-      background-color: transparent;
-      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Dotum', sans-serif;
-      -webkit-print-color-adjust: exact;
-    }
-    .print-content {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 210mm;
-      height: 297mm;
-      transform: translate(${savedLeft}mm, ${savedTop}mm);
-      font-size: calc(9pt * (${savedScale} / 100));
-      font-weight: ${savedBold ? 'bold' : 'normal'};
-      color: black;
-      line-height: 1.15;
-    }
-    .field {
-      position: absolute;
-      white-space: nowrap;
-      box-sizing: border-box;
-    }
-    @media print {
-      body {
-        background-color: transparent;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="print-content">
-    ${fieldsHtml}
-  </div>
-</body>
-</html>
-    `;
+  const getSampleValue = (key: string, type: 'shepherd' | 'jindo' | 'general') => {
+    if (type === 'shepherd') return getShepherdSampleValue(key);
+    if (type === 'jindo') return getJindoSampleValue(key);
+    return getGeneralSampleValue(key);
   };
 
   const printViaIframe = (type: 'shepherd' | 'jindo' | 'general', htmlContent: string) => {
@@ -1541,13 +404,29 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
   const handlePrintAction = () => {
     if (!activePrintType) return;
+    const options = {
+      pedigree,
+      useSample: useSampleMode,
+      ancestorTree,
+      ownerHistory,
+      litterInfo,
+      isLoadingLitter,
+      fullLitterList,
+      sireLitterRange,
+      damLitterRange,
+      sireOkTerm,
+      damOkTerm,
+      jindoLitterList,
+      okStartDate,
+      okEndDate,
+    };
     let htmlContent = '';
     if (activePrintType === 'shepherd') {
-      htmlContent = generateShepherdPrintHtml(useSampleMode);
+      htmlContent = generateShepherdPrintHtml(options);
     } else if (activePrintType === 'jindo') {
-      htmlContent = generateJindoPrintHtml(useSampleMode);
+      htmlContent = generateJindoPrintHtml(options);
     } else if (activePrintType === 'general') {
-      htmlContent = generateGeneralPrintHtml(useSampleMode);
+      htmlContent = generateGeneralPrintHtml(options);
     }
     printViaIframe(activePrintType, htmlContent);
   };
@@ -1844,7 +723,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       let damRangeVal = '';
       let sireOkTermVal = '';
       let damOkTermVal = '';
-      if (type === 'shepherd') {
+      if (type === 'shepherd' || type === 'jindo') {
         const sireDog = tree[2];
         const damDog = tree[3];
 
@@ -1986,6 +865,20 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
             });
           } catch (e) {}
         }
+      }
+      if (type === 'general') {
+        Object.keys(initialCoords).forEach(k => {
+          const match = k.match(/^ancestor_(\d+)_/);
+          if (match) {
+            const nodeId = parseInt(match[1], 10);
+            if (nodeId >= 2 && nodeId <= 15) {
+              if (!initialCoords[k].width || initialCoords[k].width === 48 || initialCoords[k].width === 55 || initialCoords[k].width === 65) {
+                initialCoords[k].width = 70;
+              }
+            }
+          }
+        });
+        localStorage.setItem(`pedigree_coords_${type}`, JSON.stringify(initialCoords));
       }
       if (type === 'jindo') {
         initialCoords = getJindoScaledCoords(initialCoords);
@@ -2836,10 +1729,12 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                     >
                       {/* Render Coordinates */}
                       {Object.keys(editorCoords).filter(key => {
-                        const matchReg = key.match(/^ancestor_(\d+)_reg$/);
-                        if (matchReg) {
-                          const nodeId = parseInt(matchReg[1]);
-                          if (nodeId >= 16 && nodeId <= 31) return false;
+                        if (activePrintType === 'shepherd') {
+                          const matchReg = key.match(/^ancestor_(\d+)_reg$/);
+                          if (matchReg) {
+                            const nodeId = parseInt(matchReg[1]);
+                            if (nodeId >= 16 && nodeId <= 31) return false;
+                          }
                         }
                         return true;
                       }).map(key => {
@@ -2943,6 +1838,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                               display: (key === 'dog_name' && activePrintType === 'general') ? 'inline-block' : 'block',
                               width: (() => {
                                 let w = coord.width || (key === 'dog_name' && activePrintType === 'general' ? 120 : undefined);
+
                                 if (activePrintType === 'shepherd') {
                                   const match = key.match(/^ancestor_(\d+)_name$/);
                                   if (match) {
