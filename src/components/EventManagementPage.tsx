@@ -787,7 +787,7 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
                                 className="bg-white rounded-xl border border-slate-100 overflow-hidden flex flex-col hover:shadow-lg transition-all duration-300 group cursor-pointer"
                             >
                                 {/* Top Image Section */}
-                                <div className="w-full aspect-[4/3] relative overflow-hidden bg-slate-50 border-b border-slate-50">
+                                <div className="w-full aspect-video relative overflow-hidden bg-slate-50 border-b border-slate-50">
                                     {e.thumbnail_url ? (
                                         <img
                                             src={e.thumbnail_url}
@@ -1135,7 +1135,7 @@ export const EventManagementPage: React.FC<any> = ({ isAdmin = true, showAlert, 
                                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12">
                                         {/* Info Sidebar */}
                                         <div className="lg:col-span-4 space-y-6 md:space-y-8">
-                                            <div className="rounded-3xl overflow-hidden shadow-xl aspect-square bg-slate-100 relative group">
+                                            <div className="rounded-3xl overflow-hidden shadow-xl aspect-video bg-slate-100 relative group">
                                                 {viewEvent.thumbnail_url ? (
                                                     <img src={viewEvent.thumbnail_url} className="!w-full !h-full !object-cover" alt={viewEvent.title} />
                                                 ) : (
