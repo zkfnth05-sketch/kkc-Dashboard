@@ -427,13 +427,13 @@ const handleDelete = (id: string, name: string) => {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[14px] font-black text-gray-500">모종</label>
+                                    <label className="text-[14px] font-black text-gray-500">참가유형</label>
                                     <select
                                         className="w-full border border-gray-300 rounded-xl px-4 py-3 text-[15px] font-bold bg-white focus:border-blue-500 outline-none"
                                         value={formData.dog_breed}
                                         onChange={e => setFormData({ ...formData, dog_breed: e.target.value })}
                                     >
-                                        <option value="">모종 선택</option>
+                                        <option value="">참가유형 선택</option>
                                         <option value="위그">위그</option>
                                         <option value="실견">실견</option>
                                     </select>
