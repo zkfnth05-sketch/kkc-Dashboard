@@ -227,24 +227,24 @@ export const MemberTable: React.FC<MemberTableProps> = ({
       </div>
 
       <div className="flex-1 overflow-auto px-5">
-        <table className="w-full text-base text-left border-collapse">
+        <table className="w-full text-[13px] text-left border-collapse">
           <thead className="bg-gray-100 text-gray-800 sticky top-0 z-10">
             <tr>
-              <th className="py-4 px-3 border-y border-gray-200 text-center w-12">
+              <th className="py-2.5 px-3 border-y border-gray-200 text-center w-10">
                 <input
                   type="checkbox"
-                  className="w-4 h-4"
+                  className="w-3.5 h-3.5"
                   checked={members.length > 0 && selectedIds.length === members.length}
                   onChange={handleSelectAll}
                 />
               </th>
-              <th className="py-4 px-3 border-y border-gray-200 font-bold text-sm md:text-base w-24">회원번호</th>
-              <th className="py-4 px-3 border-y border-gray-200 font-bold text-sm md:text-base w-28">아이디</th>
-              <th className="py-4 px-3 border-y border-gray-200 font-black text-sm md:text-base w-32">이름</th>
-              <th className="py-4 px-3 border-y border-gray-200 font-bold text-sm md:text-base w-56">견사호</th>
-              <th className="py-4 px-3 border-y border-gray-200 font-bold text-sm md:text-base w-28">가입일</th>
-              <th className="py-4 px-3 border-y border-gray-200 font-bold text-sm md:text-base w-28">유효일</th>
-              <th className="py-4 px-3 border-y border-gray-200 font-bold text-sm md:text-base w-24">등급</th>
+              <th className="py-2.5 px-3 border-y border-gray-200 font-bold text-gray-700 w-20">회원번호</th>
+              <th className="py-2.5 px-3 border-y border-gray-200 font-bold text-gray-700 w-24">아이디</th>
+              <th className="py-2.5 px-3 border-y border-gray-200 font-black text-gray-800 w-24">이름</th>
+              <th className="py-2.5 px-3 border-y border-gray-200 font-bold text-gray-700 w-44">견사호</th>
+              <th className="py-2.5 px-3 border-y border-gray-200 font-bold text-gray-700">가입일</th>
+              <th className="py-2.5 px-3 border-y border-gray-200 font-bold text-gray-700 w-24">유효일</th>
+              <th className="py-2.5 px-3 border-y border-gray-200 font-bold text-gray-700 w-20">등급</th>
             </tr>
           </thead>
           <tbody>
@@ -262,22 +262,22 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                   className={`cursor-pointer hover:bg-blue-50 transition-colors ${selectedId === member.id ? 'bg-blue-50/70' : ''
                     }`}
                 >
-                  <td className="py-4 px-3 border-b border-gray-100 text-center">
+                  <td className="py-2.5 px-3 border-b border-gray-100 text-center">
                     <input
                       type="checkbox"
-                      className="w-4 h-4"
+                      className="w-3.5 h-3.5"
                       onClick={(e) => e.stopPropagation()}
                       checked={selectedIds.includes(member.id as string)}
                       onChange={(e) => handleSelectOne(e, member.id as string)}
                     />
                   </td>
-                  <td className="py-4 px-3 border-b border-gray-100 text-gray-700 font-mono text-sm font-semibold">{member.mem_no}</td>
-                  <td className="py-4 px-3 border-b border-gray-100 text-gray-700 text-sm font-medium">{member.loginId}</td>
-                  <td className={`py-4 px-3 border-b border-gray-100 font-black text-base md:text-lg ${selectedId === member.id ? 'text-blue-700 font-black' : 'text-gray-900 font-bold'}`}>{member.name}</td>
-                  <td className="py-4 px-3 border-b border-gray-100 text-gray-700 text-sm font-medium whitespace-normal break-words min-w-[160px]" title={member.saho}>{member.saho || '-'}</td>
-                  <td className="py-4 px-3 border-b border-gray-100 text-gray-500 text-sm">{member.joinDate || '-'}</td>
-                  <td className="py-4 px-3 border-b border-gray-100 text-gray-500 text-sm">{member.expiryDate || '-'}</td>
-                  <td className="py-4 px-3 border-b border-gray-100 text-gray-800 text-sm font-extrabold">{formatMemberRank(member.rank)}</td>
+                  <td className="py-2.5 px-3 border-b border-gray-100 text-gray-600 font-mono text-[12px]">{member.mem_no}</td>
+                  <td className="py-2.5 px-3 border-b border-gray-100 text-gray-600 text-[12px]">{member.loginId}</td>
+                  <td className={`py-2.5 px-3 border-b border-gray-100 font-extrabold text-[15px] ${selectedId === member.id ? 'text-blue-600' : 'text-gray-800'}`}>{member.name}</td>
+                  <td className="py-2.5 px-3 border-b border-gray-100 text-gray-600 text-[12px] font-medium whitespace-normal break-words min-w-[160px]" title={member.saho}>{member.saho || '-'}</td>
+                  <td className="py-2.5 px-3 border-b border-gray-100 text-gray-400 text-[12px]">{member.joinDate || '-'}</td>
+                  <td className="py-2.5 px-3 border-b border-gray-100 text-gray-400 text-[12px]">{member.expiryDate || '-'}</td>
+                  <td className="py-2.5 px-3 border-b border-gray-100 text-gray-600 text-[12px] font-bold">{formatMemberRank(member.rank)}</td>
                 </tr>
               ))
             ) : (
