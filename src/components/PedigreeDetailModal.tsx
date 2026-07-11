@@ -867,9 +867,9 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         if (!dog) return '';
         
          if (field === 'name') {
-           if (type !== 'shepherd' && (nodeId === 2 || nodeId === 3)) {
+           if (type === 'jindo' && (nodeId === 2 || nodeId === 3)) {
              let dogName = (dog.name || '').trim();
-             let saho = (type === 'general' ? (dog.saho_eng || dog.saho || '') : (dog.saho || dog.saho_eng || '')).trim();
+             let saho = (dog.saho || dog.saho_eng || '').trim();
              if (!dogName && !saho && dog.fullname) {
                const parts = dog.fullname.trim().split(/\s+/);
                if (parts.length > 1) {
@@ -877,9 +877,24 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                  saho = parts.slice(1).join(' ');
                }
              }
-             if (dogName && saho) {
-               return `${dogName}\n${saho}`;
+              if (dogName && saho) {
+                return `${dogName} ${saho}`;
+              }
+             return dog.fullname || dogName || saho || '';
+           }
+           if (type === 'general' && (nodeId === 2 || nodeId === 3)) {
+             let dogName = (dog.name || '').trim();
+             let saho = (dog.saho_eng || dog.saho || '').trim();
+             if (!dogName && !saho && dog.fullname) {
+               const parts = dog.fullname.trim().split(/\s+/);
+               if (parts.length > 1) {
+                 dogName = parts[0];
+                 saho = parts.slice(1).join(' ');
+               }
              }
+              if (dogName && saho) {
+                return `${dogName} ${saho}`;
+              }
              return dog.fullname || dogName || saho || '';
            }
 
