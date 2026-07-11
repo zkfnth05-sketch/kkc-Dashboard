@@ -222,13 +222,66 @@ export const fetchMemberStats = async (tableName: string, q: string = '', f: str
 };
 
 export const fetchMembers = async (t: string, p: number, q: string, f: string, limit: number = 50, ds: string = '', de: string = '', rank: string = 'all', region: string = '', postType: string = '', job: string = '', proClass: string = '') => {
+    let searchVal = q;
+    let fieldVal = f;
+    let clientFilterName = '';
+    let apiLimit = limit;
+
+    // 🔍 생년월일(숫자) + 이름(문자) 동시 검색 지원 (AND 필터링)
+    if (t === 'memTab' && q) {
+        const parts = q.trim().split(/\s+/);
+        if (parts.length > 1) {
+            const birthIndex = parts.findIndex(part => {
+                const clean = part.replace(/-/g, '');
+                return /^\d{6}$|^\d{8}$/.test(clean);
+            });
+            if (birthIndex !== -1) {
+                searchVal = parts[birthIndex];
+                fieldVal = 'birth';
+                clientFilterName = parts.filter((_, idx) => idx !== birthIndex).join(' ');
+                // 클라이언트 필터링을 위해 생년월일 매칭 데이터를 전부 가져옴 (최대 1000개)
+                apiLimit = 1000;
+            }
+        }
+    }
+
     // job, pro_class 파라미터가 있을 경우 mode='list'에서 필터링으로 작동하도록 백엔드와 통신
-    const res = await fetchBridge({ mode: 'list', table: t, page: p, search: q, field: f, limit, date_start: ds, date_end: de, rank: rank, region: region, post_type: postType, job: job, pro_class: proClass });
+    const res = await fetchBridge({ 
+        mode: 'list', 
+        table: t, 
+        page: clientFilterName ? 1 : p, 
+        search: searchVal, 
+        field: fieldVal, 
+        limit: apiLimit, 
+        date_start: ds, 
+        date_end: de, 
+        rank: rank, 
+        region: region, 
+        post_type: postType, 
+        job: job, 
+        pro_class: proClass 
+    });
+
     if (t === 'memTab') {
         const mapped = (res.data || []).map((m: any) => ({
             id: m.mid?.toString(), mid: m.mid?.toString(), loginId: m.id, mem_no: m.mid?.toString(), name: m.name, name_eng: m.name_eng || '', tel: m.phone || '', hp: m.hp || '', zipcode: m.zipcode || '', addr: m.addr || '', addr1: m.addr_1 || '', zipcode_dm: m.zipcode2 || '', addr_dm: m.addr2 || '', addr1_dm: m.addr2_1 || '', email: m.email || '', birth: m.birth || '', jumin: m.zumin || '', saho: m.saho || '', saho_eng: m.saho_eng || '', saho_no: m.saho_no || '', saho_date: m.saho_reg_date || '', rank: m.mem_degree || '일반', expiryDate: m.end_date || '0000-00-00', joinDate: (m.firstdate && m.firstdate !== '0') ? new Date(parseInt(m.firstdate) * 1000).toISOString().split('T')[0] : '', memo: m.memo || '', status: '정상', proClass: m.pro_class || '', company: m.company || m.mb_1 || '', skills: [], dogs: []
         }));
-        return { data: mapped, total: parseInt(res.total || '0') };
+
+        let filtered = mapped;
+        if (clientFilterName) {
+            const filterLower = clientFilterName.toLowerCase();
+            filtered = mapped.filter((m: any) => 
+                m.name.includes(clientFilterName) || 
+                (m.name_eng && m.name_eng.toLowerCase().includes(filterLower))
+            );
+        }
+
+        const total = clientFilterName ? filtered.length : parseInt(res.total || '0');
+        const paginatedData = clientFilterName 
+            ? filtered.slice((p - 1) * limit, p * limit)
+            : filtered;
+
+        return { data: paginatedData, total };
     }
     if (t === 'skillTab') {
         return { data: (res.data || []).map((s: any) => ({ id: s.uid?.toString(), loginId: s.mb_id, memberName: s.name, name: s.skill_name, date: s.skill_date, memo: s.memo || '' })), total: parseInt(res.total || '0') };

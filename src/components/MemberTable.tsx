@@ -205,7 +205,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
             <input
               type="text"
               className="flex-1 border border-blue-400 rounded-sm px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
-              placeholder={searchField === 'birth' ? "생년월일 입력 (예: 890917, 89-09-17, 198909)" : "검색어를 입력하세요"}
+              placeholder={searchField === 'birth' ? "생년월일 + 성함 같이 검색 가능 (예: 790823 김미숙)" : "검색어를 입력하세요"}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
