@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Upload, ArrowLeft, Download, FileText, CheckCircle2 } from 'lucide-react';
 import Papa from 'papaparse';
+import ExcelJS from 'exceljs';
 import { Member } from '../types';
 import { downloadCsv } from '../lib/downloadUtils';
 
@@ -15,7 +16,7 @@ export const MemberExcelUploadPage: React.FC<MemberExcelUploadPageProps> = ({ on
     const [parsedData, setParsedData] = useState<Partial<Member>[] | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    const handleDownloadTemplate = () => {
+    const handleDownloadTemplate = async () => {
         const headers = [
             '아이디', '회원번호', '이름', '생년월일(YYMMDD)', '가입일(YYYY-MM-DD)', '이름(영문)',
             '우편번호', '주소', '상세주소', 'DM우편번호', 'DM주소', 'DM상세주소',
@@ -30,10 +31,119 @@ export const MemberExcelUploadPage: React.FC<MemberExcelUploadPageProps> = ({ on
             '', '', '', '', ''
         ];
 
-        downloadCsv(headers.join(',') + '\n' + dummyrow.join(','), '회원대량가입_템플릿.csv');
+        try {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Template');
+            worksheet.addRow(headers);
+            worksheet.addRow(dummyrow);
+
+            // Format header row to look premium
+            const headerRow = worksheet.getRow(1);
+            headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            headerRow.eachCell((cell) => {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF2E7D32' } // Green theme matching "MemberExcelUploadPage"
+                };
+                cell.alignment = { horizontal: 'center' };
+            });
+
+            // Adjust column widths automatically
+            worksheet.columns.forEach((col, i) => {
+                const headerLen = headers[i]?.length || 10;
+                col.width = Math.max(headerLen * 2.5, 12);
+            });
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = window.URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = '회원대량가입_템플릿.xlsx';
+            anchor.click();
+            window.URL.revokeObjectURL(url);
+        } catch (err: any) {
+            // Fallback to CSV if ExcelJS fails for any reason
+            downloadCsv(headers.join(',') + '\n' + dummyrow.join(','), '회원대량가입_템플릿.csv');
+        }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const processValue = (val: any): string => {
+        if (val === null || val === undefined) return '';
+        if (val instanceof Date) {
+            const yyyy = val.getFullYear();
+            const mm = String(val.getMonth() + 1).padStart(2, '0');
+            const dd = String(val.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        if (typeof val === 'object') {
+            if ('richText' in val) {
+                return val.richText.map((t: any) => t.text).join('');
+            }
+            if ('result' in val) {
+                return processValue(val.result);
+            }
+            if ('text' in val) {
+                return val.text?.toString() || '';
+            }
+            return val.toString();
+        }
+        return val.toString();
+    };
+
+    const processRows = (rows: any[]) => {
+        try {
+            const members = rows.map((row: any) => {
+                // Validate required
+                const loginId = row['아이디']?.toString().trim();
+                const name = row['이름']?.toString().trim() || row['성명(한글)']?.toString().trim();
+                const birth = row['생년월일(YYMMDD)']?.toString().trim() || row['생년월일']?.toString().trim();
+                const joinDate = row['가입일(YYYY-MM-DD)']?.toString().trim() || row['가입일']?.toString().trim();
+
+                if (!loginId) throw new Error("아이디가 누락된 행이 있습니다.");
+                if (!name) throw new Error(`${loginId} 회원의 이름(성명)이 누락되었습니다.`);
+                if (!joinDate) throw new Error(`${loginId} 회원의 가입일이 누락되었습니다.`);
+
+                return {
+                    loginId: loginId,
+                    mem_no: row['회원번호']?.toString() || '',
+                    name: name,
+                    birth: birth || '',
+                    joinDate: joinDate,
+                    name_eng: row['이름(영문)']?.toString() || '',
+                    zipcode: row['우편번호']?.toString() || '',
+                    addr: row['주소']?.toString() || '',
+                    addr1: row['상세주소']?.toString() || '',
+                    zipcode_dm: row['DM우편번호']?.toString() || '',
+                    addr_dm: row['DM주소']?.toString() || '',
+                    addr1_dm: row['DM상세주소']?.toString() || '',
+                    tel: row['연락처']?.toString() || '',
+                    hp: row['핸드폰']?.toString() || row['휴대폰']?.toString() || '',
+                    email: row['이메일']?.toString() || '',
+                    rank: row['등급(예:B0)']?.toString() || 'B0',
+                    proClass: row['프로클래스']?.toString() || '',
+                    memo: row['메모']?.toString() || '',
+                    expiryDate: row['만료일(YYYY-MM-DD)']?.toString() || '',
+                    saho: row['견사호']?.toString() || '',
+                    saho_eng: row['견사호(영문)']?.toString() || '',
+                    saho_no: row['견사호등록번호']?.toString() || '',
+                    saho_date: row['견사호등록일']?.toString() || ''
+                };
+            });
+
+            if (members.length === 0) {
+                setErrorMsg("데이터가 비어있습니다.");
+                return;
+            }
+
+            setParsedData(members);
+        } catch (err: any) {
+            setErrorMsg(err.message);
+        }
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         setErrorMsg(null);
         setParsedData(null);
         const file = e.target.files?.[0];
@@ -44,63 +154,58 @@ export const MemberExcelUploadPage: React.FC<MemberExcelUploadPageProps> = ({ on
 
         setSelectedFileName(file.name);
 
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => {
-                try {
-                    const members = results.data.map((row: any) => {
-                        // Validate required
-                        const loginId = row['아이디']?.trim();
-                        const name = row['이름']?.trim() || row['성명(한글)']?.trim(); // Fallback to either
-                        const birth = row['생년월일(YYMMDD)']?.trim() || row['생년월일']?.trim();
-                        const joinDate = row['가입일(YYYY-MM-DD)']?.trim() || row['가입일']?.trim();
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
 
-                        if (!loginId) throw new Error("아이디가 누락된 행이 있습니다.");
-                        if (!name) throw new Error(`${loginId} 회원의 이름(성명)이 누락되었습니다.`);
-                        if (!joinDate) throw new Error(`${loginId} 회원의 가입일이 누락되었습니다.`);
-
-                        return {
-                            loginId: loginId,
-                            mem_no: row['회원번호'] || '',
-                            name: name,
-                            birth: birth || '',
-                            joinDate: joinDate,
-                            name_eng: row['이름(영문)'] || '',
-                            zipcode: row['우편번호'] || '',
-                            addr: row['주소'] || '',
-                            addr1: row['상세주소'] || '',
-                            zipcode_dm: row['DM우편번호'] || '',
-                            addr_dm: row['DM주소'] || '',
-                            addr1_dm: row['DM상세주소'] || '',
-                            tel: row['연락처'] || '',
-                            hp: row['핸드폰'] || row['휴대폰'] || '',
-                            email: row['이메일'] || '',
-                            rank: row['등급(예:B0)'] || 'B0',
-                            proClass: row['프로클래스'] || '',
-                            memo: row['메모'] || '',
-                            expiryDate: row['만료일(YYYY-MM-DD)'] || '',
-                            saho: row['견사호'] || '',
-                            saho_eng: row['견사호(영문)'] || '',
-                            saho_no: row['견사호등록번호'] || '',
-                            saho_date: row['견사호등록일'] || ''
-                        };
-                    });
-
-                    if (members.length === 0) {
-                        setErrorMsg("데이터가 비어있습니다.");
-                        return;
-                    }
-
-                    setParsedData(members);
-                } catch (err: any) {
-                    setErrorMsg(err.message);
+        if (fileExtension === 'csv') {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: (results) => {
+                    processRows(results.data);
+                },
+                error: (error: any) => {
+                    setErrorMsg('파일 읽기 실패: ' + error.message);
                 }
-            },
-            error: (error: any) => {
-                setErrorMsg('엑셀 파일 읽기 실패: ' + error.message);
+            });
+        } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(arrayBuffer);
+
+                const worksheet = workbook.worksheets[0];
+                if (!worksheet) {
+                    throw new Error("엑셀 시트가 존재하지 않습니다.");
+                }
+
+                // Extract headers
+                const headerRow = worksheet.getRow(1);
+                const headers: string[] = [];
+                headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                    headers[colNumber] = cell.value?.toString().trim() || '';
+                });
+
+                const rowsData: any[] = [];
+                worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+                    if (rowNumber === 1) return; // Skip headers row
+
+                    const rowObj: any = {};
+                    headers.forEach((header, colIndex) => {
+                        if (header) {
+                            const cellValue = row.getCell(colIndex).value;
+                            rowObj[header] = processValue(cellValue);
+                        }
+                    });
+                    rowsData.push(rowObj);
+                });
+
+                processRows(rowsData);
+            } catch (err: any) {
+                setErrorMsg('엑셀 파일 읽기 실패: ' + err.message);
             }
-        });
+        } else {
+            setErrorMsg("지원하지 않는 파일 형식입니다. (.xlsx, .xls, .csv 파일만 지원합니다.)");
+        }
     };
 
     const handleSubmit = () => {
@@ -126,8 +231,8 @@ export const MemberExcelUploadPage: React.FC<MemberExcelUploadPageProps> = ({ on
                     <div className="bg-white rounded border border-gray-200 shadow-sm p-8 mb-6 relative">
                         <h3 className="text-xl font-bold text-gray-800 mb-2">엑셀 파일 업로드</h3>
                         <p className="text-gray-500 text-sm mb-6">
-                            엑셀(.csv) 파일을 업로드하여 회원을 대량으로 등록할 수 있습니다.<br />
-                            ※ 지원하는 파일 형식: .csv
+                            엑셀 파일을 업로드하여 회원을 대량으로 등록할 수 있습니다.<br />
+                            ※ 지원하는 파일 형식: .xlsx, .xls
                         </p>
 
                         <button
@@ -147,7 +252,7 @@ export const MemberExcelUploadPage: React.FC<MemberExcelUploadPageProps> = ({ on
                             <input
                                 type="file"
                                 ref={fileInputRef}
-                                accept=".csv"
+                                accept=".xlsx, .xls, .csv"
                                 onChange={handleFileChange}
                                 className="hidden"
                             />
