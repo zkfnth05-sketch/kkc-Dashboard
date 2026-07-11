@@ -413,6 +413,18 @@ const handleDelete = (id: string, name: string) => {
 
                             <div className="grid grid-cols-2 gap-8">
                                 <div className="space-y-2">
+                                    <label className="text-[14px] font-black text-gray-500">모종</label>
+                                    <select
+                                        className="w-full border border-gray-300 rounded-xl px-4 py-3 text-[15px] font-bold bg-white focus:border-blue-500 outline-none"
+                                        value={formData.dog_breed}
+                                        onChange={e => setFormData({ ...formData, dog_breed: e.target.value })}
+                                    >
+                                        <option value="">모종 선택</option>
+                                        <option value="위그">위그</option>
+                                        <option value="실견">실견</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
                                     <label className="text-[14px] font-black text-gray-500">참가유형</label>
                                     <select
                                         className="w-full border border-gray-300 rounded-xl px-4 py-3 text-[15px] font-bold bg-white focus:border-blue-500 outline-none"
@@ -423,21 +435,7 @@ const handleDelete = (id: string, name: string) => {
                                         <option value="Level C">Level C</option>
                                         <option value="Level B">Level B</option>
                                         <option value="Level A">Level A</option>
-                                        <option value="살롱프리스타일 실견">살롱프리스타일 실견</option>
-                                        <option value="아트">아트</option>
-                                        <option value="그외 순수견종">그외 순수견종</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[14px] font-black text-gray-500">모종</label>
-                                    <select
-                                        className="w-full border border-gray-300 rounded-xl px-4 py-3 text-[15px] font-bold bg-white focus:border-blue-500 outline-none"
-                                        value={formData.dog_breed}
-                                        onChange={e => setFormData({ ...formData, dog_breed: e.target.value })}
-                                    >
-                                        <option value="">모종 선택</option>
-                                        <option value="위그">위그</option>
-                                        <option value="실견">실견</option>
+                                        <option value="프리스타일">프리스타일</option>
                                     </select>
                                 </div>
                             </div>
