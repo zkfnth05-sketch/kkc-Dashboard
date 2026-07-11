@@ -194,6 +194,12 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
 
     const handleSave = async () => {
         if (!formData.name.trim()) return showAlert('알림', '이름을 입력해주세요.');
+        
+        if (targetTable === 'stylist_applicant') {
+            if (formData.entry_type === '학생부' && !formData.student_id_photo?.trim()) {
+                return showAlert('알림', '학생부는 학생증 또는 신분증 사진을 반드시 첨부해야 합니다.');
+            }
+        }
 
         setIsSubmitting(true);
         try {

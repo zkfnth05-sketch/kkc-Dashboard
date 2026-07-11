@@ -161,6 +161,10 @@ export const StylistCompetitionApplicantManagement: React.FC<StylistCompetitionA
             showAlert('필수 입력 누락', '소속을 입력해주세요.');
             return;
         }
+        if (formData.entry_type === '학생부' && !formData.student_id_photo.trim()) {
+            showAlert('필수 입력 누락', '학생부는 학생증 또는 신분증 사진을 반드시 첨부해야 합니다.');
+            return;
+        }
 
         setIsSubmitting(true);
         try {
@@ -471,7 +475,18 @@ export const StylistCompetitionApplicantManagement: React.FC<StylistCompetitionA
                                     <select
                                         className="w-full border border-gray-300 rounded-lg px-4 py-3 text-[14px] outline-none focus:border-blue-500 shadow-sm transition-all bg-white"
                                         value={formData.dog_breed}
-                                        onChange={e => setFormData({ ...formData, dog_breed: e.target.value })}
+                                        onChange={e => {
+                                            const nextBreed = e.target.value;
+                                            setFormData(prev => {
+                                                const nextData = { ...prev, dog_breed: nextBreed };
+                                                if (nextData.entry_type === '프리스타일') {
+                                                    if (nextData.entry_category === '살롱 프리스타일' || nextData.entry_category === '베이직 디자인') {
+                                                        nextData.entry_category = nextBreed === '실견' ? '베이직 디자인' : '살롱 프리스타일';
+                                                    }
+                                                }
+                                                return nextData;
+                                            });
+                                        }}
                                     >
                                         <option value="">모종을 선택하세요</option>
                                         <option value="위그">위그</option>
@@ -486,17 +501,16 @@ export const StylistCompetitionApplicantManagement: React.FC<StylistCompetitionA
                                     <select
                                         className="w-full border border-gray-300 rounded-lg px-4 py-3 text-[14px] outline-none focus:border-blue-500 shadow-sm transition-all bg-white"
                                         value={formData.entry_type}
-                                        onChange={e => setFormData({ ...formData, entry_type: e.target.value })}
+                                        onChange={e => setFormData({ ...formData, entry_type: e.target.value, entry_category: '' })}
                                     >
                                         <option value="">참가유형을 선택하세요</option>
                                         <option value="노비스">노비스</option>
+                                        <option value="학생부">학생부</option>
                                         <option value="Level C">Level C</option>
                                         <option value="Level B">Level B</option>
                                         <option value="Level A">Level A</option>
-                                        <option value="학생부">학생부</option>
-                                        <option value="프리스타일-살롱">프리스타일-살롱</option>
-                                        <option value="프리스타일-아트">프리스타일-아트</option>
-                                        <option value="프리스타일-그외">프리스타일-그외</option>
+                                        <option value="프리스타일">프리스타일</option>
+                                        <option value="마스타">마스타</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
@@ -507,21 +521,46 @@ export const StylistCompetitionApplicantManagement: React.FC<StylistCompetitionA
                                         onChange={e => setFormData({ ...formData, entry_category: e.target.value })}
                                     >
                                         <option value="">종목을 선택하세요</option>
-                                        <option value="(Level C)-램클립">(Level C)-램클립</option>
-                                        <option value="(Level C)-모던클립">(Level C)-모던클립</option>
-                                        <option value="(Level B)-다이아몬드">(Level B)-다이아몬드</option>
-                                        <option value="(Level B)-더치클립">(Level B)-더치클립</option>
-                                        <option value="(Level B)-맨하탄클립">(Level B)-맨하탄클립</option>
-                                        <option value="(Level B)-볼레로맨하탄">(Level B)-볼레로맨하탄</option>
-                                        <option value="(Level B)-소리터리">(Level B)-소리터리</option>
-                                        <option value="(Level B)-피츠버그클립">(Level B)-피츠버그클립</option>
-                                        <option value="(Level B)-저먼클립">(Level B)-저먼클립</option>
-                                        <option value="(Level A)-퍼피클립">(Level A)-퍼피클립</option>
-                                        <option value="(Level A)-세컨드클립">(Level A)-세컨드클립</option>
-                                        <option value="(Level A)-콘티넨탈">(Level A)-콘티넨탈</option>
-                                        <option value="(Level A)-잉글리쉬새들">(Level A)-잉글리쉬새들</option>
-                                        <option value="(Level A)-스칸디나비아">(Level A)-스칸디나비아</option>
-                                        <option value="마스타">마스타</option>
+                                        {(!formData.entry_type || formData.entry_type === '노비스' || formData.entry_type === '학생부' || formData.entry_type === 'Level C') && (
+                                            <>
+                                                <option value="(Level C)-램클립">(Level C)-램클립</option>
+                                                <option value="(Level C)-모던클립">(Level C)-모던클립</option>
+                                            </>
+                                        )}
+                                        {(!formData.entry_type || formData.entry_type === '노비스' || formData.entry_type === '학생부' || formData.entry_type === 'Level B') && (
+                                            <>
+                                                <option value="(Level B)-다이아몬드">(Level B)-다이아몬드</option>
+                                                <option value="(Level B)-더치클립">(Level B)-더치클립</option>
+                                                <option value="(Level B)-맨하탄클립">(Level B)-맨하탄클립</option>
+                                                <option value="(Level B)-볼레로맨하탄">(Level B)-볼레로맨하탄</option>
+                                                <option value="(Level B)-소리터리">(Level B)-소리터리</option>
+                                                <option value="(Level B)-피츠버그클립">(Level B)-피츠버그클립</option>
+                                                <option value="(Level B)-저먼클립">(Level B)-저먼클립</option>
+                                            </>
+                                        )}
+                                        {(!formData.entry_type || formData.entry_type === '노비스' || formData.entry_type === '학생부' || formData.entry_type === 'Level A') && (
+                                            <>
+                                                <option value="(Level A)-퍼피클립">(Level A)-퍼피클립</option>
+                                                <option value="(Level A)-세컨드클립">(Level A)-세컨드클립</option>
+                                                <option value="(Level A)-콘티넨탈">(Level A)-콘티넨탈</option>
+                                                <option value="(Level A)-잉글리쉬새들">(Level A)-잉글리쉬새들</option>
+                                                <option value="(Level A)-스칸디나비아">(Level A)-스칸디나비아</option>
+                                            </>
+                                        )}
+                                        {formData.entry_type === '프리스타일' && (
+                                            <>
+                                                <option value={formData.dog_breed === '실견' ? '베이직 디자인' : '살롱 프리스타일'}>
+                                                    {formData.dog_breed === '실견' ? '베이직 디자인' : '살롱 프리스타일'}
+                                                </option>
+                                                <option value="아트 (개인)">아트 (개인)</option>
+                                                <option value="아트 (단체)">아트 (단체)</option>
+                                                <option value="그외 순수견종">그외 순수견종</option>
+                                                <option value="마스타">마스타</option>
+                                            </>
+                                        )}
+                                        {(!formData.entry_type || formData.entry_type === '노비스' || formData.entry_type === '학생부' || formData.entry_type === '마스타') && (
+                                            <option value="마스타">마스타</option>
+                                        )}
                                     </select>
                                 </div>
                             </div>
