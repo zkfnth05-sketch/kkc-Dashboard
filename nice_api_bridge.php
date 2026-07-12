@@ -72,7 +72,14 @@ if (isset($_GET['migrate_db_now'])) {
     exit;
 }
 
-define('NICE_API_ENV', 'UAT'); // UAT or PROD
+// 보안 설정 로드 (파일이 존재할 경우 로드하여 하드코딩된 민감정보 외부 분리)
+if (file_exists(dirname(__FILE__) . '/nice_api_config.php')) {
+    include_once dirname(__FILE__) . '/nice_api_config.php';
+}
+
+if (!defined('NICE_API_ENV')) {
+    define('NICE_API_ENV', 'UAT'); // UAT or PROD
+}
 
 // WordPress Context 로드
 include_once 'wp-load.php';
@@ -87,16 +94,16 @@ ob_start();
 
 // NICE API 보안 구성
 if (NICE_API_ENV === 'PROD') {
-    $aes_key = 'abcdefgh12345678abcdefgh12345678';
-    $aes_iv = 'abcdefgh12345678';
-    $hmac_key = 'abcdefgh12345678abcdefgh12345678';
+    $aes_key = defined('NICE_AES_KEY_PROD') ? NICE_AES_KEY_PROD : 'abcdefgh12345678abcdefgh12345678';
+    $aes_iv = defined('NICE_AES_IV_PROD') ? NICE_AES_IV_PROD : 'abcdefgh12345678';
+    $hmac_key = defined('NICE_HMAC_KEY_PROD') ? NICE_HMAC_KEY_PROD : 'abcdefgh12345678abcdefgh12345678';
 } else {
-    $aes_key = '12345678123456781234567812345678';
-    $aes_iv = '1234567812345678';
-    $hmac_key = '12345678123456781234567812345678';
+    $aes_key = defined('NICE_AES_KEY_UAT') ? NICE_AES_KEY_UAT : '12345678123456781234567812345678';
+    $aes_iv = defined('NICE_AES_IV_UAT') ? NICE_AES_IV_UAT : '1234567812345678';
+    $hmac_key = defined('NICE_HMAC_KEY_UAT') ? NICE_HMAC_KEY_UAT : '12345678123456781234567812345678';
 }
 
-$secret_token = 'kkc-super-secret-key-change-this-now-12345!';
+$secret_token = defined('NICE_ADMIN_SECRET_TOKEN') ? NICE_ADMIN_SECRET_TOKEN : 'kkc-super-secret-key-change-this-now-12345!';
 
 // 핸들러 로드
 require_once ABSPATH . 'handlers/nice_api_handler.php';

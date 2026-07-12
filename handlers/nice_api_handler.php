@@ -4,6 +4,10 @@
  * 기능: NICE API 본인인증 및 모바일 혈통서 관리 시스템 전용 핸들러 (격리 원칙 준수)
  */
 
+if (file_exists(dirname(__FILE__) . '/../nice_api_config.php')) {
+    include_once dirname(__FILE__) . '/../nice_api_config.php';
+}
+
 if (!defined('ABSPATH')) exit;
 
 // 🎯 [지능형 인코딩 변환기]
@@ -499,18 +503,18 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
     $env = defined('NICE_API_ENV') ? NICE_API_ENV : 'UAT';
     if ($env === 'PROD') {
         $host = 'https://svc.niceapi.co.kr:32001';
-        $aes_key = 'abcdefgh12345678abcdefgh12345678';
-        $aes_iv = 'abcdefgh12345678';
-        $hmac_key = 'abcdefgh12345678abcdefgh12345678';
+        $aes_key = defined('NICE_AES_KEY_PROD') ? NICE_AES_KEY_PROD : 'abcdefgh12345678abcdefgh12345678';
+        $aes_iv = defined('NICE_AES_IV_PROD') ? NICE_AES_IV_PROD : 'abcdefgh12345678';
+        $hmac_key = defined('NICE_HMAC_KEY_PROD') ? NICE_HMAC_KEY_PROD : 'abcdefgh12345678abcdefgh12345678';
     } else {
         $host = 'https://usvc.niceapi.co.kr:32501';
-        $aes_key = '12345678123456781234567812345678';
-        $aes_iv = '1234567812345678';
-        $hmac_key = '12345678123456781234567812345678';
+        $aes_key = defined('NICE_AES_KEY_UAT') ? NICE_AES_KEY_UAT : '12345678123456781234567812345678';
+        $aes_iv = defined('NICE_AES_IV_UAT') ? NICE_AES_IV_UAT : '1234567812345678';
+        $hmac_key = defined('NICE_HMAC_KEY_UAT') ? NICE_HMAC_KEY_UAT : '12345678123456781234567812345678';
     }
     
-    $client_id = '369a3862-32bb-4a65-8376-2357619517c9';
-    $client_secret = '949c318d591d34ee19b2495302314776883cf39';
+    $client_id = defined('NICE_CLIENT_ID') ? NICE_CLIENT_ID : '369a3862-32bb-4a65-8376-2357619517c9';
+    $client_secret = defined('NICE_CLIENT_SECRET') ? NICE_CLIENT_SECRET : '949c318d591d34ee19b2495302314776883cf39';
     
     $json = json_encode($plain_data, JSON_UNESCAPED_UNICODE);
     $enc_data = base64_encode(openssl_encrypt($json, 'aes-256-cbc', $aes_key, OPENSSL_RAW_DATA, $aes_iv));

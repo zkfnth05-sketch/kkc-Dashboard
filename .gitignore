@@ -27,3 +27,7 @@ dist-ssr
 
 # Scratch scripts
 scratch/
+
+# NICE API Config
+nice_api_config.php
+
