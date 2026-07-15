@@ -198,9 +198,9 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                                             <tr key={item.id} className="group hover:bg-slate-50/50 transition-all duration-500">
                                                 <td className="py-9 px-10">
                                                     <div className="flex items-start gap-6">
-                                                        <div className="!w-16 !h-16 !min-w-[4rem] !min-h-[4rem] rounded-2xl bg-slate-100 overflow-hidden !shrink-0 group-hover:shadow-lg transition-all duration-500">
+                                                        <div className="w-24 aspect-video rounded-2xl bg-slate-100 overflow-hidden shrink-0 group-hover:shadow-lg transition-all duration-500">
                                                             {item.thumbnail_url ? (
-                                                                <img src={item.thumbnail_url} className="!w-full !h-full !object-cover group-hover:scale-110 transition-all duration-700" loading="lazy" />
+                                                                <img src={item.thumbnail_url} className="!w-full !h-full !object-cover group-hover:scale-110 transition-all duration-700" loading="lazy" style={{ imageRendering: '-webkit-optimize-contrast' }} />
                                                             ) : (
                                                                 <div className="!w-full !h-full flex items-center justify-center text-slate-300"><Calendar size={20} /></div>
                                                             )}
@@ -325,9 +325,9 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
 
                                         {/* 1. Header & Title */}
                                         <div className="flex gap-4 pr-20">
-                                            <div className="!w-14 !h-14 !min-w-[3.5rem] !min-h-[3.5rem] rounded-2xl bg-slate-100 overflow-hidden !shrink-0 mt-1 shadow-inner">
+                                            <div className="w-20 aspect-video rounded-2xl bg-slate-100 overflow-hidden shrink-0 mt-1 shadow-inner">
                                                 {item.thumbnail_url ? (
-                                                    <img src={item.thumbnail_url} className="!w-full !h-full !object-cover" loading="lazy" />
+                                                    <img src={item.thumbnail_url} className="!w-full !h-full !object-cover" loading="lazy" style={{ imageRendering: '-webkit-optimize-contrast' }} />
                                                 ) : (
                                                     <div className="!w-full !h-full flex items-center justify-center text-slate-300"><Calendar size={20} /></div>
                                                 )}
