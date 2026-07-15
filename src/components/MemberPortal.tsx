@@ -1008,14 +1008,105 @@ const ApplicationDetailModal = ({ app, onClose }: any) => {
                         <div>
                             <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-4 ml-1">나의 신청 정보 (Entry Info)</label>
                             <div className="bg-slate-50 border border-slate-100 p-6 rounded-[24px] space-y-4">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-slate-400 font-bold">혈통서 등록번호</span>
-                                    <span className="text-slate-900 font-black">{app.reg_no || '-'}</span>
-                                </div>
-                                <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
-                                    <span className="text-slate-400 font-bold">신청 항목(견명 등)</span>
-                                    <span className="text-slate-900 font-black">{app.dog_name || '-'}</span>
-                                </div>
+                                {/* Category Specific Rows */}
+                                {['훈련경기', '디스크독'].includes(app.source) && (
+                                    <>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-400 font-bold">이름</span>
+                                            <span className="text-slate-900 font-black">{app.name || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
+                                            <span className="text-slate-400 font-bold">견명</span>
+                                            <span className="text-slate-900 font-black">{app.dog_name || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
+                                            <span className="text-slate-400 font-bold">종목</span>
+                                            <span className="text-slate-900 font-black">{app.subject || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
+                                            <span className="text-slate-400 font-bold">구분</span>
+                                            <span className="text-slate-900 font-black">{app.division || '-'}</span>
+                                        </div>
+                                    </>
+                                )}
+
+                                {['어질리티', '플라이볼'].includes(app.source) && (
+                                    <>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-400 font-bold">이름</span>
+                                            <span className="text-slate-900 font-black">{app.name || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
+                                            <span className="text-slate-400 font-bold">견명</span>
+                                            <span className="text-slate-900 font-black">{app.dog_name || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
+                                            <span className="text-slate-400 font-bold">종목</span>
+                                            <span className="text-slate-900 font-black">{app.subject || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
+                                            <span className="text-slate-400 font-bold">사이즈</span>
+                                            <span className="text-slate-900 font-black">{app.size || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
+                                            <span className="text-slate-400 font-bold">구분</span>
+                                            <span className="text-slate-900 font-black">{app.division || '-'}</span>
+                                        </div>
+                                    </>
+                                )}
+
+                                {['스타일리스트', '스타일리스트(국제)'].includes(app.source) && (
+                                    <>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-400 font-bold">이름</span>
+                                            <span className="text-slate-900 font-black">{app.name || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
+                                            <span className="text-slate-400 font-bold">모종</span>
+                                            <span className="text-slate-900 font-black">{app.dog_breed || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
+                                            <span className="text-slate-400 font-bold">참가유형</span>
+                                            <span className="text-slate-900 font-black">{app.entry_type || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
+                                            <span className="text-slate-400 font-bold">종목</span>
+                                            <span className="text-slate-900 font-black">{app.entry_category || app.subject || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
+                                            <span className="text-slate-400 font-bold">사이즈</span>
+                                            <span className="text-slate-900 font-black">{app.size || '-'}</span>
+                                        </div>
+                                    </>
+                                )}
+
+                                {['세미나'].includes(app.source) && (
+                                    <>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-400 font-bold">이름</span>
+                                            <span className="text-slate-900 font-black">{app.name || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
+                                            <span className="text-slate-400 font-bold">연락처</span>
+                                            <span className="text-slate-900 font-black">{app.contact || '-'}</span>
+                                        </div>
+                                    </>
+                                )}
+
+                                {!['훈련경기', '디스크독', '어질리티', '플라이볼', '스타일리스트', '스타일리스트(국제)', '세미나'].includes(app.source) && (
+                                    <>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-400 font-bold">혈통서 등록번호</span>
+                                            <span className="text-slate-900 font-black">{app.reg_no || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-4 text-sm">
+                                            <span className="text-slate-400 font-bold">신청 항목(견명 등)</span>
+                                            <span className="text-slate-900 font-black">{app.dog_name || '-'}</span>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Common Bottom Rows */}
                                 <div className="flex justify-between items-start border-t border-slate-100 pt-4 text-sm">
                                     <span className="text-slate-400 font-bold shrink-0">선택 품목</span>
                                     <span className="text-slate-900 font-black text-right">{app.options_summary || '기본 참가'}</span>

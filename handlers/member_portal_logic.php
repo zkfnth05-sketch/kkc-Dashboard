@@ -97,6 +97,18 @@ function kkf_portal_get_my_data($input) {
             // 강아지 이름용 컬럼 찾기
             $col_dog = in_array('dog_name', $actual_cols) ? 'a.dog_name' : (in_array('dog_breed', $actual_cols) ? 'a.dog_breed' : (in_array('subject', $actual_cols) ? 'a.subject' : "''"));
 
+            $extra_fields = [];
+            $extra_fields[] = in_array('name', $actual_cols) ? 'a.name' : "'' as name";
+            $extra_fields[] = in_array('contact', $actual_cols) ? 'a.contact' : "'' as contact";
+            $extra_fields[] = in_array('subject', $actual_cols) ? 'a.subject' : "'' as subject";
+            $extra_fields[] = in_array('division', $actual_cols) ? 'a.division' : "'' as division";
+            $extra_fields[] = in_array('size', $actual_cols) ? 'a.size' : "'' as size";
+            $extra_fields[] = in_array('dog_breed', $actual_cols) ? 'a.dog_breed' : "'' as dog_breed";
+            $extra_fields[] = in_array('entry_type', $actual_cols) ? 'a.entry_type' : "'' as entry_type";
+            $extra_fields[] = in_array('entry_category', $actual_cols) ? 'a.entry_category' : "'' as entry_category";
+
+            $extra_select = implode(', ', $extra_fields);
+
             $where = " (a.name='$e_name' AND REPLACE(a.contact,'-','')='$e_hp') ";
             if ($has_id && !empty($e_id)) $where = " (a.handler_id='$e_id') OR " . $where;
 
@@ -105,7 +117,8 @@ function kkf_portal_get_my_data($input) {
             $sql = "SELECT DISTINCT '$source' as source, a.created_at, b.ds_name as event_title, b.ds_date as event_date, 
                            a.payment_status, a.total_amount, a.options_summary,
                            $col_reg as reg_no, 
-                           IFNULL(d.name, $col_dog) as dog_name
+                           IFNULL(d.name, $col_dog) as dog_name,
+                           $extra_select
                       FROM $app_table a 
                       LEFT JOIN $evt_table b ON a.ds_pid = b.ds_pid 
                       LEFT JOIN dogTab d ON $col_reg = d.reg_no AND $col_reg != ''
@@ -119,6 +132,12 @@ function kkf_portal_get_my_data($input) {
                     if (!empty($r['dog_name'])) $r['dog_name'] = kkc_convert($r['dog_name'], 'EUC-KR', true);
                     if (!empty($r['options_summary'])) $r['options_summary'] = kkc_convert($r['options_summary'], 'EUC-KR', true);
                     if (!empty($r['event_title'])) $r['event_title'] = kkc_convert($r['event_title'], 'EUC-KR', true);
+                    
+                    foreach (['name', 'contact', 'subject', 'division', 'size', 'dog_breed', 'entry_type', 'entry_category'] as $fld) {
+                        if (!empty($r[$fld])) {
+                            $r[$fld] = kkc_convert($r[$fld], 'EUC-KR', true);
+                        }
+                    }
                     
                     $r['apply_date'] = $r['created_at'] ? date('Y-m-d', strtotime($r['created_at'])) : '';
                     $apps[] = $r;
