@@ -28,6 +28,105 @@ const REG_TYPE_LABELS: Record<string, string> = {
   'D': '자견', 'I': '수입견', 'E': '타단체견', 'S': '단독견', 'DR': '국내 관계견', 'FR': '외국 관계견', 'N': 'NR'
 };
 
+const BREED_EXCEL_LAST_REG_NUMS: Record<string, number> = {
+  // Sporting
+  'RG-C': 60017,   // 골든리트리버
+  'LR-C': 60006,   // 라브라도리트리버
+  'ACS-C': 60002,  // 아메리카코카스파니엘
+  'EP-C': 60001,   // 잉글리쉬포인터
+  'GP-C': 60001,   // 져먼숏헤어드포인터
+  'GPW-C': 60001,  // 져먼와이어헤어드포인터
+  'ES-C': 60010,   // 잉글리쉬세터
+  'ESS-C': 60002,  // 잉글리쉬스프링거스파니엘
+  'ROW-C': 60002,  // 로마냐 워터 도그
+  'ECS-C': 60001,  // 잉글리쉬코카스파니엘
+
+  // Toy
+  'CI-C': 60002,   // 치와와
+  'ML-C': 60007,   // 말티즈
+  'PD-C': 60019,   // 푸들(토이)
+  'PM-C': 60019,   // 푸들(미니어쳐)
+  'PS-C': 60019,   // 푸들(스탠다드)
+  'YT-C': 60001,   // 요크셔테리어
+  'SZ-C': 60001,   // 시츄
+  'PO-C': 60015,   // 포메라니안
+  'PP-C': 60001,   // 빠삐용
+  'JC-C': 60001,   // 저페니즈찡(JC)
+  'PK-C': 60006,   // 페키니즈
+  'MP-C': 60001,   // 미니어쳐핀셔
+  'PG-C': 60001,   // 퍼그
+  'CCS-C': 60001,  // 카발리어킹찰스스파니엘
+  'IGH-C': 60001,  // 이탈리안그레이하운드
+  'CCR-C': 60001,  // 차이니즈크레스티드
+  'AFN-C': 60001,  // 아펜핀셔
+  'ETS-C': 60001,  // 잉글리시 토이 스파니엘(ETS)
+  'BW-C': 60001,   // 비워테리어(BW)
+
+  // Working
+  'BM-C': 60110,   // 벨기에 말리노이즈
+  'RW-C': 60001,   // 롯트와일러
+  'AM-C': 60001,   // 알라스칸말라뮤트
+  'SH-C': 60001,   // 시베리안허스키
+  'SM-C': 60001,   // 사모예드
+  'GRP-C': 60001,  // 그레이트 피레니즈
+  'GD-C': 60001,   // 그레이드 덴
+  'DAR-C': 60001,  // 도고아르젠티노
+  'DB-C': 60007,   // 도베르만핀셔
+  'ESL-C': 60004,  // 동시베리아라이카
+  'TM-C': 60001,   // 티벳탄마스티프
+  'BO-C': 60001,   // 복서
+  'JL-C': 60001,   // 아키다
+  'AJL-C': 60001,  // 아메리칸아키다
+  'BMD-C': 60001,  // 버니즈 마운틴 독
+  'MAO-C': 60001,  // 미들아시안오브차카
+  'WSL-C': 60001,  // 서시베리안라이카
+  'CNC-C': 60002,  // 케인코르소
+  'GS-C': 60001,   // 자이언트슈나우져
+  'CO-C': 60001,   // 코카시안오브차카
+  'FBR-C': 60001,  // 필라브라질레이로
+  'PPC-C': 60001,  // 빼르로드쁘레샤카나리오
+  'NM-C': 60001,   // 네오폴리탄마스티프
+  'REL-C': 60001,  // 유러피안시베리안라이카
+  'PTW-C': 60001,  // 포르투갈워터독
+  'BMA-C': 60001,  // 불마스티프(BMA)
+  'ASD-C': 60001,  // 아나톨리안셰퍼드
+  'NF-C': 60001,   // 뉴펀들랜드
+  'ST.B-C': 60001, // 세인트버나드
+  'BRT-C': 60002,  // 블랙러시안테리어
+
+  // Terrier
+  'MS-C': 60001,   // 미니어쳐슈나우져
+  'WW-C': 60004,   // 웨스트화이트테리어
+  'JRT-C': 60001,  // 잭러셀테리어
+  'WET-C': 60001,  // 웰시테리어
+  'ST-C': 60001,   // 스코티쉬테리어
+  'BTT-C': 60009,  // 베들링턴테리어
+  'FT-C': 60006,   // 폭스테리어
+  'KT-C': 60001,   // 케리 블루 테리어
+  'NFT-C': 60001,  // 노포크테리어(NFT)
+  'NT-C': 60001,   // 노르위치테리어(NT)
+
+  // Hound
+  'AH-C': 60001,   // 아프간하운드
+  'DH-C': 60116,   // 닥스훈트
+  'WIP-C': 60001,  // 휘펫
+  'BZ-C': 60001,   // 보르조이
+  'IWH-C': 60001,  // 아이리쉬울프하운드
+  'SLK-C': 60001,  // 살루키
+  'PH-C': 60003,   // 파라오하운드
+  'GH-C': 60004,   // 그레이하운드
+  'BE-C': 60002,   // 비글
+
+  // Korean Breeds
+  'SS-C': 60010,   // 삽살개
+  'KJ-C': 60068,   // 진돗개
+  'PU-C': 60008,   // 풍산개
+  'KD-C': 60001,   // 동경이
+
+  // German Shepherd
+  'KSZ-C': 60275,  // 셰퍼드
+};
+
 export const PedigreeRegistrationForm: React.FC<PedigreeRegistrationFormProps> = ({ initialData, onSave, onCancel }) => {
   const [currentDogIndex, setCurrentDogIndex] = useState(0);
   
@@ -50,7 +149,7 @@ export const PedigreeRegistrationForm: React.FC<PedigreeRegistrationFormProps> =
     ownerPhone: '',
     ownerAddr: '',
     // 등록/공통
-    registrationDate: new Date().toISOString().split('T')[0],
+    registrationDate: '',
     group: initialData.group,
     breed: initialData.breed,
     birthDate: '',
@@ -134,15 +233,20 @@ export const PedigreeRegistrationForm: React.FC<PedigreeRegistrationFormProps> =
       
       let nextNum = minYearNum + 1; // 기본 시작값 (예: 60001)
 
+      // 견종별 엑셀 최종 번호 기준선 조회
+      const excelLastNum = BREED_EXCEL_LAST_REG_NUMS[prefix];
+      if (excelLastNum && Math.floor(excelLastNum / paddingLimit) === yearDigit) {
+        nextNum = excelLastNum + 1;
+      }
+
       if (lastRegNo) {
         const numPart = lastRegNo.replace(prefix, '').match(/\d+/);
         if (numPart) {
           const lastNumInt = parseInt(numPart[0], 10);
-          // 마지막 번호의 앞자리가 현재 년도와 같다면 이어서 번호 부여
+          // 마지막 번호의 앞자리가 현재 년도와 같다면 이어서 번호 부여 (엑셀 기준선과 DB 번호 중 최댓값 적용)
           if (Math.floor(lastNumInt / paddingLimit) === yearDigit) {
-            nextNum = lastNumInt + 1;
+            nextNum = Math.max(nextNum, lastNumInt + 1);
           }
-          // 만약 년도가 바뀌었다면 (앞자리가 다르면) 위에서 설정한 nextNum(60001) 유지
         }
       }
 

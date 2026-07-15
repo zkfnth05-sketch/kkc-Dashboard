@@ -200,7 +200,7 @@ export const fetchLastRegNo = async (prefix: string) => {
     });
 
     if (res.data && res.data.length > 0) {
-        return res.data[0].regNo; // 👈 매핑된 필드명 regNo 사용
+        return res.data[0].reg_no; // 👈 실제 DB 컬럼인 reg_no 사용
     }
     return null;
 };
