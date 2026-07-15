@@ -152,7 +152,7 @@ export const FormShell: React.FC<FormShellProps> = ({
                         </div>
                         {paymentMethod === 'bank' && (
                             <div className="bg-blue-50/70 p-4 rounded-2xl border border-blue-100/50 text-[11px] font-bold text-blue-900/80 leading-relaxed">
-                                📌 KEB하나은행 222-910031-30404 (사단법인 한국애견협회)<br/>
+                                📌 KEB하나은행 222-910031-29404 (사단법인 한국애견협회)<br/>
                                 신청 완료 후 위 계좌로 참가비를 입금해 주셔야 최종 접수가 완료됩니다.
                             </div>
                         )}
