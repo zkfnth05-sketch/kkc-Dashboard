@@ -76,6 +76,16 @@ export const PublicCompetitionPage: React.FC = () => {
         return `${VERCEL_BASE}/${params}`;
     };
 
+    const getStatus = (comp: Competition) => {
+        const now = new Date();
+        const regStart = comp.reg_start_date ? new Date(`${comp.reg_start_date} ${comp.reg_start_h || '00'}:${comp.reg_start_m || '00'}:00`) : null;
+        const regEnd = comp.reg_end_date ? new Date(`${comp.reg_end_date} ${comp.reg_end_h || '23'}:${comp.reg_end_m || '59'}:00`) : null;
+
+        if (regStart && now < regStart) return { text: '접수예정' };
+        if (regEnd && now > regEnd) return { text: '접수 종료' };
+        return { text: '접수중' };
+    };
+
     const handleMembershipValidation = (targetComp: Competition, targetTab: string) => {
         try {
             const rawUser = sessionStorage.getItem('kkf_portal_user');
@@ -349,17 +359,29 @@ export const PublicCompetitionPage: React.FC = () => {
                                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Organized By</p>
                                                 <p className="text-[13px] md:text-[14px] font-[900] text-slate-900">{selectedComp.organizer}</p>
                                             </div>
-                                            <button
-                                                onClick={() => {
-                                                    if (selectedComp) {
-                                                        handleMembershipValidation(selectedComp, selectedComp.category || '');
-                                                    }
-                                                }}
-                                                className="w-full sm:w-auto px-6 md:px-10 py-4 md:py-5 bg-teal-500 text-white rounded-xl md:rounded-[24px] text-xs md:text-[13px] font-[900] uppercase tracking-[0.2em] shadow-2xl shadow-teal-500/30 hover:bg-teal-600 transition-all flex items-center justify-center gap-4 group"
-                                            >
-                                                신청하기
-                                                <ArrowRight size={18} className="translate-x-0 group-hover:translate-x-1 transition-transform" />
-                                            </button>
+                                            {(() => {
+                                                const status = getStatus(selectedComp);
+                                                const isNotRegistering = status.text !== '접수중';
+                                                return (
+                                                    <button
+                                                        onClick={() => {
+                                                            if (selectedComp && !isNotRegistering) {
+                                                                handleMembershipValidation(selectedComp, selectedComp.category || '');
+                                                            }
+                                                        }}
+                                                        disabled={isNotRegistering}
+                                                        className={`w-full sm:w-auto px-6 md:px-10 py-4 md:py-5 rounded-xl md:rounded-[24px] text-xs md:text-[13px] font-[900] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 group ${
+                                                            isNotRegistering
+                                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed grayscale shadow-none'
+                                                                : 'bg-teal-500 text-white shadow-2xl shadow-teal-500/30 hover:bg-teal-600'
+                                                        }`}
+                                                        style={!isNotRegistering ? { color: 'white' } : {}}
+                                                    >
+                                                        {status.text === '접수예정' ? '접수 예정' : status.text === '접수 종료' ? '접수 마감' : '신청하기'}
+                                                        {!isNotRegistering && <ArrowRight size={18} className="translate-x-0 group-hover:translate-x-1 transition-transform" />}
+                                                    </button>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                 </div>

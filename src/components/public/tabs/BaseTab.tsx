@@ -277,12 +277,12 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                                                         </button>
                                                         <button
                                                             onClick={() => onApplyComp(item, activeSubTab)}
-                                                            disabled={status.text === '접수 종료'}
-                                                            className={`px-8 py-3.5 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95 whitespace-nowrap ${status.text === '접수 종료'
+                                                            disabled={status.text !== '접수중'}
+                                                            className={`px-8 py-3.5 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95 whitespace-nowrap ${status.text !== '접수중'
                                                                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed grayscale'
                                                                 : 'bg-slate-900 !text-white hover:bg-teal-600 hover:shadow-xl hover:shadow-teal-500/30'
                                                                 }`}
-                                                            style={status.text !== '접수 종료' ? { color: 'white' } : {}}
+                                                            style={status.text === '접수중' ? { color: 'white' } : {}}
                                                         >
                                                             신청하기
                                                         </button>
@@ -398,12 +398,12 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                                             </button>
                                             <button
                                                 onClick={() => onApplyComp(item, activeSubTab)}
-                                                disabled={status.text === '접수 종료'}
-                                                className={`flex-[1.5] py-3.5 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${status.text === '접수 종료'
-                                                    ? 'bg-slate-100 text-slate-400'
+                                                disabled={status.text !== '접수중'}
+                                                className={`flex-[1.5] py-3.5 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${status.text !== '접수중'
+                                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed grayscale'
                                                     : 'bg-slate-900 !text-white hover:bg-teal-600 shadow-lg shadow-teal-500/20'
                                                     }`}
-                                                style={status.text !== '접수 종료' ? { color: 'white' } : {}}
+                                                style={status.text === '접수중' ? { color: 'white' } : {}}
                                             >
                                                 신청하기
                                             </button>
