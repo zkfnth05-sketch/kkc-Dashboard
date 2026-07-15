@@ -43,11 +43,11 @@ interface MainCategory {
 }
 
 const CATEGORIES: MainCategory[] = [
-    { id: 'dogshow', name: '도그쇼', subTabs: ['도그쇼', '셰퍼드 전람회', '진도견 선발대회'], icon: <Trophy size={18} /> },
-    { id: 'stylist', name: '반려견 스타일리스트', subTabs: ['반려견 스타일리스트 경연대회', '반려견 스타일리스트 경연대회(국제)'], icon: <Sparkles size={18} /> },
-    { id: 'sports', name: '독스포츠', subTabs: ['훈련 경기대회', '어질리티', '디스크독', '플라이볼'], icon: <LayoutGrid size={18} /> },
-    { id: 'seminar', name: '세미나 및 교육', subTabs: ['세미나'], icon: <Info size={18} /> },
-    { id: 'breed_exam', name: '종견인정검사', subTabs: ['종견인정검사'], icon: <Dog size={18} /> },
+    { id: 'dogshow', name: '도그쇼', subTabs: ['도그쇼', '셰퍼드 전람회', '진도견 선발대회'], icon: <Trophy size={16} /> },
+    { id: 'stylist', name: '반려견 스타일리스트', subTabs: ['반려견 스타일리스트 경연대회', '반려견 스타일리스트 경연대회(국제)'], icon: <Sparkles size={16} /> },
+    { id: 'sports', name: '독스포츠', subTabs: ['훈련 경기대회', '어질리티', '디스크독', '플라이볼'], icon: <LayoutGrid size={16} /> },
+    { id: 'seminar', name: '세미나 및 교육', subTabs: ['세미나'], icon: <Info size={16} /> },
+    { id: 'breed_exam', name: '종견인정검사', subTabs: ['종견인정검사'], icon: <Dog size={16} /> },
 ];
 
 export const PublicCompetitionPage: React.FC = () => {
@@ -133,34 +133,34 @@ export const PublicCompetitionPage: React.FC = () => {
     return (
         <div className="flex flex-col lg:flex-row flex-nowrap bg-[#F8FAFB] text-slate-900 font-sans selection:bg-teal-100 items-start">
             {/* 🏛️ Premium Sidebar (Dark Design Reverted) */}
-            <div className="w-full lg:w-[320px] bg-[#0F172A] flex-shrink-0 flex flex-col pt-16 pb-10 border-r border-slate-800 relative shadow-none z-0 rounded-l-[16px]">
-                <div className="px-10 mb-20">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/20">
-                            <Sparkles className="text-white" size={22} />
+            <div className="w-full lg:w-[270px] bg-[#0F172A] flex-shrink-0 flex flex-col pt-10 pb-6 border-r border-slate-800 relative shadow-none z-0 rounded-l-[16px]">
+                <div className="px-6 mb-10">
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                        <div className="w-8 h-8 bg-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20">
+                            <Sparkles className="text-white" size={16} />
                         </div>
-                        <span className="text-[10px] font-black text-teal-400 tracking-[0.3em] uppercase">Registration</span>
+                        <span className="text-[9px] font-black text-teal-400 tracking-[0.3em] uppercase">Registration</span>
                     </div>
-                    <h2 className="text-3xl font-black text-white leading-tight tracking-tighter" style={{ color: 'white' }}>
+                    <h2 className="text-2xl font-black text-white leading-tight tracking-tighter" style={{ color: 'white' }}>
                         대회 <br /> 안내 및 신청
                     </h2>
                 </div>
 
-                <nav className="flex-1 space-y-1 px-4">
+                <nav className="flex-1 space-y-1.5 px-3">
                     {CATEGORIES.map((cat) => (
                         <button
                             key={cat.id}
                             onClick={() => setActiveMainCat(cat)}
-                            className={`w-full px-6 py-4 rounded-2xl flex items-center justify-between transition-all duration-300 group ${activeMainCat.id === cat.id
+                            className={`w-full px-4 py-3 rounded-xl flex items-center justify-between transition-all duration-300 group ${activeMainCat.id === cat.id
                                 ? 'bg-teal-500 text-white shadow-xl shadow-teal-500/20'
                                 : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50'
                                 }`}
                         >
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-3">
                                 <div className={`transition-colors ${activeMainCat.id === cat.id ? 'text-white' : 'text-slate-500 group-hover:text-teal-400'}`}>
                                     {cat.icon}
                                 </div>
-                                <span className="text-[15px] font-bold tracking-tight !text-white">{cat.name}</span>
+                                <span className="text-[13.5px] font-bold tracking-tight !text-white">{cat.name}</span>
                             </div>
                             {activeMainCat.id === cat.id && (
                                 <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
@@ -169,8 +169,8 @@ export const PublicCompetitionPage: React.FC = () => {
                     ))}
                 </nav>
 
-                <div className="px-10 pb-10 opacity-30">
-                    <p className="text-[11px] font-bold text-slate-500 tracking-widest uppercase">© KKC Dog Show Service</p>
+                <div className="px-6 pb-6 opacity-30">
+                    <p className="text-[9.5px] font-bold text-slate-500 tracking-widest uppercase">© KKC Dog Show Service</p>
                 </div>
             </div>
 
