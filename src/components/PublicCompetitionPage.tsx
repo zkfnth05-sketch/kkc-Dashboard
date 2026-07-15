@@ -48,6 +48,7 @@ const CATEGORIES: MainCategory[] = [
     { id: 'sports', name: '독스포츠', subTabs: ['훈련 경기대회', '어질리티', '디스크독', '플라이볼'], icon: <LayoutGrid size={16} /> },
     { id: 'seminar', name: '세미나 및 교육', subTabs: ['세미나'], icon: <Info size={16} /> },
     { id: 'breed_exam', name: '종견인정검사', subTabs: ['종견인정검사'], icon: <Dog size={16} /> },
+    { id: 'etc', name: '기타', subTabs: ['기타'], icon: <Globe size={16} /> },
 ];
 
 export const PublicCompetitionPage: React.FC = () => {
@@ -77,6 +78,7 @@ export const PublicCompetitionPage: React.FC = () => {
     };
 
     const getStatus = (comp: Competition) => {
+        if (comp.category === '기타') return { text: '일반행사' };
         const now = new Date();
         const regStart = comp.reg_start_date ? new Date(`${comp.reg_start_date} ${comp.reg_start_h || '00'}:${comp.reg_start_m || '00'}:00`) : null;
         const regEnd = comp.reg_end_date ? new Date(`${comp.reg_end_date} ${comp.reg_end_h || '23'}:${comp.reg_end_m || '59'}:00`) : null;
@@ -361,6 +363,13 @@ export const PublicCompetitionPage: React.FC = () => {
                                             </div>
                                             {(() => {
                                                 const status = getStatus(selectedComp);
+                                                if (selectedComp.category === '기타') {
+                                                    return (
+                                                        <div className="w-full sm:w-auto px-6 md:px-10 py-4 md:py-5 rounded-xl md:rounded-[24px] text-xs md:text-[13px] font-[900] bg-slate-100 text-slate-500 flex items-center justify-center whitespace-nowrap shadow-none">
+                                                            일반 행사 (신청 불필요)
+                                                        </div>
+                                                    );
+                                                }
                                                 const isNotRegistering = status.text !== '접수중';
                                                 return (
                                                     <button

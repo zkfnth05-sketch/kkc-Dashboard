@@ -270,6 +270,7 @@ const CompetitionCreateForm: React.FC<{
               <option>플라이볼</option>
               <option>세미나</option>
               <option>종견인정검사</option>
+              <option>기타</option>
             </select>
           </div>
 
@@ -328,41 +329,45 @@ const CompetitionCreateForm: React.FC<{
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[13px] font-bold text-gray-600">접수 시작일</label>
-            <div className="flex gap-2">
-              <input
-                type="date"
-                className="flex-1 border border-gray-300 rounded-sm px-4 py-2.5 outline-none focus:border-blue-500 shadow-sm"
-                value={formData.reg_start_date}
-                onChange={e => setFormData({ ...formData, reg_start_date: e.target.value })}
-              />
-              <select className="w-24 border border-gray-300 rounded-sm px-2 outline-none focus:border-blue-500 shadow-sm" value={formData.reg_start_h} onChange={e => setFormData({ ...formData, reg_start_h: e.target.value })}>
-                {hours.map(h => <option key={h} value={h}>{h}시</option>)}
-              </select>
-              <select className="w-24 border border-gray-300 rounded-sm px-2 outline-none focus:border-blue-500 shadow-sm" value={formData.reg_start_m} onChange={e => setFormData({ ...formData, reg_start_m: e.target.value })}>
-                {minutes.map(m => <option key={m} value={m}>{m}분</option>)}
-              </select>
-            </div>
-          </div>
+          {formData.category !== '기타' && (
+            <>
+              <div className="space-y-2">
+                <label className="text-[13px] font-bold text-gray-600">접수 시작일</label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    className="flex-1 border border-gray-300 rounded-sm px-4 py-2.5 outline-none focus:border-blue-500 shadow-sm"
+                    value={formData.reg_start_date}
+                    onChange={e => setFormData({ ...formData, reg_start_date: e.target.value })}
+                  />
+                  <select className="w-24 border border-gray-300 rounded-sm px-2 outline-none focus:border-blue-500 shadow-sm" value={formData.reg_start_h} onChange={e => setFormData({ ...formData, reg_start_h: e.target.value })}>
+                    {hours.map(h => <option key={h} value={h}>{h}시</option>)}
+                  </select>
+                  <select className="w-24 border border-gray-300 rounded-sm px-2 outline-none focus:border-blue-500 shadow-sm" value={formData.reg_start_m} onChange={e => setFormData({ ...formData, reg_start_m: e.target.value })}>
+                    {minutes.map(m => <option key={m} value={m}>{m}분</option>)}
+                  </select>
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <label className="text-[13px] font-bold text-gray-600">접수 마감일</label>
-            <div className="flex gap-2">
-              <input
-                type="date"
-                className="flex-1 border border-gray-300 rounded-sm px-4 py-2.5 outline-none focus:border-blue-500 shadow-sm"
-                value={formData.reg_end_date}
-                onChange={e => setFormData({ ...formData, reg_end_date: e.target.value })}
-              />
-              <select className="w-24 border border-gray-300 rounded-sm px-2 outline-none focus:border-blue-500 shadow-sm" value={formData.reg_end_h} onChange={e => setFormData({ ...formData, reg_end_h: e.target.value })}>
-                {hours.map(h => <option key={h} value={h}>{h}시</option>)}
-              </select>
-              <select className="w-24 border border-gray-300 rounded-sm px-2 outline-none focus:border-blue-500 shadow-sm" value={formData.reg_end_m} onChange={e => setFormData({ ...formData, reg_end_m: e.target.value })}>
-                {minutes.map(m => <option key={m} value={m}>{m}분</option>)}
-              </select>
-            </div>
-          </div>
+              <div className="space-y-2">
+                <label className="text-[13px] font-bold text-gray-600">접수 마감일</label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    className="flex-1 border border-gray-300 rounded-sm px-4 py-2.5 outline-none focus:border-blue-500 shadow-sm"
+                    value={formData.reg_end_date}
+                    onChange={e => setFormData({ ...formData, reg_end_date: e.target.value })}
+                  />
+                  <select className="w-24 border border-gray-300 rounded-sm px-2 outline-none focus:border-blue-500 shadow-sm" value={formData.reg_end_h} onChange={e => setFormData({ ...formData, reg_end_h: e.target.value })}>
+                    {hours.map(h => <option key={h} value={h}>{h}시</option>)}
+                  </select>
+                  <select className="w-24 border border-gray-300 rounded-sm px-2 outline-none focus:border-blue-500 shadow-sm" value={formData.reg_end_m} onChange={e => setFormData({ ...formData, reg_end_m: e.target.value })}>
+                    {minutes.map(m => <option key={m} value={m}>{m}분</option>)}
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="space-y-2">
             <label className="text-[13px] font-bold text-gray-600">대회 기간</label>
@@ -412,65 +417,69 @@ const CompetitionCreateForm: React.FC<{
             <span className="text-[14px] text-gray-700 font-medium">여러 일동안 진행되는 대회</span>
           </label>
 
-          {/* 📋 [COPY RECENT OPTIONS] 최근 대회 옵션 불러오기 추가 */}
-          <div className="p-4 bg-blue-50/30 rounded-xl border border-dashed border-blue-200/50 flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
-            <div className="text-left">
-              <span className="text-[13px] font-bold text-slate-700">이전 대회 옵션 복사하기</span>
-              <p className="text-[11px] text-slate-400 mt-0.5">이전에 개설했던 대회에서 사용했던 참가비 옵션을 그대로 가져옵니다.</p>
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto shrink-0">
-              <select
-                className="text-[12px] font-bold px-3 py-2 bg-white border border-slate-300 rounded-lg outline-none focus:border-blue-500 max-w-[240px] truncate"
-                onChange={async (e) => {
-                  const targetIdStr = e.target.value;
-                  if (!targetIdStr) return;
-                  
-                  setIsLoading(true);
-                  try {
-                    const pid = parseInt(targetIdStr.replace(/[^0-9]/g, ''));
-                    let eventType = 'dogshow';
-                    if (targetIdStr.startsWith('st_')) eventType = 'stylist';
-                    else if (targetIdStr.startsWith('sp_')) eventType = 'sports_event';
-                    else if (targetIdStr.startsWith('sm_')) eventType = 'seminar';
-                    else if (targetIdStr.startsWith('be_')) eventType = 'breed_exam';
+          {formData.category !== '기타' && (
+            <>
+              {/* 📋 [COPY RECENT OPTIONS] 최근 대회 옵션 불러오기 추가 */}
+              <div className="p-4 bg-blue-50/30 rounded-xl border border-dashed border-blue-200/50 flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
+                <div className="text-left">
+                  <span className="text-[13px] font-bold text-slate-700">이전 대회 옵션 복사하기</span>
+                  <p className="text-[11px] text-slate-400 mt-0.5">이전에 개설했던 대회에서 사용했던 참가비 옵션을 그대로 가져옵니다.</p>
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                  <select
+                    className="text-[12px] font-bold px-3 py-2 bg-white border border-slate-300 rounded-lg outline-none focus:border-blue-500 max-w-[240px] truncate"
+                    onChange={async (e) => {
+                      const targetIdStr = e.target.value;
+                      if (!targetIdStr) return;
+                      
+                      setIsLoading(true);
+                      try {
+                        const pid = parseInt(targetIdStr.replace(/[^0-9]/g, ''));
+                        let eventType = 'dogshow';
+                        if (targetIdStr.startsWith('st_')) eventType = 'stylist';
+                        else if (targetIdStr.startsWith('sp_')) eventType = 'sports_event';
+                        else if (targetIdStr.startsWith('sm_')) eventType = 'seminar';
+                        else if (targetIdStr.startsWith('be_')) eventType = 'breed_exam';
 
-                    const res = await fetchEventOptions(eventType, pid);
-                    if (res.data && res.data.length > 0) {
-                      // 🛡️ [SAFETY FILTER]
-                      const filtered = (res.data || []).filter((o: any) => o.event_type === eventType);
-                      const loadedOptions = filtered.map((opt: any) => ({
-                        label: opt.option_name,
-                        price: opt.option_price,
-                        is_required: opt.is_required === 1 || opt.is_required === '1'
-                      }));
-                      setFeeOptions(loadedOptions);
-                      alert(`'${e.target.selectedOptions[0].text}' 대회의 옵션 ${loadedOptions.length}개를 성공적으로 불러왔습니다!`);
-                    } else {
-                      alert('선택한 대회에 등록된 참가비 옵션이 없습니다.');
-                    }
-                  } catch (err) {
-                    alert('옵션을 불러오는 데 실패했습니다.');
-                  } finally {
-                    setIsLoading(false);
-                    e.target.value = ''; // reset dropdown
-                  }
-                }}
-              >
-                <option value="">복사할 대회를 선택하세요...</option>
-                {recentCompetitions.map((comp) => (
-                  <option key={comp.id} value={comp.id}>
-                    [{comp.category || '기타'}] {comp.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+                        const res = await fetchEventOptions(eventType, pid);
+                        if (res.data && res.data.length > 0) {
+                          // 🛡️ [SAFETY FILTER]
+                          const filtered = (res.data || []).filter((o: any) => o.event_type === eventType);
+                          const loadedOptions = filtered.map((opt: any) => ({
+                            label: opt.option_name,
+                            price: opt.option_price,
+                            is_required: opt.is_required === 1 || opt.is_required === '1'
+                          }));
+                          setFeeOptions(loadedOptions);
+                          alert(`'${e.target.selectedOptions[0].text}' 대회의 옵션 ${loadedOptions.length}개를 성공적으로 불러왔습니다!`);
+                        } else {
+                          alert('선택한 대회에 등록된 참가비 옵션이 없습니다.');
+                        }
+                      } catch (err) {
+                        alert('옵션을 불러오는 데 실패했습니다.');
+                      } finally {
+                        setIsLoading(false);
+                        e.target.value = ''; // reset dropdown
+                      }
+                    }}
+                  >
+                    <option value="">복사할 대회를 선택하세요...</option>
+                    {recentCompetitions.map((comp) => (
+                      <option key={comp.id} value={comp.id}>
+                        [{comp.category || '기타'}] {comp.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-          {/* 💰 [FEE OPTION EDITOR] 쇼핑몰 방식 옵션 설정 추가 */}
-          <FeeOptionEditor 
-            options={feeOptions} 
-            onUpdate={setFeeOptions} 
-          />
+              {/* 💰 [FEE OPTION EDITOR] 쇼핑몰 방식 옵션 설정 추가 */}
+              <FeeOptionEditor 
+                options={feeOptions} 
+                onUpdate={setFeeOptions} 
+              />
+            </>
+          )}
 
           <div className="space-y-2 pb-24">
             <label className="text-[13px] font-bold text-gray-600">대회 소개 (전문 에디터)</label>
@@ -538,7 +547,7 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
 
   const tabs = [
     '전체', '도그쇼', '셰퍼드 전람회', '진도견 선발대회', '반려견 스타일리스트 경연대회', '반려견 스타일리스트 경연대회(국제)',
-    '훈련 경기대회', '어질리티', '디스크독', '플라이볼', '세미나', '종견인정검사'
+    '훈련 경기대회', '어질리티', '디스크독', '플라이볼', '세미나', '종견인정검사', '기타'
   ];
 
   const loadData = async (page: number = 1, q: string = searchQuery, cat: string = activeTab) => {

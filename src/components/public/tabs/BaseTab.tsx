@@ -116,6 +116,9 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
     useEffect(() => { loadData(currentPage, activeSubTab); }, [currentPage, activeSubTab]);
 
     const getStatus = (comp: Competition) => {
+        if (comp.category === '기타') {
+            return { text: '일반행사', color: 'bg-blue-100 text-blue-700 border-blue-200 font-bold' };
+        }
         const now = new Date();
         const regStart = comp.reg_start_date ? new Date(`${comp.reg_start_date} ${comp.reg_start_h || '00'}:${comp.reg_start_m || '00'}:00`) : null;
         const regEnd = comp.reg_end_date ? new Date(`${comp.reg_end_date} ${comp.reg_end_h || '23'}:${comp.reg_end_m || '59'}:00`) : null;
@@ -228,22 +231,26 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                                                     </div>
                                                 </td>
                                                 <td className="py-9 px-6 whitespace-nowrap">
-                                                    <div className="space-y-2">
-                                                        <div className="flex flex-col gap-1">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="w-8 text-[9px] font-black text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded text-center">시작</span>
-                                                                <span className="text-[13px] font-[900] text-slate-700 tabular-nums">
-                                                                    {item.reg_start_date ? `${item.reg_start_date} ${item.reg_start_h || '00'}:${item.reg_start_m || '00'}` : '미정'}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="w-8 text-[9px] font-black text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded text-center">종료</span>
-                                                                <span className="text-[13px] font-[900] text-slate-700 tabular-nums">
-                                                                    {item.reg_end_date ? `${item.reg_end_date} ${item.reg_end_h || '23'}:${item.reg_end_m || '59'}` : '미정'}
-                                                                </span>
+                                                    {item.category === '기타' ? (
+                                                        <span className="text-[13px] font-bold text-slate-400 pl-0.5">접수 없음 (상시 공개)</span>
+                                                    ) : (
+                                                        <div className="space-y-2">
+                                                            <div className="flex flex-col gap-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="w-8 text-[9px] font-black text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded text-center">시작</span>
+                                                                    <span className="text-[13px] font-[900] text-slate-700 tabular-nums">
+                                                                        {item.reg_start_date ? `${item.reg_start_date} ${item.reg_start_h || '00'}:${item.reg_start_m || '00'}` : '미정'}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="w-8 text-[9px] font-black text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded text-center">종료</span>
+                                                                    <span className="text-[13px] font-[900] text-slate-700 tabular-nums">
+                                                                        {item.reg_end_date ? `${item.reg_end_date} ${item.reg_end_h || '23'}:${item.reg_end_m || '59'}` : '미정'}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
+                                                    )}
                                                 </td>
                                                 <td className="py-9 px-6 whitespace-nowrap">
                                                     <div className="space-y-2">
@@ -275,17 +282,19 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                                                         >
                                                             상세보기
                                                         </button>
-                                                        <button
-                                                            onClick={() => onApplyComp(item, activeSubTab)}
-                                                            disabled={status.text !== '접수중'}
-                                                            className={`px-8 py-3.5 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95 whitespace-nowrap ${status.text !== '접수중'
-                                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed grayscale'
-                                                                : 'bg-slate-900 !text-white hover:bg-teal-600 hover:shadow-xl hover:shadow-teal-500/30'
-                                                                }`}
-                                                            style={status.text === '접수중' ? { color: 'white' } : {}}
-                                                        >
-                                                            신청하기
-                                                        </button>
+                                                        {item.category !== '기타' && (
+                                                            <button
+                                                                onClick={() => onApplyComp(item, activeSubTab)}
+                                                                disabled={status.text !== '접수중'}
+                                                                className={`px-8 py-3.5 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95 whitespace-nowrap ${status.text !== '접수중'
+                                                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed grayscale'
+                                                                    : 'bg-slate-900 !text-white hover:bg-teal-600 hover:shadow-xl hover:shadow-teal-500/30'
+                                                                    }`}
+                                                                style={status.text === '접수중' ? { color: 'white' } : {}}
+                                                            >
+                                                                신청하기
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -366,14 +375,18 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">접수기간</p>
-                                                <div className="flex flex-col gap-1">
-                                                    <p className="text-[11px] font-[900] text-slate-700 tracking-tight">
-                                                        <span className="text-teal-500 mr-1">시</span> {item.reg_start_date ? `${item.reg_start_date} ${item.reg_start_h || '00'}:${item.reg_start_m || '00'}` : '미정'}
-                                                    </p>
-                                                    <p className="text-[11px] font-[900] text-slate-700 tracking-tight">
-                                                        <span className="text-rose-500 mr-1">종</span> {item.reg_end_date ? `${item.reg_end_date} ${item.reg_end_h || '23'}:${item.reg_end_m || '59'}` : '미정'}
-                                                    </p>
-                                                </div>
+                                                {item.category === '기타' ? (
+                                                    <p className="text-[11px] font-bold text-slate-400 mt-1">접수 없음 (상시 공개)</p>
+                                                ) : (
+                                                    <div className="flex flex-col gap-1">
+                                                        <p className="text-[11px] font-[900] text-slate-700 tracking-tight">
+                                                            <span className="text-teal-500 mr-1">시</span> {item.reg_start_date ? `${item.reg_start_date} ${item.reg_start_h || '00'}:${item.reg_start_m || '00'}` : '미정'}
+                                                        </p>
+                                                        <p className="text-[11px] font-[900] text-slate-700 tracking-tight">
+                                                            <span className="text-rose-500 mr-1">종</span> {item.reg_end_date ? `${item.reg_end_date} ${item.reg_end_h || '23'}:${item.reg_end_m || '59'}` : '미정'}
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="space-y-2">
                                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">대회일정</p>
@@ -396,17 +409,19 @@ export const BaseTab: React.FC<BaseTabProps> = ({ subTabs, onSelectComp, onApply
                                             >
                                                 상세보기
                                             </button>
-                                            <button
-                                                onClick={() => onApplyComp(item, activeSubTab)}
-                                                disabled={status.text !== '접수중'}
-                                                className={`flex-[1.5] py-3.5 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${status.text !== '접수중'
-                                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed grayscale'
-                                                    : 'bg-slate-900 !text-white hover:bg-teal-600 shadow-lg shadow-teal-500/20'
-                                                    }`}
-                                                style={status.text === '접수중' ? { color: 'white' } : {}}
-                                            >
-                                                신청하기
-                                            </button>
+                                            {item.category !== '기타' && (
+                                                <button
+                                                    onClick={() => onApplyComp(item, activeSubTab)}
+                                                    disabled={status.text !== '접수중'}
+                                                    className={`flex-[1.5] py-3.5 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${status.text !== '접수중'
+                                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed grayscale'
+                                                        : 'bg-slate-900 !text-white hover:bg-teal-600 shadow-lg shadow-teal-500/20'
+                                                        }`}
+                                                    style={status.text === '접수중' ? { color: 'white' } : {}}
+                                                >
+                                                    신청하기
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 );
