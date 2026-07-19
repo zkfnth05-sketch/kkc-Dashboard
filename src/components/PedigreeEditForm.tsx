@@ -110,38 +110,86 @@ const InputField = ({ label, value, onChange, placeholder, readOnly, type = "tex
 
 const ParentDogBox = ({ type, dog, isSearching, regNo, onRegNoChange, onSearch, onClear, onEditRecord }: any) => {
   const displayRegNo = (regNo === '0') ? '미등록' : (regNo || '');
+
+  // 🎯 Determine matched field label
+  let matchedField = '등록번호';
+  if (dog) {
+    const searchClean = (regNo || '').toString().trim();
+    if (dog.foreign_no && dog.foreign_no.toString().includes(searchClean)) matchedField = '외국번호';
+    else if (dog.foreign_no2 && dog.foreign_no2.toString().includes(searchClean)) matchedField = '외국번호2';
+    else if (dog.other_org && dog.other_org.toString().includes(searchClean)) matchedField = '타단체';
+    else matchedField = '등록번호';
+  }
+
   return (
-    <div className="border border-gray-100 rounded bg-gray-50/30 mb-4 overflow-hidden shadow-sm">
-      <div className="p-2 border-b border-gray-100 bg-white">
+    <div className="border border-slate-200 rounded-xl bg-slate-50/80 mb-4 overflow-hidden shadow-xs">
+      <div className="p-3 border-b border-slate-200 bg-white">
         <InputField 
           label={`${type === 'sire' ? '부견' : '모견'} 등록번호`} 
           value={displayRegNo} 
           onChange={(val: string) => onRegNoChange(val)}
           className="mb-0"
           button={
-            <button type="button" onClick={(e) => { e.preventDefault(); onSearch(); }} className="bg-white border border-gray-300 px-3 h-7 text-[11px] rounded-sm font-bold shrink-0">
+            <button type="button" onClick={(e) => { e.preventDefault(); onSearch(); }} className="bg-[#4f46e5] hover:bg-[#4338ca] text-white px-4 h-7 text-[11px] rounded-lg font-bold shrink-0 shadow-xs transition-colors">
               {isSearching ? <Loader2 size={12} className="animate-spin" /> : '조회'}
             </button>
           }
         />
       </div>
-      <div className="p-3 pl-24 text-[11px] leading-relaxed text-gray-600 min-h-[140px] relative">
+      <div className="p-3 text-[11px] leading-relaxed text-slate-600 min-h-[140px] relative">
         {dog ? (
           <>
-            <div className="font-bold text-gray-900 mb-1">{dog.fullname || dog.name || '이름 없음'}</div>
-            <div>생년월일: {dog.birth || '-'}</div>
-            <div>견종: {dog.dog_class || '-'}</div>
-            <div>모색: {dog.hair || '-'}</div>
-            <div>견사호(영문): {dog.saho_eng || '-'}</div>
-            <div>등록번호: <span className="text-blue-600 font-bold">{(!dog.reg_no || dog.reg_no === '0') ? '미등록' : dog.reg_no}</span></div>
-            <div className="text-gray-400 mt-1">UID: {dog.uid}</div>
-            <div className="mt-3 flex gap-1 pt-2 border-t border-gray-100">
-              <button type="button" onClick={(e) => { e.preventDefault(); onEditRecord(); }} className="flex-1 bg-white border border-gray-200 h-8 text-[11px] font-bold text-gray-700 rounded-sm hover:bg-gray-50 flex items-center justify-center gap-1 shadow-xs"><Edit size={12} className="text-blue-500" /> 정보 수정</button>
-              <button type="button" onClick={(e) => { e.preventDefault(); onClear(); }} className="flex-1 bg-white border border-gray-200 h-8 text-[11px] font-bold text-red-500 rounded-sm hover:bg-red-50 flex items-center justify-center gap-1 shadow-xs"><Trash2 size={12} /> 연결 삭제</button>
+            <div className="grid grid-cols-3 gap-2">
+               <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 block mb-0.5">이름</span>
+                  <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={dog.name}>{dog.name || '미상'}</span>
+               </div>
+               <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 block mb-0.5">견사호</span>
+                  <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={dog.saho}>{dog.saho || '미상'}</span>
+               </div>
+               <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 block mb-0.5">견사호(영문)</span>
+                  <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={dog.saho_eng}>{dog.saho_eng || '-'}</span>
+               </div>
+
+               <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 block mb-0.5">등록번호</span>
+                  <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={dog.reg_no}>{(!dog.reg_no || dog.reg_no === '0') ? '미등록' : dog.reg_no}</span>
+               </div>
+               <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 block mb-0.5">생년월일</span>
+                  <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={dog.birth}>{dog.birth || '-'}</span>
+               </div>
+               <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 block mb-0.5">모색</span>
+                  <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={dog.hair}>{dog.hair || dog.coatType || '-'}</span>
+               </div>
+
+               <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 block mb-0.5">풀네임</span>
+                  <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={dog.fullname}>{dog.fullname || dog.name || '-'}</span>
+               </div>
+               <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 block mb-0.5">소유자</span>
+                  <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={dog.name_owner || dog.owner}>{dog.name_owner || dog.owner || dog.mb_name || '미상'}</span>
+               </div>
+               <div className="bg-white p-2 rounded-lg border border-slate-200/80 flex flex-col justify-center">
+                  <span className="text-[10px] font-bold text-slate-400 block mb-0.5">조회된 필드</span>
+                  <div>
+                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-black bg-blue-50 text-blue-600 border border-blue-100">
+                       {matchedField}
+                     </span>
+                  </div>
+               </div>
+            </div>
+            <div className="mt-3 flex gap-1 pt-2 border-t border-slate-200/80">
+              <button type="button" onClick={(e) => { e.preventDefault(); onEditRecord(); }} className="flex-1 bg-white border border-slate-200 h-8 text-[11px] font-bold text-slate-700 rounded-md hover:bg-slate-50 flex items-center justify-center gap-1 shadow-2xs"><Edit size={12} className="text-blue-500" /> 정보 수정</button>
+              <button type="button" onClick={(e) => { e.preventDefault(); onClear(); }} className="flex-1 bg-white border border-slate-200 h-8 text-[11px] font-bold text-red-500 rounded-md hover:bg-red-50 flex items-center justify-center gap-1 shadow-2xs"><Trash2 size={12} /> 연결 삭제</button>
             </div>
           </>
         ) : (
-          <div className="py-12 text-center text-gray-300 italic">부모견 UID를 입력하고 조회 버튼을 누르세요.</div>
+          <div className="py-12 text-center text-slate-300 italic font-medium">부모견 UID를 입력하고 조회 버튼을 누르세요.</div>
         )}
       </div>
     </div>
