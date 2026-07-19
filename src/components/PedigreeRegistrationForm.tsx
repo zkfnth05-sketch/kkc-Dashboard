@@ -309,15 +309,42 @@ export const PedigreeRegistrationForm: React.FC<PedigreeRegistrationFormProps> =
           if (type === 'sire') setSireInfo(null); else setDamInfo(null);
         } else {
           // 🛡️ [DATA ROBUSTNESS] 필드명 변동성 및 영문-한글 변환 대응
-          const rawCoat = dog.hair_long || dog.coatType || '';
+          const rawCoat = dog.hair_long || dog.coatType || dog.hair || dog.hair_index || '';
           const coat = normalizeCoatType(rawCoat); // 영문을 한글로 번역
 
-          const info = { 
-            name: dog.name, 
-            breed: dog.dog_class, 
-            sex: dog.sex, 
-            uid: dog.uid, 
-            hair_long: coat // 🎯 한글로 변환된 값 저장
+          // 🎯 조회된 필드 판별 (외국번호, 타단체번호, 등록번호 등)
+          const searchClean = regNo.trim();
+          let matchedField = '등록번호';
+          if (dog.foreign_no && dog.foreign_no.toString().includes(searchClean)) matchedField = '외국번호';
+          else if (dog.foreign_no2 && dog.foreign_no2.toString().includes(searchClean)) matchedField = '외국번호2';
+          else if (dog.other_org && dog.other_org.toString().includes(searchClean)) matchedField = '타단체';
+          else if (dog.reg_no && dog.reg_no.toString().includes(searchClean)) matchedField = '등록번호';
+
+          // 🎯 소유자 정보 판별
+          const ownerName = dog.name_owner || dog.owner || dog.mb_name || dog.breeder || '미상';
+
+          // 🎯 풀네임 구성 (DB에 없으면 이름 + 견사호영문)
+          let fullNameVal = (dog.fullname || '').trim();
+          if (!fullNameVal) {
+            const dogName = (dog.name || '').trim();
+            const sahoPart = (dog.saho_eng || dog.saho || '').trim();
+            fullNameVal = (dogName && sahoPart) ? `${dogName} ${sahoPart}` : (dogName || sahoPart || '미상');
+          }
+
+          const info = {
+            name: dog.name || '미상',
+            saho: (dog.saho && dog.saho.trim()) ? dog.saho.trim() : '미상',
+            sahoEng: (dog.saho_eng && dog.saho_eng.trim()) ? dog.saho_eng.trim() : (dog.saho_eng || '-'),
+            regNo: dog.reg_no || dog.regNo || regNo.trim(),
+            birth: dog.birth || dog.signdate || '-',
+            color: dog.hair || dog.color || dog.hair_long || coat || '-',
+            fullname: fullNameVal,
+            owner: ownerName,
+            matchedField: matchedField,
+            breed: dog.dog_class,
+            sex: dog.sex,
+            uid: dog.uid,
+            hair_long: coat
           };
 
           if (type === 'sire') {
@@ -642,9 +669,11 @@ export const PedigreeRegistrationForm: React.FC<PedigreeRegistrationFormProps> =
               </div>
 
               <div className={sectionCardStyle}>
-                 <h3 className={subTitleStyle}>
-                   부견 정보 <span className="text-blue-500 text-[10px]">▲</span>
-                 </h3>
+                 <div className="flex justify-between items-center mb-3">
+                   <h3 className={subTitleStyle + " mb-0"}>
+                     부견 정보 <span className="text-blue-500 text-[10px]">▲</span>
+                   </h3>
+                 </div>
                  <div className="flex gap-2">
                     <input 
                       type="text" 
@@ -660,34 +689,71 @@ export const PedigreeRegistrationForm: React.FC<PedigreeRegistrationFormProps> =
                     <button 
                       onClick={() => handleSearchParent('sire')}
                       disabled={isLoadingSire}
-                      className="px-4 h-9 bg-[#c7d2fe] text-[#4338ca] hover:bg-[#a5b4fc] text-[11px] font-bold rounded-md transition-colors flex items-center gap-1 min-w-[50px] justify-center disabled:opacity-50"
+                      className="px-4 h-9 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1 min-w-[55px] justify-center shadow-xs disabled:opacity-50"
                     >
                       {isLoadingSire ? <Loader2 size={12} className="animate-spin" /> : '조회'}
                     </button>
                  </div>
                  {sireInfo ? (
-                   <div className="mt-3 p-2 bg-blue-50/50 rounded-lg text-[11px] border border-blue-100 flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 size={14} className="text-blue-500" />
-                        <div><span className="font-bold text-blue-700">{sireInfo.name}</span> <span className="text-gray-400 mx-1">|</span> {sireInfo.breed}</div>
+                   <div className="mt-3 p-3 bg-slate-50/80 rounded-xl text-[11px] border border-slate-200/80 flex flex-col gap-2 shadow-xs">
+                      <div className="grid grid-cols-3 gap-2">
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">이름</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(sireInfo as any).name}>{(sireInfo as any).name || '미상'}</span>
+                         </div>
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">견사호</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(sireInfo as any).saho}>{(sireInfo as any).saho || '미상'}</span>
+                         </div>
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">견사호(영문)</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(sireInfo as any).sahoEng}>{(sireInfo as any).sahoEng || '-'}</span>
+                         </div>
+
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">등록번호</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(sireInfo as any).regNo}>{(sireInfo as any).regNo || '-'}</span>
+                         </div>
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">생년월일</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(sireInfo as any).birth}>{(sireInfo as any).birth || '-'}</span>
+                         </div>
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">모색</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(sireInfo as any).color}>{(sireInfo as any).color || '-'}</span>
+                         </div>
+
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">풀네임</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(sireInfo as any).fullname}>{(sireInfo as any).fullname || '-'}</span>
+                         </div>
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">소유자</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(sireInfo as any).owner}>{(sireInfo as any).owner || '미상'}</span>
+                         </div>
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80 flex flex-col justify-center">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">조회된 필드</span>
+                            <div>
+                               <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-black bg-blue-50 text-blue-600 border border-blue-100">
+                                 {(sireInfo as any).matchedField || '등록번호'}
+                               </span>
+                            </div>
+                         </div>
                       </div>
-                      <div className="pl-5 text-gray-500 font-bold">기존 모종: {commonData.sireCoatType || '미지정'}</div>
                    </div>
                  ) : searchError.sire ? (
                    <div className="mt-2 text-[10px] text-red-500 font-bold flex items-center gap-1">
                       <AlertCircle size={10} /> {searchError.sire}
                    </div>
                  ) : null}
-
-                 <div className={`mt-4 ${isNR ? 'opacity-50 grayscale brightness-75 contrast-75 pointer-events-none select-none' : ''}`}>
-
-                 </div>
               </div>
 
               <div className={sectionCardStyle}>
-                 <h3 className={subTitleStyle}>
-                   모견 정보 <span className="text-pink-500 text-[10px]">▲</span>
-                 </h3>
+                 <div className="flex justify-between items-center mb-3">
+                   <h3 className={subTitleStyle + " mb-0"}>
+                     모견 정보 <span className="text-pink-500 text-[10px]">▲</span>
+                   </h3>
+                 </div>
                  <div className="flex gap-2">
                     <input 
                       type="text" 
@@ -703,28 +769,63 @@ export const PedigreeRegistrationForm: React.FC<PedigreeRegistrationFormProps> =
                     <button 
                       onClick={() => handleSearchParent('dam')}
                       disabled={isLoadingDam}
-                      className="px-4 h-9 bg-[#fbcfe8] text-[#be185d] hover:bg-[#f9a8d4] text-[11px] font-bold rounded-md transition-colors flex items-center gap-1 min-w-[50px] justify-center disabled:opacity-50"
+                      className="px-4 h-9 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1 min-w-[55px] justify-center shadow-xs disabled:opacity-50"
                     >
                       {isLoadingDam ? <Loader2 size={12} className="animate-spin" /> : '조회'}
                     </button>
                  </div>
                  {damInfo ? (
-                   <div className="mt-3 p-2 bg-pink-50/50 rounded-lg text-[11px] border border-pink-100 flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                       <CheckCircle2 size={14} className="text-pink-500" />
-                       <div><span className="font-bold text-pink-700">{damInfo.name}</span> <span className="text-gray-400 mx-1">|</span> {damInfo.breed}</div>
+                   <div className="mt-3 p-3 bg-slate-50/80 rounded-xl text-[11px] border border-slate-200/80 flex flex-col gap-2 shadow-xs">
+                      <div className="grid grid-cols-3 gap-2">
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">이름</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(damInfo as any).name}>{(damInfo as any).name || '미상'}</span>
+                         </div>
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">견사호</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(damInfo as any).saho}>{(damInfo as any).saho || '미상'}</span>
+                         </div>
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">견사호(영문)</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(damInfo as any).sahoEng}>{(damInfo as any).sahoEng || '-'}</span>
+                         </div>
+
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">등록번호</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(damInfo as any).regNo}>{(damInfo as any).regNo || '-'}</span>
+                         </div>
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">생년월일</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(damInfo as any).birth}>{(damInfo as any).birth || '-'}</span>
+                         </div>
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">모색</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(damInfo as any).color}>{(damInfo as any).color || '-'}</span>
+                         </div>
+
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">풀네임</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(damInfo as any).fullname}>{(damInfo as any).fullname || '-'}</span>
+                         </div>
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">소유자</span>
+                            <span className="text-[12px] font-extrabold text-slate-800 truncate block" title={(damInfo as any).owner}>{(damInfo as any).owner || '미상'}</span>
+                         </div>
+                         <div className="bg-white p-2 rounded-lg border border-slate-200/80 flex flex-col justify-center">
+                            <span className="text-[10px] font-bold text-slate-400 block mb-0.5">조회된 필드</span>
+                            <div>
+                               <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-black bg-blue-50 text-blue-600 border border-blue-100">
+                                 {(damInfo as any).matchedField || '등록번호'}
+                               </span>
+                            </div>
+                         </div>
                       </div>
-                      <div className="pl-5 text-gray-500 font-bold">기존 모종: {commonData.damCoatType || '미지정'}</div>
                    </div>
                  ) : searchError.dam ? (
                    <div className="mt-2 text-[10px] text-red-500 font-bold flex items-center gap-1">
                       <AlertCircle size={10} /> {searchError.dam}
                    </div>
                  ) : null}
-
-                 <div className={`mt-4 ${isNR ? 'opacity-50 grayscale brightness-75 contrast-75 pointer-events-none select-none' : ''}`}>
-
-                 </div>
               </div>
             </div>
 
