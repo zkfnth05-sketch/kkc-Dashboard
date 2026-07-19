@@ -502,6 +502,11 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
         }
         if (nodeId >= 4 && nodeId <= 7) {
           const dnaVal = (dog.spec_dna || '').trim();
+          return [nameVal, dnaVal].filter(Boolean).join(' ');
+        }
+
+        if (nodeId >= 8 && nodeId <= 15) {
+          const dnaVal = (dog.spec_dna || '').trim();
           const line1 = [nameVal, dnaVal].filter(Boolean).join(' ');
 
           const rVal = (dog.reg_no || '').trim();
@@ -525,34 +530,31 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
           return [line1, line2, line3].filter(Boolean).join('\n');
         }
 
-        if (nodeId >= 8 && nodeId <= 31) {
+        if (nodeId >= 16 && nodeId <= 31) {
           const dnaVal = (dog.spec_dna || '').trim();
           const baseName = [nameVal, dnaVal].filter(Boolean).join(' ');
-          if (nodeId >= 16) {
-            const rVal = (dog.reg_no || '').trim();
-            const dom = (dog.foreign100 || '').trim();
-            const f1 = (dog.foreign_no || '').trim();
-            const f2 = (dog.foreign_no2 || '').trim();
-            const regParts = [rVal, f1, f2, dom]
-              .map(s => s.trim())
-              .filter(s => s && s !== '0' && s !== '-');
-            const regVal = regParts.join(' ');
-            const trainVal = (dog.spec_train || '').trim();
-            const boneVal = (dog.spec_bone || '').trim();
-            const winVal = (dog.spec_win || '').trim();
-            let regLine = [regVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
-            if (regLine.length >= 45) {
-              regLine = wrapTextAt45(regLine);
-            }
-            return regLine ? `${baseName}\n${regLine}` : baseName;
+          const rVal = (dog.reg_no || '').trim();
+          const dom = (dog.foreign100 || '').trim();
+          const f1 = (dog.foreign_no || '').trim();
+          const f2 = (dog.foreign_no2 || '').trim();
+          const regParts = [rVal, f1, f2, dom]
+            .map(s => s.trim())
+            .filter(s => s && s !== '0' && s !== '-');
+          const regVal = regParts.join(' ');
+          const trainVal = (dog.spec_train || '').trim();
+          const boneVal = (dog.spec_bone || '').trim();
+          const winVal = (dog.spec_win || '').trim();
+          let regLine = [regVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
+          if (regLine.length >= 45) {
+            regLine = wrapTextAt45(regLine);
           }
-          return baseName;
+          return regLine ? `${baseName}\n${regLine}` : baseName;
         }
         return nameVal;
       }
 
       if (field === 'reg') {
-        if (nodeId >= 4 && nodeId <= 7) {
+        if (nodeId >= 8 && nodeId <= 31) {
           return '';
         }
         const rVal = (dog.reg_no || '').trim();
@@ -569,25 +571,11 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
           const boneVal = (dog.spec_bone || '').trim();
           return [regVal, dnaVal, boneVal].filter(Boolean).join(' ');
         }
-        if (nodeId >= 8 && nodeId <= 15) {
-          const rVal2 = (dog.reg_no || '').trim();
-          const dom2 = (dog.foreign100 || '').trim();
-          const f1 = (dog.foreign_no || '').trim();
-          const f2 = (dog.foreign_no2 || '').trim();
-          const trainVal = (dog.spec_train || '').trim();
-          const parts = [rVal2, f1, f2, dom2, trainVal]
-            .map(s => s.trim())
-            .filter(s => s && s !== '0' && s !== '-');
-          return parts.join(' ');
-        }
-        if (nodeId >= 16 && nodeId <= 31) {
-          return '';
-        }
         return regVal;
       }
 
       if (field === 'extra') {
-        if (nodeId >= 4 && nodeId <= 7) return '';
+        if (nodeId >= 8 && nodeId <= 31) return '';
         const extraList = [
           dog.spec_win,
           dog.spec_dna,
@@ -598,21 +586,21 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
       }
 
       if (field === 'win') {
-        if (nodeId >= 4 && nodeId <= 7) return '';
+        if (nodeId >= 8 && nodeId <= 31) return '';
         const winVal = (dog.spec_win || '').trim();
         const boneVal = (dog.spec_bone || '').trim();
         return [winVal, boneVal].filter(Boolean).join(' ');
       }
       if (field === 'train') {
-        if (nodeId >= 4 && nodeId <= 7) return '';
+        if (nodeId >= 8 && nodeId <= 31) return '';
         const trainVal = (dog.spec_train || '').trim();
         const boneVal = (dog.spec_bone || '').trim();
         return [trainVal, boneVal].filter(Boolean).join(' ');
       }
-      if (field === 'dna') return (nodeId >= 4 && nodeId <= 7) ? '' : (dog.spec_dna || '');
-      if (field === 'bone') return (nodeId >= 4 && nodeId <= 7) ? '' : (dog.spec_bone || '');
-      if (field === 'color') return (nodeId >= 4 && nodeId <= 7) ? '' : (dog.hair || '');
-      if (field === 'micro') return (nodeId >= 4 && nodeId <= 7) ? '' : (dog.micro || (dog as any).microchip || '');
+      if (field === 'dna') return (nodeId >= 8 && nodeId <= 31) ? '' : (dog.spec_dna || '');
+      if (field === 'bone') return (nodeId >= 8 && nodeId <= 31) ? '' : (dog.spec_bone || '');
+      if (field === 'color') return (nodeId >= 8 && nodeId <= 31) ? '' : (dog.hair || '');
+      if (field === 'micro') return (nodeId >= 8 && nodeId <= 31) ? '' : (dog.micro || (dog as any).microchip || '');
       if (field === 'birth') return formatDateHyphen(dog.birth || '') || '';
       if (field === 'foreign') {
         const f1 = (dog.foreign_no || '').trim();
@@ -750,14 +738,14 @@ export const getShepherdSampleValue = (key: string) => {
          }
          if (node >= 8 && node <= 15) {
             if (field === 'name') {
-              return `${s.name || ''} DNA gpr.`;
-            }
-            if (field === 'reg') {
-              return `${s.reg || ''} IGP3`;
-            }
-            if (field === 'win') {
+               const line1 = `${s.name || ''} DNA gpr.`;
+              const line2 = s.reg || '';
               const sampleWin = node === 8 ? 'SG' : node === 9 ? 'V' : '';
-              return [sampleWin, 'HD ED'].filter(Boolean).join(' ');
+               const line3 = ` sb IGP3 HD ED ${sampleWin}`.trim();
+              return [line1, line2, line3].filter(Boolean).join('\n');
+            }
+            if (field === 'reg' || field === 'win' || field === 'train' || field === 'color' || field === 'micro') {
+              return '';
             }
           }
           if (node >= 16 && node <= 31) {
