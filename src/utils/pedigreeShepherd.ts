@@ -795,10 +795,10 @@ export const generateShepherdPrintHtml = (options: PedigreePrintOptions): string
 
   let fieldsHtml = '';
   Object.keys(finalCoords).forEach(key => {
-    const matchReg = key.match(/^ancestor_(\d+)_reg$/);
-    if (matchReg) {
-      const nodeId = parseInt(matchReg[1]);
-      if (nodeId >= 16 && nodeId <= 31) return;
+    const matchAncestor = key.match(/^ancestor_(\d+)_(reg|win|train|color|micro|extra)$/);
+    if (matchAncestor) {
+      const nodeId = parseInt(matchAncestor[1]);
+      if (nodeId >= 8 && nodeId <= 31) return;
     }
     const coord = finalCoords[key];
     let val = options.useSample ? getShepherdSampleValue(key) : getShepherdRealValue(key, options);
