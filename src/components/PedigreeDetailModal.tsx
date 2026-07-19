@@ -769,15 +769,46 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                 limit: 100
               });
               if (res.success && res.data && res.data.length > 0) {
-                const regNos = res.data
-                  .map((d: any) => (d.reg_no || '').trim())
-                  .filter((r: string) => r && r !== '-' && r !== '0');
-                if (regNos.length > 0) {
-                  regNos.sort((a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-                  const minReg = regNos[0];
-                  const maxReg = regNos[regNos.length - 1];
-                  return minReg === maxReg ? minReg : `${minReg}~${maxReg}`;
-                }
+                const ownDog = {
+                  name: dog.name || dog.fullname || '',
+                  color: dog.hair || dog.color || '',
+                  reg_no: dog.reg_no || ''
+                };
+                const allParentDogs = [ownDog];
+                res.data.forEach((s: any) => {
+                  allParentDogs.push({
+                    name: s.fullname || s.name || '',
+                    color: s.hair || s.color || '',
+                    reg_no: s.reg_no || ''
+                  });
+                });
+
+                const seen = new Set<string>();
+                const uniqueParentDogs: typeof allParentDogs = [];
+                allParentDogs.forEach(d => {
+                  const r = (d.reg_no || '').trim();
+                  if (r && !seen.has(r)) {
+                    seen.add(r);
+                    uniqueParentDogs.push(d);
+                  }
+                });
+
+                uniqueParentDogs.sort((a, b) => (a.reg_no || '').localeCompare(b.reg_no || '', undefined, { numeric: true, sensitivity: 'base' }));
+
+                const formattedDogItems = uniqueParentDogs.map(d => {
+                  const dName = (d.name || '').trim();
+                  const dColorAbbr = getColorAbbr(d.color || '');
+                  return dColorAbbr ? `${dName} ${dColorAbbr}` : dName;
+                }).filter(Boolean);
+
+                const line1 = formattedDogItems.join(' / ');
+
+                const sortedRegs = uniqueParentDogs.map(d => (d.reg_no || '').trim()).filter(Boolean);
+                const minReg = sortedRegs[0] || dog.reg_no || '-';
+                const maxReg = sortedRegs[sortedRegs.length - 1] || dog.reg_no || '-';
+                const regRange = sortedRegs.length > 1 ? `${minReg}~${maxReg}` : minReg;
+
+                return line1 ? `${line1}\n${regRange}` : regRange;
               }
             } catch (e) {
               console.error("Failed to fetch parent sibling range:", e);
