@@ -87,6 +87,22 @@ const formatGender = (gender: string) => {
   return gender;
 };
 
+const getColorAbbr = (color: string) => {
+  if (!color) return '';
+  const c = color.trim().toLowerCase();
+  if (c.includes('wolf gray') || c.includes('wolf grey')) return 'wlf gr';
+  if (c.includes('schwarz braun') || c.includes('black & brown') || c.includes('black brown') || c.includes('블랙브라운')) return 'sb';
+  if (c.includes('black and tan') || c.includes('black tan') || c.includes('블랙탄')) return 'b&t';
+  if (c.includes('black') || c.includes('검정') || c.includes('블랙') || c === 's') return 's';
+  if (c.includes('white') || c.includes('백색') || c.includes('화이트') || c === 'w') return 'w';
+  if (c.includes('gray') || c.includes('grey') || c.includes('회색')) return 'gr';
+  if (c.includes('yellow') || c.includes('황색') || c.includes('옐로우')) return '황색';
+  if (c.includes('red') || c.includes('적구') || c.includes('레드')) return '적구';
+  if (c.includes('brindle') || c.includes('호구') || c.includes('호반')) return '호구';
+  if (c.includes('light yellow') || c.includes('아이보리') || c.includes('크림')) return '크림';
+  return color;
+};
+
 const wrapTextAt25 = (str: string) => {
   if (!str) return '';
   const lines: string[] = [];
@@ -484,7 +500,32 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
         } else {
           nameVal = (dog.fullname || dog.name || '').trim();
         }
-        if (nodeId >= 4 && nodeId <= 31) {
+        if (nodeId >= 4 && nodeId <= 7) {
+          const dnaVal = (dog.spec_dna || '').trim();
+          const line1 = [nameVal, dnaVal].filter(Boolean).join(' ');
+
+          const rVal = (dog.reg_no || '').trim();
+          const dom = (dog.foreign100 || '').trim();
+          const f1 = (dog.foreign_no || '').trim();
+          const f2 = (dog.foreign_no2 || '').trim();
+          const regParts = [rVal, f1, f2, dom]
+            .map(s => s.trim())
+            .filter(s => s && s !== '0' && s !== '-');
+          let line2 = regParts.join(' ');
+          if (line2.length >= 25) {
+            line2 = wrapTextAt25(line2);
+          }
+
+          const colorVal = getColorAbbr(dog.hair || '');
+          const trainVal = (dog.spec_train || '').trim();
+          const boneVal = (dog.spec_bone || '').trim();
+          const winVal = (dog.spec_win || '').trim();
+          const line3 = [colorVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
+
+          return [line1, line2, line3].filter(Boolean).join('\n');
+        }
+
+        if (nodeId >= 8 && nodeId <= 31) {
           const dnaVal = (dog.spec_dna || '').trim();
           const baseName = [nameVal, dnaVal].filter(Boolean).join(' ');
           if (nodeId >= 16) {
@@ -511,6 +552,9 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
       }
 
       if (field === 'reg') {
+        if (nodeId >= 4 && nodeId <= 7) {
+          return '';
+        }
         const rVal = (dog.reg_no || '').trim();
         const dom = (dog.foreign100 || '').trim();
         const f1 = (dog.foreign_no || '').trim();
@@ -524,23 +568,6 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
           const dnaVal = (dog.spec_dna || '').trim();
           const boneVal = (dog.spec_bone || '').trim();
           return [regVal, dnaVal, boneVal].filter(Boolean).join(' ');
-        }
-        if (nodeId >= 4 && nodeId <= 7) {
-          const rVal2 = (dog.reg_no || '').trim();
-          const dom2 = (dog.foreign100 || '').trim();
-          const f1 = (dog.foreign_no || '').trim();
-          const f2 = (dog.foreign_no2 || '').trim();
-          const parts = [rVal2, f1, f2, dom2]
-            .map(s => s.trim())
-            .filter(s => s && s !== '0' && s !== '-');
-          if (parts.length > 1) {
-            return parts.join('\n');
-          }
-          const regStr = parts.join(' ');
-          if (regStr.length >= 22) {
-            return wrapTextAt25(regStr);
-          }
-          return regStr;
         }
         if (nodeId >= 8 && nodeId <= 15) {
           const rVal2 = (dog.reg_no || '').trim();
@@ -560,6 +587,7 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
       }
 
       if (field === 'extra') {
+        if (nodeId >= 4 && nodeId <= 7) return '';
         const extraList = [
           dog.spec_win,
           dog.spec_dna,
@@ -570,19 +598,21 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
       }
 
       if (field === 'win') {
+        if (nodeId >= 4 && nodeId <= 7) return '';
         const winVal = (dog.spec_win || '').trim();
         const boneVal = (dog.spec_bone || '').trim();
         return [winVal, boneVal].filter(Boolean).join(' ');
       }
       if (field === 'train') {
+        if (nodeId >= 4 && nodeId <= 7) return '';
         const trainVal = (dog.spec_train || '').trim();
         const boneVal = (dog.spec_bone || '').trim();
         return [trainVal, boneVal].filter(Boolean).join(' ');
       }
-      if (field === 'dna') return dog.spec_dna || '';
-      if (field === 'bone') return dog.spec_bone || '';
-      if (field === 'color') return dog.hair || '';
-      if (field === 'micro') return dog.micro || (dog as any).microchip || '';
+      if (field === 'dna') return (nodeId >= 4 && nodeId <= 7) ? '' : (dog.spec_dna || '');
+      if (field === 'bone') return (nodeId >= 4 && nodeId <= 7) ? '' : (dog.spec_bone || '');
+      if (field === 'color') return (nodeId >= 4 && nodeId <= 7) ? '' : (dog.hair || '');
+      if (field === 'micro') return (nodeId >= 4 && nodeId <= 7) ? '' : (dog.micro || (dog as any).microchip || '');
       if (field === 'birth') return formatDateHyphen(dog.birth || '') || '';
       if (field === 'foreign') {
         const f1 = (dog.foreign_no || '').trim();
