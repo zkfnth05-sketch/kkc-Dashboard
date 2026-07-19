@@ -342,8 +342,9 @@ function nice_handle_request($data) {
     $dog_classTab_name = $conn->real_escape_string($data['dog_classTab_name'] ?? '');
     $micro = $conn->real_escape_string($data['micro'] ?? '');
     $sex = $conn->real_escape_string($data['sex'] ?? '');
-    $hair = $conn->real_escape_string($data['hair'] ?? '');
     $breed_name = $conn->real_escape_string($data['breed_name'] ?? '');
+    $hair_raw = $data['hair'] ?? ($data['color_name'] ?? ($data['COLOR_NAME'] ?? ($data['COLOR_CD'] ?? '')));
+    $hair = $conn->real_escape_string(nice_resolve_color_name($conn, $dog_classTab_name ?: $breed_name, $hair_raw));
     $breed_addr = $conn->real_escape_string($data['breed_addr'] ?? '');
     $poss_name = $conn->real_escape_string($data['poss_name'] ?? '');
     $poss_addr = $conn->real_escape_string($data['poss_addr'] ?? '');
@@ -1220,4 +1221,74 @@ function nice_admin_pedigree_delete($input) {
     $res = $conn->query("DELETE FROM nice_pedigree_requests WHERE uid = $uid");
     $conn->close();
     return $res ? ['success' => true] : ['success' => false, 'error' => '삭제 실패'];
+}
+
+/**
+ * 🎨 견종별 모색 데이터(nice_breed_colorTab)에서 모색 코드(COLOR_CD) ↔ 모색명 매핑 보조 함수
+ */
+function nice_resolve_color_name($conn, $breed_name, $hair_input) {
+    if (empty($hair_input)) return '';
+    $hair_clean = trim($hair_input);
+    $breed_clean = trim($breed_name);
+    
+    $e_hair = $conn->real_escape_string($hair_clean);
+    $e_breed = $conn->real_escape_string($breed_clean);
+    
+    // 1. 해당 견종 + color_cd 또는 color_name 매핑 검색
+    $sql = "SELECT color_name FROM nice_breed_colorTab 
+            WHERE (kind_name LIKE '%$e_breed%' OR kind_cd = '$e_breed') 
+              AND (color_cd = '$e_hair' OR color_name = '$e_hair') 
+            LIMIT 1";
+    $res = $conn->query($sql);
+    if ($res && $row = $res->fetch_assoc()) {
+        return kkc_convert($row['color_name'], 'EUC-KR', true);
+    }
+    
+    // 2. 견종 구분 없이 color_cd 전역 검색
+    $sql2 = "SELECT color_name FROM nice_breed_colorTab WHERE color_cd = '$e_hair' LIMIT 1";
+    $res2 = $conn->query($sql2);
+    if ($res2 && $row2 = $res2->fetch_assoc()) {
+        return kkc_convert($row2['color_name'], 'EUC-KR', true);
+    }
+    
+    return $hair_clean;
+}
+
+/**
+ * 🎨 견종별 허용 모색 목록 조회 (Admin)
+ */
+function nice_admin_get_breed_colors($input) {
+    $conn = get_kkc_portal_db();
+    nice_api_db_init($conn);
+    
+    $breed_name = trim($input['breed_name'] ?? '');
+    $breed_cd = trim($input['breed_cd'] ?? '');
+    
+    $where = [];
+    if (!empty($breed_name)) {
+        $e_b = $conn->real_escape_string($breed_name);
+        $where[] = "(kind_name LIKE '%$e_b%' OR kind_name = '$e_b')";
+    }
+    if (!empty($breed_cd)) {
+        $e_c = $conn->real_escape_string($breed_cd);
+        $where[] = "(kind_cd = '$e_c')";
+    }
+    
+    $where_sql = !empty($where) ? "WHERE " . implode(' OR ', $where) : "";
+    
+    $sql = "SELECT DISTINCT color_cd, color_name FROM nice_breed_colorTab $where_sql ORDER BY color_name ASC LIMIT 500";
+    $res = $conn->query($sql);
+    
+    $list = [];
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $list[] = [
+                'color_cd' => kkc_convert($row['color_cd'], 'EUC-KR', true),
+                'color_name' => kkc_convert($row['color_name'], 'EUC-KR', true)
+            ];
+        }
+    }
+    
+    $conn->close();
+    return ['success' => true, 'data' => $list];
 }

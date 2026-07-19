@@ -143,6 +143,9 @@ try {
             case 'admin_nice_pedigree_delete':
                 $res_data = nice_admin_pedigree_delete($input_json);
                 break;
+            case 'admin_nice_get_breed_colors':
+                $res_data = nice_admin_get_breed_colors($input_json);
+                break;
             default:
                 throw new Exception("알 수 없는 관리자 모드: $mode");
         }

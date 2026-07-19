@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Award, ShieldCheck, FileText, Calendar, Trash2, Edit, RefreshCw, Printer, Download, Eye, Check, X, Image as ImageIcon, Info } from 'lucide-react';
-import { niceAdminFetchPedigrees, niceAdminPedigreeAction, niceAdminDeletePedigree } from '../services/portalService';
+import { niceAdminFetchPedigrees, niceAdminPedigreeAction, niceAdminDeletePedigree, niceAdminFetchBreedColors } from '../services/portalService';
 
 interface NicePedigree {
   uid: number;
@@ -69,10 +69,25 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 }) => {
   const [pedigrees, setPedigrees] = useState<NicePedigree[]>([]);
   const [selectedPedigree, setSelectedPedigree] = useState<NicePedigree | null>(null);
+  const [breedColors, setBreedColors] = useState<{ color_cd: string; color_name: string }[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchField, setSearchField] = useState<'all' | 'reg_no' | 'dog_name' | 'owner_name' | 'micro'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'P' | 'Y' | 'N' | 'R'>('all');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (selectedPedigree?.breed_name) {
+      niceAdminFetchBreedColors(selectedPedigree.breed_name).then((res) => {
+        if (res && res.success && Array.isArray(res.data)) {
+          setBreedColors(res.data);
+        } else {
+          setBreedColors([]);
+        }
+      }).catch(() => setBreedColors([]));
+    } else {
+      setBreedColors([]);
+    }
+  }, [selectedPedigree]);
   
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -495,8 +510,25 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                     <DetailItem label="견명" value={selectedPedigree.dog_name} />
                     <DetailItem label="견종" value={selectedPedigree.breed_name} />
                     <DetailItem label="성별" value={selectedPedigree.gender === 'M' ? '수컷 (Male)' : '암컷 (Female)'} />
-                    <DetailItem label="마이크로칩" value={selectedPedigree.micro || '-'} />
-                    <DetailItem label="모색 (Color)" value={selectedPedigree.hair || '-'} />
+                    <div className="col-span-2 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/80">
+                      <DetailItem label="모색 (신청 모색)" value={selectedPedigree.hair || '-'} />
+                      {breedColors.length > 0 ? (
+                        <div className="mt-2 pt-2 border-t border-indigo-100">
+                          <span className="font-black text-indigo-900 text-xs block mb-1.5">
+                            🎨 {selectedPedigree.breed_name} 공식 허용 모색 목록 (3,607건 DB 조율 기준):
+                          </span>
+                          <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                            {breedColors.map((c, idx) => (
+                              <span key={idx} className="px-2 py-0.5 bg-white border border-indigo-200 rounded-md text-[11px] font-bold text-indigo-700 shadow-2xs">
+                                {c.color_name} <span className="text-[10px] text-indigo-400 font-mono">({c.color_cd})</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-400 mt-1 italic">• 해당 견종에 별도 등록된 모색 제한 데이터가 없는 일반 견종입니다.</p>
+                      )}
+                    </div>
                     <DetailItem label="생년월일" value={selectedPedigree.birth || '-'} />
                     <DetailItem label="등록일 (발급일)" value={selectedPedigree.reg_date || '-'} />
                     <DetailItem label="출산 수 (M : F)" value={`${selectedPedigree.birth_m ?? 0} 남 : ${selectedPedigree.birth_f ?? 0} 여`} />

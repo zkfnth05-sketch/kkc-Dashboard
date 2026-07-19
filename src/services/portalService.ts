@@ -110,3 +110,7 @@ export const niceAdminPedigreeAction = (uid: number, action: 'approve' | 'reject
 export const niceAdminDeletePedigree = (uid: number) =>
   portalFetchNice('admin_nice_pedigree_delete', { uid });
 
+export const niceAdminFetchBreedColors = (breedName: string, breedCd?: string) =>
+  portalFetchNice('admin_nice_get_breed_colors', { breed_name: breedName, breed_cd: breedCd });
+
+
