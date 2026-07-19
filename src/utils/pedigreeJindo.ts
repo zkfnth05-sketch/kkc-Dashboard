@@ -345,23 +345,6 @@ export const getJindoSampleValue = (key: string) => {
 };
 
 export const getJindoScaledCoords = (coords: Record<string, any>) => {
-  const reg = coords['reg_no'];
-  if (reg && reg.left > 200) {
-    const scaled: Record<string, any> = {};
-    Object.keys(coords).forEach(k => {
-      const c = coords[k];
-      if (c) {
-        scaled[k] = {
-          ...c,
-          left: Number((c.left * (380 / 420)).toFixed(2)),
-          top: Number((c.top * (260 / 297)).toFixed(2)),
-          fontSize: c.fontSize ? Number((c.fontSize * (260 / 297)).toFixed(2)) : undefined,
-          width: c.width ? Number((c.width * (380 / 420)).toFixed(2)) : undefined
-        };
-      }
-    });
-    return scaled;
-  }
   return coords;
 };
 
