@@ -218,6 +218,11 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
             saho = parts.slice(1).join(' ');
           }
         }
+        if (nodeId === 2 || nodeId === 3) {
+          if (dogName && saho) {
+            return `${dogName}\n${saho}`;
+          }
+        }
         if (dogName && saho) {
           return `${dogName} ${saho}`;
         }
@@ -323,7 +328,7 @@ export const getJindoSampleValue = (key: string) => {
       const field = match[2];
       if (field.startsWith('slash')) return '/';
       if (node === 2) {
-        if (field === 'name') return '삼호 충주금가견사';
+        if (field === 'name') return '삼호\n충주금가견사';
         if (field === 'reg') return 'KJ-C10092';
         if (field === 'extra') return '지정 전람회 우수';
         if (field === 'color') return '황구';
@@ -331,7 +336,7 @@ export const getJindoSampleValue = (key: string) => {
         return '';
       }
       if (node === 3) {
-        if (field === 'name') return '홍 피어리스';
+        if (field === 'name') return '홍\n피어리스';
         if (field === 'reg') return 'KJ-C10077';
         if (field === 'extra') return '';
         if (field === 'color') return '황구';
@@ -378,7 +383,7 @@ export const generateJindoPrintHtml = (options: PedigreePrintOptions): string =>
     const isBold = key === 'dog_name' || key === 'reg_no' || key.endsWith('_name');
     const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: inherit; text-align: left;' : '');
     const isAncestor = key.startsWith('ancestor_');
-    const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter';
+    const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_name');
     const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
     let coordWidth = coord.width;
     const widthStyle = coordWidth 
