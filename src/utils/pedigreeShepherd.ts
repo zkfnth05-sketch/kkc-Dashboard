@@ -521,11 +521,10 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
             line2 = wrapTextAt25(line2);
           }
 
-          const colorVal = getColorAbbr(dog.hair || '');
           const trainVal = (dog.spec_train || '').trim();
           const boneVal = (dog.spec_bone || '').trim();
           const winVal = (dog.spec_win || '').trim();
-          const line3 = [colorVal, trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
+          const line3 = [trainVal, boneVal, winVal].map(s => s.trim()).filter(Boolean).join(' ');
 
           return [line1, line2, line3].filter(Boolean).join('\n');
         }
@@ -741,7 +740,7 @@ export const getShepherdSampleValue = (key: string) => {
                const line1 = `${s.name || ''} DNA gpr.`;
               const line2 = s.reg || '';
               const sampleWin = node === 8 ? 'SG' : node === 9 ? 'V' : '';
-               const line3 = ` sb IGP3 HD ED ${sampleWin}`.trim();
+                const line3 = `IGP3 HD ED ${sampleWin}`.trim();
               return [line1, line2, line3].filter(Boolean).join('\n');
             }
             if (field === 'reg' || field === 'win' || field === 'train' || field === 'color' || field === 'micro') {
