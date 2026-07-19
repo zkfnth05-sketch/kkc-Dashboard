@@ -103,7 +103,7 @@ const getColorAbbr = (color: string) => {
   return color;
 };
 
-const wrapTextAt30 = (str: string) => {
+export const wrapTextAt30 = (str: string) => {
   if (!str) return '';
   if (str.length < 30) return str;
   const half = Math.floor(str.length / 2);
@@ -114,7 +114,7 @@ const wrapTextAt30 = (str: string) => {
   return str.substring(0, 30) + '\n' + str.substring(30);
 };
 
-const wrapTextAt25 = (str: string) => {
+export const wrapTextAt25 = (str: string) => {
   if (!str) return '';
   const lines: string[] = [];
   let current = '';
@@ -129,7 +129,7 @@ const wrapTextAt25 = (str: string) => {
   return lines.join('\n');
 };
 
-const wrapTextAt35 = (str: string) => {
+export const wrapTextAt35 = (str: string) => {
   if (!str) return '';
   const lines: string[] = [];
   let current = '';
@@ -144,7 +144,7 @@ const wrapTextAt35 = (str: string) => {
   return lines.join('\n');
 };
 
-const wrapTextAt45 = (str: string) => {
+export const wrapTextAt45 = (str: string) => {
   if (!str) return '';
   const lines: string[] = [];
   let current = '';
