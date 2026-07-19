@@ -587,12 +587,18 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
 /**
  * 🚀 [API 004] 모바일혈통서 심사 결과 통보 (Outbound)
  */
-function nice_notify_screening_result($poss_ci, $reg_no, $status) {
+function nice_notify_screening_result($poss_ci, $reg_no, $status, $hair = '', $breed_name = '') {
     $plain = [
         'poss_ci' => $poss_ci,
         'reg_no' => $reg_no,
         'reg_result' => ($status === 'S' || $status === 'Y' ? 'S' : 'F')
     ];
+    if (!empty($hair)) {
+        $plain['hair'] = $hair;
+    }
+    if (!empty($breed_name)) {
+        $plain['breed_name'] = $breed_name;
+    }
     return nice_outbound_call('/api/v1.0/pet/pedigree/result', '2601228117', $plain);
 }
 
@@ -917,6 +923,19 @@ function nice_admin_pedigree_action($input) {
         $conn->close();
         return ['success' => false, 'error' => '이미 심사가 완료된 건입니다.'];
     }
+
+    // 🎨 관리자 수정 모색 및 견종 반영
+    if (isset($input['hair']) && trim($input['hair']) !== '') {
+        $req['hair'] = trim($input['hair']);
+    }
+    if (isset($input['breed_name']) && trim($input['breed_name']) !== '') {
+        $req['dog_classTab_name'] = trim($input['breed_name']);
+    }
+    
+    $conn->query("SET NAMES 'utf8mb4'");
+    $e_edit_hair = $conn->real_escape_string($req['hair']);
+    $e_edit_breed = $conn->real_escape_string($req['dog_classTab_name']);
+    $conn->query("UPDATE nice_pedigree_requests SET hair = '$e_edit_hair', dog_classTab_name = '$e_edit_breed' WHERE uid = $uid");
     
     if ($action === 'reject') {
         $log_messages = [];
@@ -1181,7 +1200,7 @@ function nice_admin_pedigree_action($input) {
     }
     
     // 5. NICE 통보 (승인: S)
-    $nice_res = nice_notify_screening_result($req['poss_ci'], $req['reg_no'], 'S');
+    $nice_res = nice_notify_screening_result($req['poss_ci'], $req['reg_no'], 'S', $req['hair'], $req['dog_classTab_name']);
     if ($nice_res && isset($nice_res['success']) && $nice_res['success'] === true) {
         $log_messages[] = "✔ [NICE API] NICE 서버 심사 결과 통보 성공 (S000)";
     } else {

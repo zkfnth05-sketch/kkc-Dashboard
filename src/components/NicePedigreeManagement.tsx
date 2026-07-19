@@ -93,6 +93,20 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
   const [totalCount, setTotalCount] = useState(0);
   const [activeSubTab, setActiveSubTab] = useState<'requests' | 'dogtab'>('requests');
 
+  // 관리자 직접 지정/수정용 모색 및 견종 State
+  const [editHair, setEditHair] = useState('');
+  const [editBreed, setEditBreed] = useState('');
+
+  useEffect(() => {
+    if (selectedPedigree) {
+      setEditHair(selectedPedigree.hair || '');
+      setEditBreed(selectedPedigree.breed_name || '');
+    } else {
+      setEditHair('');
+      setEditBreed('');
+    }
+  }, [selectedPedigree]);
+
   // 심사 처리 피드백 입력란
   const [actionMemo, setActionMemo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -187,7 +201,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       async () => {
         setIsSubmitting(true);
         try {
-          const res = await niceAdminPedigreeAction(selectedPedigree.uid, action, actionMemo);
+          const res = await niceAdminPedigreeAction(selectedPedigree.uid, action, actionMemo, editHair, editBreed);
           if (res && res.success) {
             showAlert(action === 'approve' ? '발급 승인 완료' : '반려 완료', res.message || `${actionText} 처리가 완료되었습니다.`);
             setActionMemo('');
@@ -508,25 +522,49 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                   <div className="grid grid-cols-2 gap-4">
                     <DetailItem label="등록 번호" value={selectedPedigree.reg_no} />
                     <DetailItem label="견명" value={selectedPedigree.dog_name} />
-                    <DetailItem label="견종" value={selectedPedigree.breed_name} />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-400 mb-1">견종 (수정 지정)</span>
+                      <input
+                        type="text"
+                        value={editBreed}
+                        onChange={(e) => setEditBreed(e.target.value)}
+                        className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
                     <DetailItem label="성별" value={selectedPedigree.gender === 'M' ? '수컷 (Male)' : '암컷 (Female)'} />
-                    <div className="col-span-2 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/80">
-                      <DetailItem label="모색 (신청 모색)" value={selectedPedigree.hair || '-'} />
+                    
+                    <div className="col-span-2 bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-200">
+                      <div className="flex flex-col mb-2">
+                        <span className="text-xs font-black text-indigo-950 mb-1">🎨 모색 (관리자 직접 지정/수정 - 발급 및 NICE 통보 시 반영)</span>
+                        <input
+                          type="text"
+                          value={editHair}
+                          onChange={(e) => setEditHair(e.target.value)}
+                          placeholder="예: 백색, 황색, White, Black & Tan 등"
+                          className="w-full px-3 py-1.5 bg-white border border-indigo-300 rounded-lg text-xs font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+                        />
+                      </div>
+                      
                       {breedColors.length > 0 ? (
-                        <div className="mt-2 pt-2 border-t border-indigo-100">
+                        <div className="pt-2 border-t border-indigo-200/80">
                           <span className="font-black text-indigo-900 text-xs block mb-1.5">
-                            🎨 {selectedPedigree.breed_name} 공식 허용 모색 목록 (3,607건 DB 조율 기준):
+                            ⚡ {selectedPedigree.breed_name} 공식 추천 모색 (클릭 시 자동 반영):
                           </span>
-                          <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
                             {breedColors.map((c, idx) => (
-                              <span key={idx} className="px-2 py-0.5 bg-white border border-indigo-200 rounded-md text-[11px] font-bold text-indigo-700 shadow-2xs">
-                                {c.color_name} <span className="text-[10px] text-indigo-400 font-mono">({c.color_cd})</span>
-                              </span>
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setEditHair(c.color_name)}
+                                className="px-2 py-1 bg-white hover:bg-indigo-600 hover:text-white transition-colors border border-indigo-200 rounded-md text-[11px] font-bold text-indigo-700 shadow-2xs cursor-pointer active:scale-95"
+                              >
+                                {c.color_name} <span className="opacity-70 text-[10px]">({c.color_cd})</span>
+                              </button>
                             ))}
                           </div>
                         </div>
                       ) : (
-                        <p className="text-[11px] text-slate-400 mt-1 italic">• 해당 견종에 별도 등록된 모색 제한 데이터가 없는 일반 견종입니다.</p>
+                        <p className="text-[11px] text-slate-500 mt-1 italic">• 위 입력창에 모색(영문/국문)을 직접 입력하시거나 수정한 후 승인하시면 됩니다.</p>
                       )}
                     </div>
                     <DetailItem label="생년월일" value={selectedPedigree.birth || '-'} />
