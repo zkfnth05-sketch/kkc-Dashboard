@@ -677,7 +677,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         .filter(r => r && r !== '-' && r !== '0');
 
       let fullLitterList = '';
-      if (type === 'shepherd') {
+      if (type === 'shepherd' || type === 'jindo') {
         const ownDog = {
           name: pedigree.name,
           color: pedigree.color,
@@ -731,20 +731,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         fullLitterList = `${pedigree.fullName || pedigree.name} ${mainDogColorAbbr} / ${pedigree.regNo}${siblingListFormatted ? ', ' + siblingListFormatted : ''}`;
       }
       
-      let jindoLitterListVal = '';
-      if (regNos.length > 0) {
-        regNos.sort();
-        const minReg = regNos[0];
-        const maxReg = regNos[regNos.length - 1];
-        if (minReg === maxReg) {
-          jindoLitterListVal = minReg;
-        } else {
-          jindoLitterListVal = `${minReg}~${maxReg}`;
-        }
-      } else {
-        jindoLitterListVal = pedigree.regNo || '-';
-      }
-      setJindoLitterList(jindoLitterListVal);
+      setJindoLitterList(fullLitterList);
 
       // 2세대 부모견 동태 등록번호 범위(Litter Range) 및 종견인정검사 기간 로드
       let sireRangeVal = '';
