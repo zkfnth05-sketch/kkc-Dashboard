@@ -822,8 +822,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                 const end = formatYearMonth(evalItem.end_date);
                 if (!start && !end) return '';
                 if (start && end) return `${start}~${end}`;
-                if (start) return `${start}~`;
-                return `~${end}`;
+                if (start) return start;
+                return end;
               }
             } catch (e) {
               console.error("Failed to fetch parent ok term:", e);
