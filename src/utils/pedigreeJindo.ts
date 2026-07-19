@@ -139,11 +139,11 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
   if (key === 'ok_term') {
     const start = formatDateHyphen(okStartDate) || '';
     const end = formatDateHyphen(okEndDate) || '';
-    if (!start && !end) return '종견인정검사 기간 -';
+    if (!start && !end) return '';
     if (start && end) return `종견인정검사 기간 ${start}~${end}`;
     if (start) return `종견인정검사 기간 ${start}`;
     if (end) return `종견인정검사 기간 ${end}`;
-    return '종견인정검사 기간 -';
+    return '';
   }
   if (key === 'birth_litter') return `Male: ${getLitterValue(options, 'birth_M')} / Female: ${getLitterValue(options, 'birth_F')}`;
   if (key === 'dog_relate') {
