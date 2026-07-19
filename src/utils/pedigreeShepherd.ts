@@ -129,6 +129,21 @@ const wrapTextAt25 = (str: string) => {
   return lines.join('\n');
 };
 
+const wrapTextAt35 = (str: string) => {
+  if (!str) return '';
+  const lines: string[] = [];
+  let current = '';
+  for (let i = 0; i < str.length; i++) {
+    current += str[i];
+    if (current.length >= 35) {
+      lines.push(current);
+      current = '';
+    }
+  }
+  if (current) lines.push(current);
+  return lines.join('\n');
+};
+
 const wrapTextAt45 = (str: string) => {
   if (!str) return '';
   const lines: string[] = [];
@@ -529,8 +544,8 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
             .map(s => s.trim())
             .filter(s => s && s !== '0' && s !== '-');
           let line2 = regParts.join(' ');
-          if (line2.length >= 25) {
-            line2 = wrapTextAt25(line2);
+          if (line2.length >= 35) {
+            line2 = wrapTextAt35(line2);
           }
 
           const winVal = (dog.spec_win || '').trim();
