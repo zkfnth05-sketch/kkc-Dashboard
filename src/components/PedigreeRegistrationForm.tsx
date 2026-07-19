@@ -4,6 +4,7 @@ import { Search, ChevronLeft, ChevronRight, Save, X, CheckCircle2, AlertCircle, 
 import { fetchDogsByRegNos } from '../services/memberService';
 import { fetchLastRegNo, checkRegNoExists, fetchHairs, checkForeignNoExists, checkOtherOrgNoExists, addDogClass, addHairColor, fetchDogClasses, deleteDogClass, deleteHairColor } from '../services/pedigreeService';
 import { PersonSearchModal } from './MemberSearchModal';
+import { SearchableColorSelect } from './SearchableColorSelect';
 
 const normalizeCoatType = (val: string): string => {
   return val ? val.trim() : ''; // dogTab 내용 있는 그대로 표시
@@ -967,10 +968,12 @@ export const PedigreeRegistrationForm: React.FC<PedigreeRegistrationFormProps> =
                                 </button>
                              </div>
                           </div>
-                          <select className={inputStyle} value={dogsData[currentDogIndex].color} onChange={e => handleDogChange('color', e.target.value)}>
-                              <option value="">모색 선택...</option>
-                              {hairOptions.map((h, i) => <option key={i} value={h.name}>{h.name}</option>)}
-                          </select>
+                           <SearchableColorSelect 
+                               value={dogsData[currentDogIndex].color} 
+                               onChange={val => handleDogChange('color', val)} 
+                               options={hairOptions} 
+                               placeholder="모색 검색/선택 (예: blk, BLACK...)"
+                           />
                       </div>
                       <div className={isNR ? 'opacity-50 grayscale brightness-75 contrast-75 pointer-events-none select-none' : ''}>
                           <label className={labelStyle}>모종</label>

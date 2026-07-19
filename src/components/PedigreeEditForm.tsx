@@ -3,6 +3,7 @@ import { fetchDogsByRegNos, fetchDogsByUids, fetchOwnerHistory, addOwnerChange, 
 import { fetchHairs, addDogClass, addHairColor, fetchDogClasses, deleteDogClass, deleteHairColor } from '../services/pedigreeService';
 import { PersonSearchModal } from './MemberSearchModal';
 import { OwnerChangeModal } from './OwnerChangeModal';
+import { SearchableColorSelect } from './SearchableColorSelect';
 import { CheckpointBar } from './CheckpointBar';
 import { Loader2, Save, Edit, Trash2, AlertCircle, X, RotateCcw, Trophy, Settings, Calendar } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
@@ -604,13 +605,12 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
                      </button>
                    </div>
                 </div>
-                <select className="flex-1 border border-gray-300 rounded-sm px-2 py-1 text-[12px] h-7 outline-none cursor-pointer text-gray-800" value={formData.color || ''} onChange={e => handleChange('color', e.target.value)}>
-                  <option value="">모색 선택...</option>
-                  {hairOptions.map(h => (
-                    <option key={h.uid || h.name} value={h.name}>{h.name}</option>
-                  ))}
-                  {formData.color && !hairOptions.some(h => h.name === formData.color) && <option value={formData.color}>{formData.color}</option>}
-                </select>
+                <SearchableColorSelect 
+                  value={formData.color || ''} 
+                  onChange={val => handleChange('color', val)} 
+                  options={hairOptions} 
+                  placeholder="모색 검색/선택 (예: blk, BLACK...)"
+                />
               </div>
               <div className="flex items-center mb-1">
                 <Label>모종</Label>
