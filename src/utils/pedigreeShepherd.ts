@@ -533,7 +533,14 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
           const parts = [rVal2, f1, f2, dom2]
             .map(s => s.trim())
             .filter(s => s && s !== '0' && s !== '-');
-          return parts.join(' ');
+          if (parts.length > 1) {
+            return parts.join('\n');
+          }
+          const regStr = parts.join(' ');
+          if (regStr.length >= 22) {
+            return wrapTextAt25(regStr);
+          }
+          return regStr;
         }
         if (nodeId >= 8 && nodeId <= 15) {
           const rVal2 = (dog.reg_no || '').trim();
@@ -782,7 +789,7 @@ export const generateShepherdPrintHtml = (options: PedigreePrintOptions): string
     const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
     const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: inherit; text-align: left;' : '');
     const isAncestor = key.startsWith('ancestor_');
-    const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_ok_term') || key.endsWith('_ok_content') || (key.startsWith('ancestor_') && key.endsWith('_name'));
+    const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_ok_term') || key.endsWith('_ok_content') || key.endsWith('_reg') || (key.startsWith('ancestor_') && key.endsWith('_name'));
     const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all; line-height: 1.15;' : '';
     let coordWidth = coord.width;
     const matchName = key.match(/^ancestor_(\d+)_name$/);
