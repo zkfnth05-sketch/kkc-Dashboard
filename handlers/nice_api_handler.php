@@ -152,7 +152,7 @@ function nice_handle_list($data) {
     $e_ci = $conn->real_escape_string($data['poss_ci'] ?? '');
     if (empty($e_ci)) {
         $conn->close();
-        return ['result_cd' => 'F999', 'list_cnt' => 0, 'list' => []];
+        return ['result_cd' => 'F100', 'list_cnt' => 0, 'list' => []];
     }
     
     $conn->query("SET NAMES 'binary'");
@@ -229,7 +229,7 @@ function nice_handle_detail($data) {
     
     if (empty($e_ci) || empty($e_reg)) {
         $conn->close();
-        return ['result_cd' => 'F003']; // 파라미터 누락
+        return ['result_cd' => 'F100']; // 파라미터 누락
     }
     
     $conn->query("SET NAMES 'binary'");
@@ -355,10 +355,10 @@ function nice_handle_request($data) {
     $reg_count_f = isset($data['reg_count_f']) ? intval($data['reg_count_f']) : (isset($data['reg_count_F']) ? intval($data['reg_count_F']) : 0);
     $reg_date = $conn->real_escape_string($data['reg_date'] ?? '');
     
-    $father_name = $conn->real_escape_string($data['fa_name'] ?? '');
-    $father_reg_no = $conn->real_escape_string($data['fa_regno'] ?? '');
-    $mother_name = $conn->real_escape_string($data['mo_name'] ?? '');
-    $mother_reg_no = $conn->real_escape_string($data['mo_regno'] ?? '');
+    $father_name = $conn->real_escape_string($data['father_name'] ?? ($data['fa_name'] ?? ''));
+    $father_reg_no = $conn->real_escape_string($data['father_reg_no'] ?? ($data['fa_regno'] ?? ''));
+    $mother_name = $conn->real_escape_string($data['mother_name'] ?? ($data['mo_name'] ?? ''));
+    $mother_reg_no = $conn->real_escape_string($data['mother_reg_no'] ?? ($data['mo_regno'] ?? ''));
     $anc_name = $conn->real_escape_string($data['anc_name'] ?? '');
     $anc_saho = $conn->real_escape_string($data['anc_saho'] ?? '');
     
@@ -452,6 +452,11 @@ function nice_handle_image($data) {
     $reg_no = $conn->real_escape_string($data['reg_no'] ?? '');
     $image_idx = intval($data['image_idx'] ?? 0);
     $image_base64 = $data['image_base64'] ?? '';
+    
+    if (empty($reg_no) || empty($image_base64)) {
+        $conn->close();
+        return ['result_cd' => 'F100']; // 필수 파라미터 누락
+    }
     
     if ($image_idx < 1 || $image_idx > 4) {
         $conn->close();
@@ -549,6 +554,18 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
     curl_setopt($ch, CURLOPT_TIMEOUT, 3);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
     
+    // HTTP 응답 헤더에서 GW_RSLT_CD 추출을 위한 콜백 등록
+    $response_headers = [];
+    curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($curl, $header) use (&$response_headers) {
+        $len = strlen($header);
+        $parts = explode(':', $header, 2);
+        if (count($parts) === 2) {
+            $key = strtolower(trim($parts[0]));
+            $response_headers[$key] = trim($parts[1]);
+        }
+        return $len;
+    });
+    
     $resp = curl_exec($ch);
     if ($resp === false) {
         $err = curl_error($ch);
@@ -558,6 +575,12 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
     
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
+    
+    // NICE API 공동 결과코드 (GW_RSLT_CD) 체크
+    $gw_rslt_cd = $response_headers['gw_rslt_cd'] ?? '';
+    if (!empty($gw_rslt_cd) && $gw_rslt_cd !== '1200') {
+        return ['success' => false, 'error' => "NICE Gateway Error: $gw_rslt_cd", 'response' => $resp];
+    }
     
     if ($http_code !== 200) {
         return ['success' => false, 'error' => "HTTP Code $http_code", 'response' => $resp];
@@ -952,10 +975,23 @@ function nice_admin_pedigree_action($input) {
         // NICE 통보 (반려: F)
         $nice_res = nice_notify_screening_result($req['poss_ci'], $req['reg_no'], 'F');
         if ($nice_res && isset($nice_res['success']) && $nice_res['success'] === true) {
-            $log_messages[] = "✔ [NICE API] NICE 서버 심사 결과 통보 성공 (S000)";
+            $res_data = $nice_res['data'] ?? [];
+            $rslt_cd = $res_data['result_cd'] ?? 'F999';
+            if ($rslt_cd === 'S000') {
+                $log_messages[] = "✔ [NICE API] NICE 서버 심사 결과 반려(F) 통보 성공 (S000)";
+            } else {
+                $cd_desc = [
+                    'F001' => '소유자 CI 확인실패(미등록CI)',
+                    'F002' => '혈통서등록번호 확인실패(미등록혈통서)',
+                    'F003' => '소유자 CI와 혈통서등록번호 불일치',
+                    'F999' => '기타 처리중 오류'
+                ];
+                $desc = $cd_desc[$rslt_cd] ?? '알 수 없는 오류';
+                $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 반려(F) 통보 처리 실패: $rslt_cd ($desc)";
+            }
         } else {
             $err_msg = isset($nice_res['error']) ? $nice_res['error'] : '통신 실패';
-            $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 통보 실패: " . $err_msg;
+            $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 반려(F) 통보 실패: " . $err_msg;
         }
         
         $conn->close();
@@ -1202,10 +1238,23 @@ function nice_admin_pedigree_action($input) {
     // 5. NICE 통보 (승인: S)
     $nice_res = nice_notify_screening_result($req['poss_ci'], $req['reg_no'], 'S', $req['hair'], $req['dog_classTab_name']);
     if ($nice_res && isset($nice_res['success']) && $nice_res['success'] === true) {
-        $log_messages[] = "✔ [NICE API] NICE 서버 심사 결과 통보 성공 (S000)";
+        $res_data = $nice_res['data'] ?? [];
+        $rslt_cd = $res_data['result_cd'] ?? 'F999';
+        if ($rslt_cd === 'S000') {
+            $log_messages[] = "✔ [NICE API] NICE 서버 심사 결과 승인(S) 통보 성공 (S000)";
+        } else {
+            $cd_desc = [
+                'F001' => '소유자 CI 확인실패(미등록CI)',
+                'F002' => '혈통서등록번호 확인실패(미등록혈통서)',
+                'F003' => '소유자 CI와 혈통서등록번호 불일치',
+                'F999' => '기타 처리중 오류'
+            ];
+            $desc = $cd_desc[$rslt_cd] ?? '알 수 없는 오류';
+            $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 승인(S) 통보 처리 실패: $rslt_cd ($desc)";
+        }
     } else {
         $err_msg = isset($nice_res['error']) ? $nice_res['error'] : '통신 실패';
-        $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 통보 실패: " . $err_msg;
+        $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 승인(S) 통보 실패: " . $err_msg;
     }
     
     $conn->close();
@@ -1243,70 +1292,44 @@ function nice_admin_pedigree_delete($input) {
 }
 
 /**
- * 🎨 견종별 모색 데이터(nice_breed_colorTab)에서 모색 코드(COLOR_CD) ↔ 모색명 매핑 보조 함수
+ * 🎨 애견협회 모색 마스터 테이블(hairTab)에서 모색 검색 및 매핑 보조 함수
  */
 function nice_resolve_color_name($conn, $breed_name, $hair_input) {
     if (empty($hair_input)) return '';
     $hair_clean = trim($hair_input);
-    $breed_clean = trim($breed_name);
     
     $e_hair = $conn->real_escape_string($hair_clean);
-    $e_breed = $conn->real_escape_string($breed_clean);
     
     $conn->query("SET NAMES 'utf8mb4'");
     
-    // 1. 해당 견종 + color_cd 또는 color_name 매핑 검색
-    $sql = "SELECT color_name FROM nice_breed_colorTab 
-            WHERE (kind_name LIKE '%$e_breed%' OR kind_cd = '$e_breed') 
-              AND (color_cd = '$e_hair' OR color_name = '$e_hair') 
+    // hairTab에서 hair(모색명) 또는 short_key가 일치하는 것이 있는지 검색
+    $sql = "SELECT hair FROM hairTab 
+            WHERE hair = '$e_hair' OR short_key = '$e_hair' 
             LIMIT 1";
     $res = $conn->query($sql);
     if ($res && $row = $res->fetch_assoc()) {
-        return $row['color_name'];
-    }
-    
-    // 2. 견종 구분 없이 color_cd 전역 검색
-    $sql2 = "SELECT color_name FROM nice_breed_colorTab WHERE color_cd = '$e_hair' LIMIT 1";
-    $res2 = $conn->query($sql2);
-    if ($res2 && $row2 = $res2->fetch_assoc()) {
-        return $row2['color_name'];
+        return $row['hair'];
     }
     
     return $hair_clean;
 }
 
 /**
- * 🎨 견종별 허용 모색 목록 조회 (Admin)
+ * 🎨 애견협회 전체 모색 목록 조회 (Admin)
  */
 function nice_admin_get_breed_colors($input) {
     $conn = get_kkc_portal_db();
-    nice_api_db_init($conn);
-    
-    $breed_name = trim($input['breed_name'] ?? '');
-    $breed_cd = trim($input['breed_cd'] ?? '');
-    
-    $where = [];
-    if (!empty($breed_name)) {
-        $e_b = $conn->real_escape_string($breed_name);
-        $where[] = "(kind_name LIKE '%$e_b%' OR kind_name = '$e_b')";
-    }
-    if (!empty($breed_cd)) {
-        $e_c = $conn->real_escape_string($breed_cd);
-        $where[] = "(kind_cd = '$e_c')";
-    }
-    
-    $where_sql = !empty($where) ? "WHERE " . implode(' OR ', $where) : "";
     
     $conn->query("SET NAMES 'utf8mb4'");
-    $sql = "SELECT DISTINCT color_cd, color_name FROM nice_breed_colorTab $where_sql ORDER BY color_name ASC LIMIT 500";
+    $sql = "SELECT DISTINCT hair FROM hairTab WHERE hair IS NOT NULL AND hair != '' ORDER BY hair ASC LIMIT 500";
     $res = $conn->query($sql);
     
     $list = [];
     if ($res) {
         while ($row = $res->fetch_assoc()) {
             $list[] = [
-                'color_cd' => $row['color_cd'],
-                'color_name' => $row['color_name']
+                'color_cd' => $row['hair'],
+                'color_name' => $row['hair']
             ];
         }
     }

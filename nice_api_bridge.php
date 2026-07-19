@@ -163,6 +163,11 @@ try {
     // API 007 (반려견 이미지 등록)은 평문 전송 예외 적용
     if (strpos($path, '/nice/image') !== false) {
         $res_data = nice_handle_image($input_json);
+        if (($res_data['result_cd'] ?? '') === 'S000') {
+            header("GW_RSLT_CD: 1200");
+        } else {
+            header("GW_RSLT_CD: 1400");
+        }
         ob_end_clean();
         echo json_encode($res_data, JSON_UNESCAPED_UNICODE);
         exit;
@@ -218,6 +223,7 @@ try {
         $res_plain = nice_handle_refund($dec_data);
     } else {
         header("HTTP/1.1 404 Not Found");
+        header("GW_RSLT_CD: 1404");
         ob_end_clean();
         echo json_encode(['error' => 'API Not Found'], JSON_UNESCAPED_UNICODE);
         exit;
