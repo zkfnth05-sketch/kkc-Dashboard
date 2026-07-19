@@ -1789,10 +1789,10 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                       {/* Render Coordinates */}
                       {Object.keys(editorCoords).filter(key => {
                         if (activePrintType === 'shepherd') {
-                          const matchAncestor = key.match(/^ancestor_(\d+)_(reg|win|train|color|micro|extra)$/);
-                          if (matchAncestor) {
-                            const nodeId = parseInt(matchAncestor[1]);
-                            if (nodeId >= 8 && nodeId <= 31) return false;
+                          const matchReg = key.match(/^ancestor_(\d+)_reg$/);
+                          if (matchReg) {
+                            const nodeId = parseInt(matchReg[1]);
+                            if (nodeId >= 16 && nodeId <= 31) return false;
                           }
                         }
                         return true;
