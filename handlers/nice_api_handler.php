@@ -823,26 +823,37 @@ function nice_admin_pedigree_list($input) {
 }
 
 /**
- * 🎖️ 견종 코드 기반 중복 없는 고유 등록번호 생성
+ * 🎖️ 펫핀 신규 혈통서 번호 부여 규칙 적용 ([견종코드]-[기간코드_십][기간코드_일][4자리 순번]-[NP])
+ * 예1) 2026년 1번째 신청 진돗개: KJ-C60000-NP (C=2020년대, 6=2026년, 0000=1번째)
+ * 예2) 2031년 100번째 신청 진돗개: KJ-D10100-NP (D=2030년대, 1=2031년, 0100=100번째)
  */
-function nice_generate_unique_reg_no($conn, $breed_code) {
-    $keyy = !empty($breed_code) ? strtoupper(trim($breed_code)) : 'X';
-    $prefix = "KSZ-" . $keyy;
+function nice_generate_unique_reg_no($conn, $breed_code, $apply_year = null) {
+    $breed_key = !empty($breed_code) ? strtoupper(trim($breed_code)) : 'KJ';
+    $year = $apply_year ? intval($apply_year) : intval(date('Y'));
+    
+    // (2) 기간코드_십 (2000~2009 => A, 2010~2019 => B, 2020~2029 => C, 2030~2039 => D ...)
+    $decade_index = intval(floor(($year - 2000) / 10));
+    $decade_letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+    $decade_code = isset($decade_letters[$decade_index]) ? $decade_letters[$decade_index] : 'C';
+    
+    // (3) 기간코드_일 (신청 연도의 일의 자리: 2026년 => 6)
+    $single_year_code = strval($year % 10);
+    
+    // 접두사: [견종코드]-[기간코드_십][기간코드_일]  (예: KJ-C6)
+    $prefix = $breed_key . '-' . $decade_code . $single_year_code;
     $prefix_esc = $conn->real_escape_string($prefix);
     
-    $max_num = 100000; // 기본 시작값 (예: KSZ-C100001)
+    // (4) 4자리 순번 (0000~9999) 최대값 탐색
+    $max_seq = -1;
     
-    // dogTab 및 nice_dogTab 두 곳에서 해당 prefix로 시작하는 번호 추출
     $sql1 = "SELECT reg_no FROM dogTab WHERE reg_no LIKE '$prefix_esc%'";
     $res1 = $conn->query($sql1);
     if ($res1) {
         while ($row = $res1->fetch_assoc()) {
             $reg = kkc_convert($row['reg_no'], 'EUC-KR', true);
-            if (preg_match('/' . preg_quote($prefix, '/') . '(\d+)/', $reg, $matches)) {
-                $num = intval($matches[1]);
-                if ($num > $max_num) {
-                    $max_num = $num;
-                }
+            if (preg_match('/' . preg_quote($prefix, '/') . '(\d{4})/', $reg, $m)) {
+                $seq = intval($m[1]);
+                if ($seq > $max_seq) $max_seq = $seq;
             }
         }
     }
@@ -852,17 +863,30 @@ function nice_generate_unique_reg_no($conn, $breed_code) {
     if ($res2) {
         while ($row = $res2->fetch_assoc()) {
             $reg = kkc_convert($row['reg_no'], 'EUC-KR', true);
-            if (preg_match('/' . preg_quote($prefix, '/') . '(\d+)/', $reg, $matches)) {
-                $num = intval($matches[1]);
-                if ($num > $max_num) {
-                    $max_num = $num;
-                }
+            if (preg_match('/' . preg_quote($prefix, '/') . '(\d{4})/', $reg, $m)) {
+                $seq = intval($m[1]);
+                if ($seq > $max_seq) $max_seq = $seq;
+            }
+        }
+    }
+
+    $sql3 = "SELECT reg_no FROM nice_pedigree_requests WHERE reg_no LIKE '$prefix_esc%'";
+    $res3 = $conn->query($sql3);
+    if ($res3) {
+        while ($row = $res3->fetch_assoc()) {
+            $reg = $row['reg_no'];
+            if (preg_match('/' . preg_quote($prefix, '/') . '(\d{4})/', $reg, $m)) {
+                $seq = intval($m[1]);
+                if ($seq > $max_seq) $max_seq = $seq;
             }
         }
     }
     
-    $next_num = $max_num + 1;
-    return $prefix . $next_num;
+    $next_seq = $max_seq + 1; // 0000부터 시작
+    $seq_str = sprintf("%04d", $next_seq);
+    
+    // [견종코드]-[기간코드_십][기간코드_일][4자리 순번]-[NP]
+    return $prefix . $seq_str . '-NP';
 }
 
 /**

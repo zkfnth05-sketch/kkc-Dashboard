@@ -306,7 +306,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
           <p className="text-xs text-blue-700 font-bold mt-2 leading-relaxed border-t border-blue-200/60 pt-2 transition-all">
             • <strong>심사 승인 (발급 완료)</strong>:<br />
             <span className="pl-4 block mt-1">• <strong>나이스핀(CI) 일치 시</strong>: 기존 협회 등록번호 끝에 -NP가 붙어 발급되며, 기존 정보에 8가지 신규 메타데이터(출산 수, 등록 수 등)가 함께 동기화됩니다.</span>
-            <span className="pl-4 block mt-1">• <strong>나이스핀(CI) 불일치 시</strong>: 중복 없는 고유 번호가 자동 부여된 뒤 -NP가 붙어 신규 발급됩니다.</span><br />
+            <span className="pl-4 block mt-1">• <strong>나이스핀(CI) 불일치 (신규) 시</strong>: 펫핀 채번 규정(<code>[견종코드]-[기간코드_십][기간코드_일][4자리 순번]-NP</code>, 예: 2026년 진돗개 1번째 ➔ <code>KJ-C60000-NP</code>)에 따라 중복 없는 고유 번호가 자동 생성되어 발급됩니다.</span><br />
             • <strong>심사 반려</strong>: 사유(의견)를 필수로 입력해야 반려가 처리되며, 미입력 시 안내 메시지가 표시됩니다.<br />
             • <strong>오류 진단 안내</strong>: 승인/반려 시 모바일 앱(PetPin) 서버 통신이 실패하더라도 어드민 내부 데이터베이스(DB) 처리는 온전히 완료됩니다. 통신 실패나 DB 처리 오류 발생 시 팝업 창에 상세한 SQL 및 curl 원인 코드가 출력됩니다.
           </p>
