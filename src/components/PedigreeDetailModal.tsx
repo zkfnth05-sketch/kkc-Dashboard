@@ -678,16 +678,46 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
       let fullLitterList = '';
       if (type === 'shepherd') {
-        const name = (pedigree.name || '').trim();
-        const ownColor = (pedigree.color || '').trim();
+        const ownDog = {
+          name: pedigree.name,
+          color: pedigree.color,
+          reg_no: pedigree.regNo
+        };
+        const allLitterDogs = [ownDog];
+        siblings.forEach(s => {
+          allLitterDogs.push({
+            name: s.fullname || s.name || '',
+            color: s.hair || s.color || '',
+            reg_no: s.reg_no || ''
+          });
+        });
 
-        const sortedRegs = [...regNos];
-        sortedRegs.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+        const seen = new Set<string>();
+        const uniqueDogs: typeof allLitterDogs = [];
+        allLitterDogs.forEach(d => {
+          const r = (d.reg_no || '').trim();
+          if (r && !seen.has(r)) {
+            seen.add(r);
+            uniqueDogs.push(d);
+          }
+        });
+
+        uniqueDogs.sort((a, b) => (a.reg_no || '').localeCompare(b.reg_no || '', undefined, { numeric: true, sensitivity: 'base' }));
+
+        const formattedDogItems = uniqueDogs.map(d => {
+          const dName = (d.name || '').trim();
+          const dColorAbbr = getColorAbbr(d.color || '');
+          return dColorAbbr ? `${dName} ${dColorAbbr}` : dName;
+        }).filter(Boolean);
+
+        const line1 = formattedDogItems.join(' / ');
+
+        const sortedRegs = uniqueDogs.map(d => (d.reg_no || '').trim()).filter(Boolean);
         const minReg = sortedRegs[0] || pedigree.regNo || '-';
         const maxReg = sortedRegs[sortedRegs.length - 1] || pedigree.regNo || '-';
         const regRange = sortedRegs.length > 1 ? `${minReg}~${maxReg}` : minReg;
 
-        fullLitterList = `${name} ${ownColor}\n${regRange}`;
+        fullLitterList = `${line1}\n${regRange}`;
       } else {
         const siblingListFormatted = siblings.map(s => {
           const sName = s.fullname || s.name || '';
