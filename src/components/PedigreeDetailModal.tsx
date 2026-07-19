@@ -679,8 +679,6 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
       let fullLitterList = '';
       if (type === 'shepherd') {
         const name = (pedigree.name || '').trim();
-        const kennelEng = (pedigree.kennelNameEng || '').trim();
-        const ownFormattedName = kennelEng ? `${name} ${kennelEng}` : name;
         const ownColor = (pedigree.color || '').trim();
 
         const sortedRegs = [...regNos];
@@ -689,7 +687,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         const maxReg = sortedRegs[sortedRegs.length - 1] || pedigree.regNo || '-';
         const regRange = sortedRegs.length > 1 ? `${minReg}~${maxReg}` : minReg;
 
-        fullLitterList = `${ownFormattedName} ${ownColor}\n${regRange}`;
+        fullLitterList = `${name} ${ownColor}\n${regRange}`;
       } else {
         const siblingListFormatted = siblings.map(s => {
           const sName = s.fullname || s.name || '';

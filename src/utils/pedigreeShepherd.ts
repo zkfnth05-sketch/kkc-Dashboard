@@ -634,7 +634,7 @@ export const getShepherdSampleValue = (key: string) => {
   if (key === 'reg_no') return 'KSZ-C40386';
   if (key === 'microchip') return '981189900142765';
   if (key === 'foreign_no') return 'SZ-2385565';
-  if (key === 'dongtae_no' || key === 'dog_litter') return 'Xamo vom Grafenbrunn schwarz braun\nKSZ-C40386~KSZ-C40388';
+  if (key === 'dongtae_no' || key === 'dog_litter') return 'Xamo schwarz braun\nKSZ-C40386~KSZ-C40388';
   if (key === 'ok_date') return '';
   if (key === 'ok_term') {
     return '2025-06~2027-06';
