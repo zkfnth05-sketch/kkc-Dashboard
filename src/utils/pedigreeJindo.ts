@@ -124,9 +124,10 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
     if (index && index !== '0' && index !== '-') parts.push(index);
     return parts.join(' / ') || '-';
   }
-  if (key === 'foreign_no') return pedigree.foreignNo || '-';
-  if (key === 'foreign_no2') return pedigree.foreignNo2 || '-';
-  if (key === 'domestic_no') return pedigree.domesticNo || '-';
+  if (key === 'foreign_no') return (pedigree.foreignNo && pedigree.foreignNo !== '-') ? pedigree.foreignNo : '';
+  if (key === 'foreign_no2') return (pedigree.foreignNo2 && pedigree.foreignNo2 !== '-') ? pedigree.foreignNo2 : '';
+  if (key === 'domestic_no') return (pedigree.domesticNo && pedigree.domesticNo !== '-') ? pedigree.domesticNo : '';
+  if (key === 'other_org' || key === 'other_org_no') return ((pedigree as any).otherOrgNo || (pedigree as any).other_org || (pedigree as any).other_org_no || '');
   if (key === 'dongtae_no' || key === 'dog_litter') return jindoLitterList || '-';
   if (key === 'dog_breed') return pedigree.breed || '-';
   if (key === 'index_no') return pedigree.indexNo || '-';
