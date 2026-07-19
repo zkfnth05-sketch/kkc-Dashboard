@@ -1234,6 +1234,8 @@ function nice_resolve_color_name($conn, $breed_name, $hair_input) {
     $e_hair = $conn->real_escape_string($hair_clean);
     $e_breed = $conn->real_escape_string($breed_clean);
     
+    $conn->query("SET NAMES 'utf8mb4'");
+    
     // 1. 해당 견종 + color_cd 또는 color_name 매핑 검색
     $sql = "SELECT color_name FROM nice_breed_colorTab 
             WHERE (kind_name LIKE '%$e_breed%' OR kind_cd = '$e_breed') 
@@ -1241,14 +1243,14 @@ function nice_resolve_color_name($conn, $breed_name, $hair_input) {
             LIMIT 1";
     $res = $conn->query($sql);
     if ($res && $row = $res->fetch_assoc()) {
-        return kkc_convert($row['color_name'], 'EUC-KR', true);
+        return $row['color_name'];
     }
     
     // 2. 견종 구분 없이 color_cd 전역 검색
     $sql2 = "SELECT color_name FROM nice_breed_colorTab WHERE color_cd = '$e_hair' LIMIT 1";
     $res2 = $conn->query($sql2);
     if ($res2 && $row2 = $res2->fetch_assoc()) {
-        return kkc_convert($row2['color_name'], 'EUC-KR', true);
+        return $row2['color_name'];
     }
     
     return $hair_clean;
@@ -1276,6 +1278,7 @@ function nice_admin_get_breed_colors($input) {
     
     $where_sql = !empty($where) ? "WHERE " . implode(' OR ', $where) : "";
     
+    $conn->query("SET NAMES 'utf8mb4'");
     $sql = "SELECT DISTINCT color_cd, color_name FROM nice_breed_colorTab $where_sql ORDER BY color_name ASC LIMIT 500";
     $res = $conn->query($sql);
     
@@ -1283,8 +1286,8 @@ function nice_admin_get_breed_colors($input) {
     if ($res) {
         while ($row = $res->fetch_assoc()) {
             $list[] = [
-                'color_cd' => kkc_convert($row['color_cd'], 'EUC-KR', true),
-                'color_name' => kkc_convert($row['color_name'], 'EUC-KR', true)
+                'color_cd' => $row['color_cd'],
+                'color_name' => $row['color_name']
             ];
         }
     }
