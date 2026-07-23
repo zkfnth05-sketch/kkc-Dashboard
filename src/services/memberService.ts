@@ -433,7 +433,7 @@ export const updateMember = async (table: string, data: any) => {
         dbData.id = data.loginId || '';
         dbData.name = data.name || '';
         dbData.name_eng = data.name_eng || '';
-        dbData.zumin = data.jumin || '';
+        dbData.zumin = (data.jumin && data.jumin.trim()) ? data.jumin.trim() : null;
         dbData.birth = data.birth || '';
         dbData.mem_degree = data.rank || '';
         dbData.zipcode = data.zipcode || '';
@@ -481,7 +481,7 @@ export const createMember = async (table: string, data: any) => {
         dbData.id = data.loginId || '';
         dbData.name = data.name || '';
         dbData.name_eng = data.name_eng || '';
-        dbData.zumin = data.jumin || '';
+        dbData.zumin = (data.jumin && data.jumin.trim()) ? data.jumin.trim() : null;
         dbData.birth = data.birth || '';
         dbData.mem_degree = data.rank || '';
         dbData.zipcode = data.zipcode || '';
