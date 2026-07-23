@@ -129,7 +129,17 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
   if (key === 'domestic_no') return (pedigree.domesticNo && pedigree.domesticNo !== '-') ? pedigree.domesticNo : '';
   if (key === 'other_org' || key === 'other_org_no') return ((pedigree as any).otherOrgNo || (pedigree as any).other_org || (pedigree as any).other_org_no || '');
   if (key === 'dongtae_no' || key === 'dog_litter') return jindoLitterList || '-';
-  if (key === 'dog_breed') return pedigree.breed || '-';
+  if (key === 'dog_breed') {
+    const breed = pedigree.breed || '-';
+    if (breed !== '-') {
+      const b = breed.trim().toLowerCase();
+      if (b.includes('jindo') || b === 'kj') return '진돗개';
+      if (b.includes('poongsan') || b === 'pu') return '풍산개';
+      if (b.includes('sapsal') || b.includes('sapsar') || b === 'ss') return '삽살개';
+      if (b.includes('donggyeong') || b === 'kd') return '동경이';
+    }
+    return breed;
+  }
   if (key === 'index_no') return pedigree.indexNo || '-';
   if (key === 'ok_date') {
     const parts = [pedigree.specWin, pedigree.specDna, pedigree.specBone, pedigree.specTrain].map(s => (s || '').trim()).filter(Boolean);
@@ -137,8 +147,13 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
     return pedigree.okDate || (pedigree.okStat === 'Y' ? '기록 확인' : '-');
   }
   if (key === 'ok_term') {
-    const start = formatDateHyphen(okStartDate) || '';
-    const end = formatDateHyphen(okEndDate) || '';
+    const cleanDate = (d: string) => {
+      const formatted = formatDateHyphen(d);
+      return (formatted === '-' || formatted === '0000-00-00' || !formatted) ? '' : formatted;
+    };
+    const start = cleanDate(okStartDate);
+    const end = cleanDate(okEndDate);
+
     if (!start && !end) return '';
     if (start && end) return `종견인정검사 기간 ${start}~${end}`;
     if (start) return `종견인정검사 기간 ${start}`;
@@ -147,11 +162,11 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
   }
   if (key === 'birth_litter') return `Male: ${getLitterValue(options, 'birth_M')} / Female: ${getLitterValue(options, 'birth_F')}`;
   if (key === 'dog_relate') {
-    const val = pedigree.specRelate || '-';
-    if (val !== '-') {
+    const val = (pedigree.specRelate || '').trim();
+    if (val && val !== '-') {
       return val.split('/').map(part => part.trim().replace(/\s+/g, ' ')).filter(Boolean).join('\n');
     }
-    return val;
+    return '';
   }
   if (key === 'litter_birth_m') return getLitterValue(options, 'birth_M') || '0';
   if (key === 'litter_birth_f') return getLitterValue(options, 'birth_F') || '0';
