@@ -198,7 +198,7 @@ export const MemberManagementPage: React.FC<MemberManagementPageProps> = ({
         onProClassUpload={handleProClassUpload}
       />
 
-      <div className="flex-1 bg-white border-l">
+      <div className="flex-1 bg-white border-l h-full overflow-hidden">
         <MemberDetail
           member={selectedMember}
           onSave={(m) => setEditingMember(m)}
