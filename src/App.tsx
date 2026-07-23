@@ -316,12 +316,12 @@ const App: React.FC = () => {
 
           <div className="flex-1 bg-white shadow-sm overflow-hidden rounded-xl border relative flex flex-col" key={refreshKey}>
             {visitedTabs.has('대시보드') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === '대시보드' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === '대시보드' ? 'flex' : 'none' }}>
                 <DashboardPage onTabChange={handleTabChange} stats={stats} />
               </div>
             )}
             {visitedTabs.has('회원 관리') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === '회원 관리' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === '회원 관리' ? 'flex' : 'none' }}>
                 <MemberManagementPage
                   tableName={tableMapping['회원 관리']}
                   showAlert={showAlert}
@@ -332,7 +332,7 @@ const App: React.FC = () => {
               </div>
             )}
             {visitedTabs.has('혈통서 관리') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === '혈통서 관리' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === '혈통서 관리' ? 'flex' : 'none' }}>
                 <PedigreeManagementPage
                   tableName={tableMapping['혈통서 관리']} memberTableName={tableMapping['회원 관리']}
                   showAlert={showAlert} showConfirm={showConfirm}
@@ -343,7 +343,7 @@ const App: React.FC = () => {
               </div>
             )}
             {visitedTabs.has('회원 등급 신청') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === '회원 등급 신청' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === '회원 등급 신청' ? 'flex' : 'none' }}>
                 <MembershipApplicationPage 
                     showAlert={showAlert}
                     showConfirm={showConfirm}
@@ -352,22 +352,22 @@ const App: React.FC = () => {
               </div>
             )}
             {visitedTabs.has('협회소식/공지') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === '협회소식/공지' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === '협회소식/공지' ? 'flex' : 'none' }}>
                 <NoticeManagementPage tableName={tableMapping['협회소식/공지']} showAlert={showAlert} showConfirm={showConfirm} />
               </div>
             )}
             {visitedTabs.has('포인트 관리') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === '포인트 관리' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === '포인트 관리' ? 'flex' : 'none' }}>
                 <PointManagementPage initialSearch={pointSearch} onSearchHandled={() => setPointSearch(null)} />
               </div>
             )}
             {visitedTabs.has('데이터 통합') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === '데이터 통합' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === '데이터 통합' ? 'flex' : 'none' }}>
                 <DataIntegrationPage />
               </div>
             )}
             {visitedTabs.has('NICE 회원관리') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === 'NICE 회원관리' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === 'NICE 회원관리' ? 'flex' : 'none' }}>
                 <NiceMemberManagement
                   showAlert={showAlert}
                   showConfirm={showConfirm}
@@ -381,7 +381,7 @@ const App: React.FC = () => {
               </div>
             )}
             {visitedTabs.has('NICE 혈통서') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === 'NICE 혈통서' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === 'NICE 혈통서' ? 'flex' : 'none' }}>
                 <NicePedigreeManagement
                   showAlert={showAlert}
                   showConfirm={showConfirm}
@@ -398,12 +398,12 @@ const App: React.FC = () => {
               </div>
             )}
             {visitedTabs.has('회원 대량추출') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === '회원 대량추출' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === '회원 대량추출' ? 'flex' : 'none' }}>
                 <MemberExportPage />
               </div>
             )}
             {visitedTabs.has('행사 관리') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === '행사 관리' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === '행사 관리' ? 'flex' : 'none' }}>
                 <EventManagementPage
                   tableName={tableMapping['행사 관리']}
                   showAlert={showAlert}
@@ -416,7 +416,7 @@ const App: React.FC = () => {
               </div>
             )}
             {visitedTabs.has('대회 관리') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === '대회 관리' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === '대회 관리' ? 'flex' : 'none' }}>
                 <CompetitionManagementPage
                   tableName={tableMapping['대회 관리']}
                   showAlert={showAlert}
@@ -431,7 +431,7 @@ const App: React.FC = () => {
               </div>
             )}
             {visitedTabs.has('직능관리') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === '직능관리' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === '직능관리' ? 'flex' : 'none' }}>
                 <SkillManagementPage
                   tableName={tableMapping['직능관리']}
                   showAlert={showAlert}
@@ -444,7 +444,7 @@ const App: React.FC = () => {
               </div>
             )}
             {visitedTabs.has('서식 자료실') && (
-              <div className="flex-1 flex flex-col" style={{ display: activeTab === '서식 자료실' ? 'flex' : 'none' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === '서식 자료실' ? 'flex' : 'none' }}>
                 <DownloadManagementPage showAlert={showAlert} showConfirm={showConfirm} />
               </div>
             )}
