@@ -710,7 +710,11 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
           return dColorAbbr ? `${dName} ${dColorAbbr}` : dName;
         }).filter(Boolean);
 
-        const line1 = formattedDogItems.join(' / ');
+        const chunks: string[] = [];
+        for (let i = 0; i < formattedDogItems.length; i += 2) {
+          chunks.push(formattedDogItems.slice(i, i + 2).join(' / '));
+        }
+        const line1 = chunks.join('\n');
 
         const sortedRegs = uniqueDogs.map(d => (d.reg_no || '').trim()).filter(Boolean);
         const minReg = sortedRegs[0] || pedigree.regNo || '-';
