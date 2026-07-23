@@ -188,6 +188,9 @@ export const MemberEditForm: React.FC<MemberEditFormProps> = ({ member, onSave, 
             <Row label="이름" required>
               <Input value={formData.name} onChange={(v: any) => handleChange('name', v)} className="font-bold underline decoration-blue-100 underline-offset-4" />
             </Row>
+            <Row label="이름(영문)">
+              <Input value={formData.name_eng} onChange={(v: any) => handleChange('name_eng', v)} className="uppercase font-mono font-bold" placeholder="영문 이름을 입력하세요" />
+            </Row>
             <Row label="생년월일">
               <Input value={formData.birth} onChange={(v: any) => handleChange('birth', v)} placeholder="YYYY-MM-DD" />
             </Row>
