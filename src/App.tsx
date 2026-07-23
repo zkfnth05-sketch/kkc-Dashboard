@@ -68,6 +68,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [initError, setInitError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set([NAV_ITEMS[0]]));
 
   const [stats, setStats] = useState({ members: 0, pedigrees: 0, notices: 0 });
 
@@ -98,6 +99,19 @@ const App: React.FC = () => {
   };
 
   useEffect(() => { if (isLoggedIn) handleConnect(); }, [isLoggedIn]);
+
+  useEffect(() => {
+    setVisitedTabs(prev => {
+      if (prev.has(activeTab)) return prev;
+      const next = new Set(prev);
+      next.add(activeTab);
+      return next;
+    });
+  }, [activeTab]);
+
+  useEffect(() => {
+    setVisitedTabs(new Set([activeTab]));
+  }, [refreshKey]);
 
   const handleConnect = async () => {
     setIsLoading(true);
@@ -135,112 +149,7 @@ const App: React.FC = () => {
     setActiveTab(t);
   };
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case '대시보드': return <DashboardPage onTabChange={handleTabChange} stats={stats} />;
-      case '회원 관리': return (
-        <MemberManagementPage
-          tableName={tableMapping['회원 관리']}
-          showAlert={showAlert}
-          showConfirm={showConfirm}
-          initialSearch={memberSearch}
-          onSearchHandled={() => setMemberSearch(null)}
-        />
-      );
-      case '혈통서 관리': return (
-        <PedigreeManagementPage
-          tableName={tableMapping['혈통서 관리']} memberTableName={tableMapping['회원 관리']}
-          showAlert={showAlert} showConfirm={showConfirm}
-          onGoToPoints={(regNo) => { setPointSearch({ query: regNo, field: 'regNo' }); jumpToTab('포인트 관리'); }}
-          onGoToPrizes={() => jumpToTab('상력 관리')}
-          onGoToMember={(loginId) => { setMemberSearch({ query: loginId, field: 'id' }); jumpToTab('회원 관리'); }}
-        />
-      );
-      case '회원 등급 신청': return (
-        <MembershipApplicationPage 
-            showAlert={showAlert}
-            showConfirm={showConfirm}
-            onGoToMember={(name) => { setMemberSearch({ query: name, field: 'name' }); jumpToTab('회원 관리'); }}
-        />
-      );
-      case '협회소식/공지': return <NoticeManagementPage tableName={tableMapping['협회소식/공지']} showAlert={showAlert} showConfirm={showConfirm} />;
-      case '포인트 관리': return <PointManagementPage initialSearch={pointSearch} onSearchHandled={() => setPointSearch(null)} />;
-      // case '상력 관리': return <PrizeManagementPage />;
-      case '데이터 통합':
-        /* 
-          🛡️ [SYSTEM LOCK: DATA INTEGRATION PAGE]
-          이 모듈은 데이터 통합 작업이 완료된 상태이므로, 로직 수정을 방지하기 위해 
-          구조적으로 보호된 상태로 렌더링됩니다.
-        */
-        return <DataIntegrationPage />;
-      case 'NICE 회원관리': return (
-        <NiceMemberManagement
-          showAlert={showAlert}
-          showConfirm={showConfirm}
-          initialSearch={niceMemberSearch}
-          onSearchHandled={() => setNiceMemberSearch(null)}
-          onSearchPedigree={(regNo) => {
-            setNicePedigreeSearch({ query: regNo, field: 'reg_no' });
-            jumpToTab('NICE 혈통서');
-          }}
-        />
-      );
-      case 'NICE 혈통서': return (
-        <NicePedigreeManagement
-          showAlert={showAlert}
-          showConfirm={showConfirm}
-          onGoToPoints={(regNo) => { setPointSearch({ query: regNo, field: 'regNo' }); jumpToTab('포인트 관리'); }}
-          onGoToPrizes={() => jumpToTab('상력 관리')}
-          onGoToMember={(loginId) => {
-            // 회원 ID가 CI형태면 ci 필드로 검색, 일반 ID면 id 필드로 검색
-            const isCI = loginId.length > 20 && !loginId.includes('@');
-            setNiceMemberSearch({ query: loginId, field: isCI ? 'ci' : 'id' });
-            jumpToTab('NICE 회원관리');
-          }}
-          initialSearch={nicePedigreeSearch}
-          onSearchHandled={() => setNicePedigreeSearch(null)}
-        />
-      );
-      case '회원 대량추출': return <MemberExportPage />;
-      case '행사 관리': return (
-        <EventManagementPage
-          tableName={tableMapping['행사 관리']}
-          showAlert={showAlert}
-          showConfirm={showConfirm}
-          onEditEvent={(event: any) => {
-            setCompetitionEditData(event);
-            jumpToTab('대회 관리');
-          }}
-        />
-      );
-      case '대회 관리': return (
-        <CompetitionManagementPage
-          tableName={tableMapping['대회 관리']}
-          showAlert={showAlert}
-          showConfirm={showConfirm}
-          editData={competitionEditData}
-          onClearEditData={() => setCompetitionEditData(null)}
-          onGoToMember={(loginId) => {
-            setMemberSearch({ query: loginId, field: 'id' });
-            jumpToTab('회원 관리');
-          }}
-        />
-      );
-      case '직능관리': return (
-        <SkillManagementPage
-          tableName={tableMapping['직능관리']}
-          showAlert={showAlert}
-          showConfirm={showConfirm}
-          onGoToMember={(loginId) => {
-            setMemberSearch({ query: loginId, field: 'id' });
-            jumpToTab('회원 관리');
-          }}
-        />
-      );
-      case '서식 자료실': return <DownloadManagementPage showAlert={showAlert} showConfirm={showConfirm} />;
-      default: return <div className="p-20 text-center text-gray-400 font-bold uppercase tracking-widest">준비 중인 모듈입니다.</div>;
-    }
-  };
+  // renderContent removed in favor of lazy keep-alive divs
 
   // 🚀 [WP INTEGRATION] Detect public view mode for Shortcode usage
   // window.KKF_VIEW가 설정되어 있으면 해당 뷰를 우선 적용합니다.
@@ -405,8 +314,145 @@ const App: React.FC = () => {
             </div>
           )}
 
-          <div className="flex-1 bg-white shadow-sm overflow-hidden rounded-xl border relative flex flex-col" key={`${activeTab}-${refreshKey}`}>
-            {renderContent()}
+          <div className="flex-1 bg-white shadow-sm overflow-hidden rounded-xl border relative flex flex-col" key={refreshKey}>
+            {visitedTabs.has('대시보드') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === '대시보드' ? 'flex' : 'none' }}>
+                <DashboardPage onTabChange={handleTabChange} stats={stats} />
+              </div>
+            )}
+            {visitedTabs.has('회원 관리') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === '회원 관리' ? 'flex' : 'none' }}>
+                <MemberManagementPage
+                  tableName={tableMapping['회원 관리']}
+                  showAlert={showAlert}
+                  showConfirm={showConfirm}
+                  initialSearch={memberSearch}
+                  onSearchHandled={() => setMemberSearch(null)}
+                />
+              </div>
+            )}
+            {visitedTabs.has('혈통서 관리') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === '혈통서 관리' ? 'flex' : 'none' }}>
+                <PedigreeManagementPage
+                  tableName={tableMapping['혈통서 관리']} memberTableName={tableMapping['회원 관리']}
+                  showAlert={showAlert} showConfirm={showConfirm}
+                  onGoToPoints={(regNo) => { setPointSearch({ query: regNo, field: 'regNo' }); jumpToTab('포인트 관리'); }}
+                  onGoToPrizes={() => jumpToTab('상력 관리')}
+                  onGoToMember={(loginId) => { setMemberSearch({ query: loginId, field: 'id' }); jumpToTab('회원 관리'); }}
+                />
+              </div>
+            )}
+            {visitedTabs.has('회원 등급 신청') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === '회원 등급 신청' ? 'flex' : 'none' }}>
+                <MembershipApplicationPage 
+                    showAlert={showAlert}
+                    showConfirm={showConfirm}
+                    onGoToMember={(name) => { setMemberSearch({ query: name, field: 'name' }); jumpToTab('회원 관리'); }}
+                />
+              </div>
+            )}
+            {visitedTabs.has('협회소식/공지') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === '협회소식/공지' ? 'flex' : 'none' }}>
+                <NoticeManagementPage tableName={tableMapping['협회소식/공지']} showAlert={showAlert} showConfirm={showConfirm} />
+              </div>
+            )}
+            {visitedTabs.has('포인트 관리') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === '포인트 관리' ? 'flex' : 'none' }}>
+                <PointManagementPage initialSearch={pointSearch} onSearchHandled={() => setPointSearch(null)} />
+              </div>
+            )}
+            {visitedTabs.has('데이터 통합') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === '데이터 통합' ? 'flex' : 'none' }}>
+                <DataIntegrationPage />
+              </div>
+            )}
+            {visitedTabs.has('NICE 회원관리') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === 'NICE 회원관리' ? 'flex' : 'none' }}>
+                <NiceMemberManagement
+                  showAlert={showAlert}
+                  showConfirm={showConfirm}
+                  initialSearch={niceMemberSearch}
+                  onSearchHandled={() => setNiceMemberSearch(null)}
+                  onSearchPedigree={(regNo) => {
+                    setNicePedigreeSearch({ query: regNo, field: 'reg_no' });
+                    jumpToTab('NICE 혈통서');
+                  }}
+                />
+              </div>
+            )}
+            {visitedTabs.has('NICE 혈통서') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === 'NICE 혈통서' ? 'flex' : 'none' }}>
+                <NicePedigreeManagement
+                  showAlert={showAlert}
+                  showConfirm={showConfirm}
+                  onGoToPoints={(regNo) => { setPointSearch({ query: regNo, field: 'regNo' }); jumpToTab('포인트 관리'); }}
+                  onGoToPrizes={() => jumpToTab('상력 관리')}
+                  onGoToMember={(loginId) => {
+                    const isCI = loginId.length > 20 && !loginId.includes('@');
+                    setNiceMemberSearch({ query: loginId, field: isCI ? 'ci' : 'id' });
+                    jumpToTab('NICE 회원관리');
+                  }}
+                  initialSearch={nicePedigreeSearch}
+                  onSearchHandled={() => setNicePedigreeSearch(null)}
+                />
+              </div>
+            )}
+            {visitedTabs.has('회원 대량추출') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === '회원 대량추출' ? 'flex' : 'none' }}>
+                <MemberExportPage />
+              </div>
+            )}
+            {visitedTabs.has('행사 관리') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === '행사 관리' ? 'flex' : 'none' }}>
+                <EventManagementPage
+                  tableName={tableMapping['행사 관리']}
+                  showAlert={showAlert}
+                  showConfirm={showConfirm}
+                  onEditEvent={(event: any) => {
+                    setCompetitionEditData(event);
+                    jumpToTab('대회 관리');
+                  }}
+                />
+              </div>
+            )}
+            {visitedTabs.has('대회 관리') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === '대회 관리' ? 'flex' : 'none' }}>
+                <CompetitionManagementPage
+                  tableName={tableMapping['대회 관리']}
+                  showAlert={showAlert}
+                  showConfirm={showConfirm}
+                  editData={competitionEditData}
+                  onClearEditData={() => setCompetitionEditData(null)}
+                  onGoToMember={(loginId) => {
+                    setMemberSearch({ query: loginId, field: 'id' });
+                    jumpToTab('회원 관리');
+                  }}
+                />
+              </div>
+            )}
+            {visitedTabs.has('직능관리') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === '직능관리' ? 'flex' : 'none' }}>
+                <SkillManagementPage
+                  tableName={tableMapping['직능관리']}
+                  showAlert={showAlert}
+                  showConfirm={showConfirm}
+                  onGoToMember={(loginId) => {
+                    setMemberSearch({ query: loginId, field: 'id' });
+                    jumpToTab('회원 관리');
+                  }}
+                />
+              </div>
+            )}
+            {visitedTabs.has('서식 자료실') && (
+              <div className="flex-1 flex flex-col" style={{ display: activeTab === '서식 자료실' ? 'flex' : 'none' }}>
+                <DownloadManagementPage showAlert={showAlert} showConfirm={showConfirm} />
+              </div>
+            )}
+            {!NAV_ITEMS.includes(activeTab) && (
+              <div className="p-20 text-center text-gray-400 font-bold uppercase tracking-widest flex-1 flex items-center justify-center">
+                준비 중인 모듈입니다.
+              </div>
+            )}
             {isLoading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-[500]"><Loader2 className="animate-spin text-blue-600" size={48} /></div>}
           </div>
           <DbNavigator isOpen={isDbNavigatorOpen} onClose={() => setIsDbNavigatorOpen(false)} allTables={[]} activeTableName={tableMapping[activeTab]} onTableSelect={(tn) => setTableMapping({ ...tableMapping, [activeTab]: tn })} onConnect={handleConnect} bridgeUrl={bridgeUrl} onBridgeUrlChange={setBridgeUrl} />
