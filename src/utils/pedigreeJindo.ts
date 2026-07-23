@@ -18,6 +18,21 @@ const getColorAbbr = (color: string) => {
   return color;
 };
 
+const isSahoAlreadyInName = (name: string, saho: string) => {
+  if (!name || !saho) return true;
+  const cleanName = name.toLowerCase().trim();
+  const cleanSaho = saho.toLowerCase().trim();
+  
+  if (cleanName.includes(cleanSaho)) return true;
+  
+  const stopWords = new Set(['vom', 'von', 'der', 'dem', 'den', 'aus', 'de', 'of', 'v.', 'v', 'del']);
+  const sahoWords = cleanSaho.split(/\s+/).filter(w => w && !stopWords.has(w));
+  
+  if (sahoWords.length === 0) return true;
+  
+  return sahoWords.every(word => cleanName.includes(word));
+};
+
 const formatDateHyphen = (dateStr: string) => {
   if (!dateStr || dateStr === '0000-00-00' || dateStr === '-') return '-';
   try {
@@ -224,24 +239,20 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
       }
       
       if (field === 'name') {
-        let dogName = (dog.name || '').trim();
-        let saho = (dog.saho || dog.saho_eng || '').trim();
-        if (!dogName && !saho && dog.fullname) {
-          const parts = dog.fullname.trim().split(/\s+/);
-          if (parts.length > 1) {
-            dogName = parts[0];
-            saho = parts.slice(1).join(' ');
+        const dogName = (dog.name || dog.fullname || '').trim();
+        const saho = (dog.saho || dog.saho_eng || '').trim();
+        let nameVal = dogName;
+
+        if (saho && !isSahoAlreadyInName(dogName, saho)) {
+          if (nodeId === 2 || nodeId === 3) {
+            nameVal = `${dogName}\n${saho}`;
+          } else {
+            nameVal = `${dogName} ${saho}`;
           }
+        } else {
+          nameVal = dogName || saho || '';
         }
-        if (nodeId === 2 || nodeId === 3) {
-          if (dogName && saho) {
-            return `${dogName}\n${saho}`;
-          }
-        }
-        if (dogName && saho) {
-          return `${dogName} ${saho}`;
-        }
-        return dog.fullname || dogName || saho || '';
+        return nameVal;
       }
 
       if (field === 'reg') {
