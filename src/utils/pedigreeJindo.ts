@@ -33,6 +33,15 @@ const isSahoAlreadyInName = (name: string, saho: string) => {
   return sahoWords.every(word => cleanName.includes(word));
 };
 
+const formatRegNo = (regNo: string) => {
+  if (!regNo) return '';
+  const r = regNo.trim();
+  if (r.toUpperCase().startsWith('NR')) {
+    return 'NR';
+  }
+  return r;
+};
+
 const formatDateHyphen = (dateStr: string) => {
   if (!dateStr || dateStr === '0000-00-00' || dateStr === '-') return '-';
   try {
@@ -257,8 +266,8 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
 
       if (field === 'reg') {
         if (nodeId >= 2 && nodeId <= 15) {
-          const rVal = (dog.reg_no || '').trim();
-          const dom = (dog.foreign100 || '').trim();
+          const rVal = formatRegNo(dog.reg_no || '');
+          const dom = formatRegNo(dog.foreign100 || '');
           const train = (dog.spec_train || '').trim();
           const micro = (dog.micro || (dog as any).microchip || '').trim();
           const parts: string[] = [];
@@ -270,8 +279,8 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
         }
         
         // nodeId >= 16
-        const rVal = (dog.reg_no || '').trim();
-        const dom = (dog.foreign100 || '').trim();
+        const rVal = formatRegNo(dog.reg_no || '');
+        const dom = formatRegNo(dog.foreign100 || '');
         let regVal = '';
         if (rVal && rVal !== '0' && rVal !== '-') {
           regVal = rVal;
@@ -281,8 +290,8 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
         } else if (dom && dom !== '0' && dom !== '-') {
           regVal = dom;
         } else {
-          const f1 = (dog.foreign_no || '').trim();
-          const f2 = (dog.foreign_no2 || '').trim();
+          const f1 = formatRegNo(dog.foreign_no || '');
+          const f2 = formatRegNo(dog.foreign_no2 || '');
           regVal = (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
         }
         return regVal;
@@ -300,8 +309,8 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
       if (field === 'micro') return dog.micro || (dog as any).microchip || '';
       if (field === 'birth') return formatDateHyphen(dog.birth || '') || '';
       if (field === 'foreign') {
-        const f1 = (dog.foreign_no || '').trim();
-        const f2 = (dog.foreign_no2 || '').trim();
+        const f1 = formatRegNo(dog.foreign_no || '');
+        const f2 = formatRegNo(dog.foreign_no2 || '');
         return (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
       }
     }
