@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Award, ShieldCheck, FileText, Calendar, Trash2, Edit, RefreshCw, Printer, Download, Eye, Check, X, Image as ImageIcon, Info } from 'lucide-react';
 import { niceAdminFetchPedigrees, niceAdminPedigreeAction, niceAdminDeletePedigree, niceAdminFetchBreedColors } from '../services/portalService';
+import { fetchHairs } from '../services/pedigreeService';
+import { SearchableColorSelect } from './SearchableColorSelect';
 
 interface NicePedigree {
   uid: number;
@@ -74,6 +76,29 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
   const [searchField, setSearchField] = useState<'all' | 'reg_no' | 'dog_name' | 'owner_name' | 'micro'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'P' | 'Y' | 'N' | 'R'>('all');
   const [isLoading, setIsLoading] = useState(false);
+
+  const [masterHairs, setMasterHairs] = useState<{ uid?: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetchHairs().then((res) => {
+      if (Array.isArray(res)) {
+        setMasterHairs(res);
+      }
+    }).catch((err) => console.error('hairTab fetch error:', err));
+  }, []);
+
+  const allColorOptions = React.useMemo(() => {
+    const map = new Map<string, { uid?: string; name: string }>();
+    masterHairs.forEach((h) => {
+      if (h.name) map.set(h.name, h);
+    });
+    breedColors.forEach((c) => {
+      if (c.color_name && !map.has(c.color_name)) {
+        map.set(c.color_name, { name: c.color_name });
+      }
+    });
+    return Array.from(map.values());
+  }, [masterHairs, breedColors]);
 
   useEffect(() => {
     if (selectedPedigree?.breed_name) {
@@ -518,7 +543,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
               {/* 왼쪽: 기본 및 매핑 정보 */}
               <div className="space-y-6">
                 <div>
-                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">🐾 개체 기본 정보</h4>
+                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">개체 기본 정보</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <DetailItem label="등록 번호" value={selectedPedigree.reg_no} />
                     <DetailItem label="견명" value={selectedPedigree.dog_name} />
@@ -535,20 +560,19 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                     
                     <div className="col-span-2 bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-200">
                       <div className="flex flex-col mb-2">
-                        <span className="text-xs font-black text-indigo-950 mb-1">🎨 모색 (관리자 직접 지정/수정 - 발급 및 NICE 통보 시 반영)</span>
-                        <input
-                          type="text"
+                        <span className="text-xs font-black text-indigo-950 mb-1">모색 (hairTab 모색 DB 및 검색/선택 - 발급 및 NICE 통보 시 반영)</span>
+                        <SearchableColorSelect
                           value={editHair}
-                          onChange={(e) => setEditHair(e.target.value)}
-                          placeholder="예: 백색, 황색, White, Black & Tan 등"
-                          className="w-full px-3 py-1.5 bg-white border border-indigo-300 rounded-lg text-xs font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+                          onChange={(val) => setEditHair(val)}
+                          options={allColorOptions}
+                          placeholder="모색 검색 또는 드롭다운 선택 (예: 백색, 황색, Black & Tan)..."
                         />
                       </div>
                       
                       {breedColors.length > 0 ? (
                         <div className="pt-2 border-t border-indigo-200/80">
                           <span className="font-black text-indigo-900 text-xs block mb-1.5">
-                            ⚡ {selectedPedigree.breed_name} 공식 추천 모색 (클릭 시 자동 반영):
+                            {selectedPedigree.breed_name} 공식 추천 모색 (클릭 시 즉시 반영):
                           </span>
                           <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
                             {breedColors.map((c, idx) => (
@@ -564,7 +588,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                           </div>
                         </div>
                       ) : (
-                        <p className="text-[11px] text-slate-500 mt-1 italic">• 위 입력창에 모색(영문/국문)을 직접 입력하시거나 수정한 후 승인하시면 됩니다.</p>
+                        <p className="text-[11px] text-slate-500 mt-1 italic">• 위 드롭다운에서 hairTab DB의 모색을 검색/선택하거나 직접 작성 후 승인하시면 됩니다.</p>
                       )}
                     </div>
                     <DetailItem label="생년월일" value={selectedPedigree.birth || '-'} />
@@ -577,7 +601,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">🌳 부모견 정보</h4>
+                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">부모견 정보</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <DetailItem label="부견 이름 (Sire)" value={selectedPedigree.fa_name || selectedPedigree.sire_name || '-'} />
                     <DetailItem label="부견 등록번호" value={selectedPedigree.fa_regno || selectedPedigree.sire_reg_no || '-'} />
@@ -587,7 +611,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">🌳 조상견 정보</h4>
+                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">조상견 정보</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <DetailItem label="조상견 이름" value={selectedPedigree.anc_name || '-'} />
                     <DetailItem label="조상견 견사호" value={selectedPedigree.anc_saho || '-'} />
@@ -595,7 +619,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">👤 번식자 정보</h4>
+                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">번식자 정보</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <DetailItem label="번식자 이름" value={selectedPedigree.breeder_name || '-'} />
                     <div className="col-span-2">
@@ -605,7 +629,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3 font-sans">👤 소유자 및 신청인 정보 (클릭 시 회원관리로 이동)</h4>
+                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3 font-sans">소유자 및 신청인 정보 (클릭 시 회원관리로 이동)</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col">
                       <span className="text-xs font-black text-slate-400">신청인 실명</span>
@@ -728,8 +752,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 
               {/* 오른쪽: 제출된 이미지/문서 문서고 */}
               <div className="flex flex-col">
-                <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3 flex items-center gap-1.5">
-                  <ImageIcon size={16} className="text-indigo-600" />
+                <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">
                   제출된 증빙 문서 / 사진
                 </h4>
                 

@@ -306,25 +306,25 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
     if (colorVal !== '-') {
       const c = colorVal.trim().toLowerCase();
       if (c === 'sb' || c.includes('schwarz braun') || c.includes('black & brown') || c.includes('black brown') || c.includes('블랙브라운') || c.includes('블랙 브라운')) {
-        return 'schwarz braun';
+        return 'SCHWARZ BRAUN';
       }
       if (c === 'wlf gr' || c.includes('wolf gray') || c.includes('wolf grey') || c.includes('울프그레이') || c.includes('울프 그레이')) {
-        return 'wolf gray';
+        return 'WOLF GRAY';
       }
       if (c === 'b&t' || c.includes('black and tan') || c.includes('black tan') || c.includes('블랙탄') || c.includes('블랙 탄')) {
-        return 'black & tan';
+        return 'BLACK & TAN';
       }
       if (c === 's' || c.includes('black') || c.includes('검정') || c.includes('블랙')) {
-        return 'black';
+        return 'BLACK';
       }
       if (c === 'w' || c.includes('white') || c.includes('백색') || c.includes('화이트')) {
-        return 'white';
+        return 'WHITE';
       }
       if (c === 'gr' || c.includes('gray') || c.includes('grey') || c.includes('회색')) {
-        return 'gray';
+        return 'GRAY';
       }
     }
-    return colorVal;
+    return colorVal.toUpperCase();
   }
   if (key === 'dog_birth') {
     return formatDateKr(pedigree.birthDate);
@@ -634,7 +634,7 @@ export const getShepherdRealValue = (key: string, options: PedigreePrintOptions)
       }
       if (field === 'dna') return (nodeId >= 8 && nodeId <= 31) ? '' : (dog.spec_dna || '');
       if (field === 'bone') return (nodeId >= 8 && nodeId <= 31) ? '' : (dog.spec_bone || '');
-      if (field === 'color') return (nodeId >= 8 && nodeId <= 31) ? '' : (dog.hair || '');
+      if (field === 'color') return (nodeId >= 8 && nodeId <= 31) ? '' : (dog.hair || '').toUpperCase();
       if (field === 'micro') return (nodeId >= 8 && nodeId <= 31) ? '' : (dog.micro || (dog as any).microchip || '');
       if (field === 'birth') return formatDateHyphen(dog.birth || '') || '';
       if (field === 'foreign') {
@@ -684,7 +684,7 @@ export const getShepherdSampleValue = (key: string) => {
   if (key === 'dog_name') return 'Xamo vom Grafenbrunn';
   if (key === 'dog_gender') return 'MALE 수컷';
   if (key === 'dog_coat') return 'stock hair';
-  if (key === 'dog_color') return 'schwarz braun';
+  if (key === 'dog_color') return 'SCHWARZ BRAUN';
   if (key === 'dog_birth') return '2022년 11월 28일';
   if (key === 'dog_join') return '2024-10-28';
   if (key === 'dog_owner_change') return '2025-10-19';
@@ -762,7 +762,7 @@ export const getShepherdSampleValue = (key: string) => {
              return node === 4 ? 'VA(BSZS)' : node === 5 ? 'V' : node === 6 ? 'SG' : 'V';
            }
            if (field === 'color') {
-             return 'schwarz braun';
+             return 'SCHWARZ BRAUN';
            }
            if (field === 'micro') {
              return node === 4 ? '963007000778111' : node === 5 ? '963004001035222' : node === 6 ? '963007000778333' : '963004001035444';
@@ -800,7 +800,7 @@ export const getShepherdSampleValue = (key: string) => {
          if (field === 'train') return 'IGP3';
          if (field === 'dna') return 'DNA gpr.';
          if (field === 'bone') return 'HD ED';
-         if (field === 'color') return 'schwarz braun';
+         if (field === 'color') return 'SCHWARZ BRAUN';
          if (field === 'micro') return node === 2 ? '963007000778785' : node === 3 ? '963004001035661' : node === 4 ? '963007000778111' : node === 5 ? '963004001035222' : node === 6 ? '963007000778333' : node === 7 ? '963004001035444' : '';
          return s[field as keyof typeof s] || '';
        }

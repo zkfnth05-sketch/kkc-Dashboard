@@ -72,15 +72,28 @@ export const SearchableColorSelect: React.FC<SearchableColorSelectProps> = ({
 
     options.forEach(opt => {
       const nameLower = opt.name.toLowerCase();
+      const shortKeyLower = (opt as any).shortKey ? (opt as any).shortKey.toLowerCase() : '';
       if (addedSet.has(opt.name)) return;
 
-      if (nameLower === qClean || nameLower === mappedWord) {
+      if (
+        nameLower === qClean || 
+        nameLower === mappedWord || 
+        (shortKeyLower && shortKeyLower === qClean)
+      ) {
         exactMatches.push(opt);
         addedSet.add(opt.name);
-      } else if (nameLower.startsWith(qClean) || nameLower.startsWith(mappedWord)) {
+      } else if (
+        nameLower.startsWith(qClean) || 
+        nameLower.startsWith(mappedWord) || 
+        (shortKeyLower && shortKeyLower.startsWith(qClean))
+      ) {
         startsWithMatches.push(opt);
         addedSet.add(opt.name);
-      } else if (nameLower.includes(qClean) || nameLower.includes(mappedWord)) {
+      } else if (
+        nameLower.includes(qClean) || 
+        nameLower.includes(mappedWord) || 
+        (shortKeyLower && shortKeyLower.includes(qClean))
+      ) {
         containsMatches.push(opt);
         addedSet.add(opt.name);
       }
@@ -155,7 +168,14 @@ export const SearchableColorSelect: React.FC<SearchableColorSelectProps> = ({
                       : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
-                  <span>{opt.name}</span>
+                  <span>
+                    {opt.name}
+                    {(opt as any).shortKey && (opt as any).shortKey !== opt.name && (
+                      <span className="text-slate-400 font-normal text-[10px] ml-1.5">
+                        ({(opt as any).shortKey})
+                      </span>
+                    )}
+                  </span>
                   {isSelected && <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-black">선택됨</span>}
                 </div>
               );

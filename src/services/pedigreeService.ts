@@ -78,10 +78,11 @@ export const fetchHairs = async () => {
         table: 'hairTab',
         limit: 500 // 충분한 양을 가져옴
     });
-    // uid 정보를 포함하여 반환 (삭제 작업 시 필요)
+    // uid와 short_key 정보를 포함하여 반환 (삭제 작업 시 필요)
     return (res.data || []).filter((h: any) => h.hair && h.hair.trim() !== '').map((row: any) => ({
         uid: row.uid,
-        name: row.hair
+        name: row.hair,
+        shortKey: row.short_key
     }));
 };
 

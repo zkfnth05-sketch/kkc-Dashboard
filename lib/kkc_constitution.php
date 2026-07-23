@@ -132,6 +132,11 @@ $KKC_TABLE_MAP = [
         'pk' => 'uid',
         'encoding' => 'EUC-KR',
         'search_fields' => ['reg_no', 'poss_name', 'poss_id']
+    ],
+    'hairTab' => [
+        'pk' => 'uid',
+        'encoding' => 'EUC-KR',
+        'search_fields' => ['hair', 'short_key']
     ]
 ];
 

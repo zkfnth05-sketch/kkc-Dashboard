@@ -795,7 +795,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                 const maxReg = sortedRegs[sortedRegs.length - 1] || dog.reg_no || '-';
                 const regRange = sortedRegs.length > 1 ? `${minReg}~${maxReg}` : minReg;
 
-                return line1 ? `${line1}\n${regRange}` : regRange;
+                return line1;
               }
             } catch (e) {
               console.error("Failed to fetch parent sibling range:", e);
