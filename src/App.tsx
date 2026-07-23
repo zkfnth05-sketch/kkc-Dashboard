@@ -59,8 +59,16 @@ const App: React.FC = () => {
     }
     return null;
   });
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [activeTab, setActiveTab] = useState(NAV_ITEMS[0]);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return sessionStorage.getItem('kkf_admin_logged_in') === 'true';
+  });
+  const [activeTab, setActiveTab] = useState(() => {
+    const hash = typeof window !== 'undefined' && decodeURIComponent(window.location.hash.replace('#', ''));
+    if (hash && NAV_ITEMS.includes(hash)) {
+      return hash;
+    }
+    return NAV_ITEMS[0];
+  });
   const [tabHistory, setTabHistory] = useState<string[]>([]);
   const [bridgeUrl, setBridgeUrl] = useState(DEFAULT_URL);
   const [isConnected, setIsConnected] = useState(false);
@@ -113,6 +121,25 @@ const App: React.FC = () => {
     setVisitedTabs(new Set([activeTab]));
   }, [refreshKey]);
 
+  // 🔗 activeTab 변경 시 URL Hash 동기화
+  useEffect(() => {
+    if (isLoggedIn) {
+      window.location.hash = encodeURIComponent(activeTab);
+    }
+  }, [activeTab, isLoggedIn]);
+
+  // 🔗 브라우저 뒤로가기/앞으로가기 (Hash 변경) 감지
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = decodeURIComponent(window.location.hash.replace('#', ''));
+      if (hash && NAV_ITEMS.includes(hash)) {
+        setActiveTab(hash);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
   const handleConnect = async () => {
     setIsLoading(true);
     setApiConfig(bridgeUrl);
@@ -133,7 +160,12 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogout = () => { setIsLoggedIn(false); setActiveTab(NAV_ITEMS[0]); };
+  const handleLogout = () => { 
+    setIsLoggedIn(false); 
+    sessionStorage.removeItem('kkf_admin_logged_in'); 
+    setActiveTab(NAV_ITEMS[0]); 
+    window.location.hash = '';
+  };
 
   const handleTabChange = (t: string) => {
     setTabHistory([]);
@@ -282,6 +314,7 @@ const App: React.FC = () => {
       onLogin={async (id, pw) => {
         // 하드코딩된 자격 증명 검사
         if (id === 'kkc3349' && pw === 'kkcdog3349**') {
+          sessionStorage.setItem('kkf_admin_logged_in', 'true');
           setIsLoggedIn(true);
         } else {
           throw new Error('아이디 또는 비밀번호가 일치하지 않습니다.');
