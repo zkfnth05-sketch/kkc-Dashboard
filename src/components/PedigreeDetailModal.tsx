@@ -723,16 +723,45 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
         fullLitterList = `${line1}\n${regRange}`;
       } else {
-        const siblingListFormatted = siblings.map(s => {
-          const sName = s.fullname || s.name || '';
-          const sReg = s.reg_no || '';
-          const sColor = s.hair || '';
-          const sColorAbbr = getColorAbbr(sColor);
-          return `${sName} ${sColorAbbr} / ${sReg}`;
-        }).join(', ');
+        const ownDog = {
+          name: pedigree.name,
+          color: pedigree.color,
+          reg_no: pedigree.regNo
+        };
+        const allLitterDogs = [ownDog];
+        siblings.forEach(s => {
+          allLitterDogs.push({
+            name: s.fullname || s.name || '',
+            color: s.hair || s.color || '',
+            reg_no: s.reg_no || ''
+          });
+        });
 
-        const mainDogColorAbbr = getColorAbbr(pedigree.color);
-        fullLitterList = `${pedigree.fullName || pedigree.name} ${mainDogColorAbbr} / ${pedigree.regNo}${siblingListFormatted ? ', ' + siblingListFormatted : ''}`;
+        const seen = new Set<string>();
+        const uniqueDogs: typeof allLitterDogs = [];
+        allLitterDogs.forEach(d => {
+          const r = (d.reg_no || '').trim();
+          if (r && !seen.has(r)) {
+            seen.add(r);
+            uniqueDogs.push(d);
+          }
+        });
+
+        uniqueDogs.sort((a, b) => (a.reg_no || '').localeCompare(b.reg_no || '', undefined, { numeric: true, sensitivity: 'base' }));
+
+        const sortedRegs = uniqueDogs
+          .map(d => (d.reg_no || '').trim())
+          .filter(r => r && r !== '-' && r !== '0' && r !== '미등록');
+
+        if (sortedRegs.length === 0) {
+          fullLitterList = '';
+        } else if (sortedRegs.length === 1) {
+          fullLitterList = sortedRegs[0];
+        } else {
+          const minReg = sortedRegs[0];
+          const maxReg = sortedRegs[sortedRegs.length - 1];
+          fullLitterList = `${minReg}~${maxReg}`;
+        }
       }
       
       setJindoLitterList(fullLitterList);

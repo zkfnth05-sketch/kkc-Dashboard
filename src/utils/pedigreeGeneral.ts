@@ -18,6 +18,22 @@ const getColorAbbr = (color: string) => {
   return color;
 };
 
+const getColorFull = (color: string) => {
+  if (!color) return '';
+  const c = color.trim().toLowerCase();
+  if (c === 'sb' || c.includes('schwarz braun') || c.includes('black & brown') || c.includes('black brown') || c.includes('블랙브라운') || c.includes('블랙 브라운')) return 'SCHWARZ BRAUN';
+  if (c === 'b&t' || c.includes('black and tan') || c.includes('black tan') || c.includes('블랙탄') || c.includes('블랙 탄')) return 'BLACK & TAN';
+  if (c === 'wlf gr' || c.includes('wolf gray') || c.includes('wolf grey') || c.includes('울프그레이') || c.includes('울프 그레이')) return 'WOLF GRAY';
+  if (c === 's' || c.includes('black') || c.includes('검정') || c.includes('블랙')) return 'BLACK';
+  if (c === 'w' || c.includes('white') || c.includes('백색') || c.includes('화이트')) return 'WHITE';
+  if (c === 'gr' || c.includes('gray') || c.includes('grey') || c.includes('회색')) return 'GRAY';
+  if (c.includes('yellow') || c.includes('황색') || c.includes('옐로우')) return '황색';
+  if (c.includes('red') || c.includes('적구') || c.includes('레드')) return '적구';
+  if (c.includes('brindle') || c.includes('호구') || c.includes('호반')) return '호구';
+  if (c.includes('light yellow') || c.includes('아이보리') || c.includes('크림')) return '크림';
+  return color.toUpperCase();
+};
+
 const formatDateHyphen = (dateStr: string) => {
   if (!dateStr || dateStr === '0000-00-00' || dateStr === '-') return '-';
   try {
@@ -88,8 +104,12 @@ export const getGeneralRealValue = (key: string, options: PedigreePrintOptions) 
     const coatVal = (pedigree.coatType || '').trim();
     const parts: string[] = [];
     const cleanColor = colorVal.trim();
-    if (cleanColor && cleanColor !== '-' && cleanColor !== '0') parts.push(cleanColor);
-    if (coatVal && coatVal !== '-' && coatVal !== '0') parts.push(coatVal);
+    if (cleanColor && cleanColor !== '-' && cleanColor !== '0') {
+      parts.push(getColorFull(cleanColor));
+    }
+    if (coatVal && coatVal !== '-' && coatVal !== '0') {
+      parts.push(coatVal);
+    }
     return parts.join(' ') || '-';
   }
   if (key === 'dog_birth') {
