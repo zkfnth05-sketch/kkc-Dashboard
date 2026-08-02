@@ -697,11 +697,11 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
       else if (isTraining) targetTable = 'sports_applicant';
 
       const res = await fetchApplicants(parsedDsPid, targetTable);
-      // 🛡️ [PAYMENT FILTER] 입금완료된 신청자만 카탈로그에 포함
-      const applicants = (res.data || []).filter((a: any) => a.payment_status === '입금완료');
+      // 🛡️ [PAYMENT FILTER 제거] 입금 여부 상관없이 모든 신청자를 카탈로그에 포함
+      const applicants = res.data || [];
       
       if (applicants.length === 0) { 
-        showAlert('알림', '입금 완료된 신청자가 한 명도 없습니다. (입금 상태를 확인해 주세요)'); 
+        showAlert('알림', '등록된 신청자가 한 명도 없습니다.'); 
         return; 
       }
 
@@ -915,15 +915,136 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
         // 기존 타 종목 처리
         finalData = applicants.map((a: any) => {
           if (isStylistIntl) {
-            return { '회원아이디': a.handler_id, '이름': a.name, '연락처': a.contact, '종목': a.entry_category, '참가비': a.total_amount, '신청일': a.created_at };
+            return {
+              '신청날짜': a.created_at || '-',
+              '아이디': a.handler_id || '-',
+              '이름': a.name || '-',
+              '연락처': a.contact || '-',
+              '생년월일': a.birthdate || '-',
+              '이메일': a.email || '-',
+              '주소': a.address || '-',
+              '반려견스타일리스트 자격증 번호': a.license_number || '-',
+              '소속': a.affiliation || '-',
+              '참가유형': a.entry_type || '-',
+              '모종': a.dog_breed || '-',
+              '종목': a.entry_category || '-',
+              '신청 옵션': a.options_summary || '-',
+              '참가비': a.total_amount ? `${Number(a.total_amount).toLocaleString()}원` : '0원',
+              '입금 상태': a.payment_status || '-'
+            };
           }
           if (isStylist) {
-            return { '회원아이디': a.handler_id, '이름': a.name, '연락처': a.contact, '종목': a.entry_category, '참가비': a.total_amount, '신청일': a.created_at };
+            return {
+              '신청날짜': a.created_at || '-',
+              '이름': a.name || '-',
+              '연락처': a.contact || '-',
+              '생년월일': a.birthdate || '-',
+              '이메일': a.email || '-',
+              '주소': a.address || '-',
+              '소속': a.affiliation || '-',
+              '모종': a.dog_breed || '-',
+              '참가유형': a.entry_type || '-',
+              '종목': a.entry_category || '-',
+              '신청옵션': a.options_summary || '-',
+              '참가비': a.total_amount ? `${Number(a.total_amount).toLocaleString()}원` : '0원',
+              '학생증 사진': a.student_id_photo || '-',
+              '입금 상태': a.payment_status || '-'
+            };
           }
           if (isAgility) {
-            return { '참가자이름': a.name, '연락처': a.contact, '종목': a.subject, '견종': a.dog_breed, '견명': a.dog_name, '참가비': a.total_amount, '신청일': a.created_at };
+            return {
+              '신청날짜': a.created_at || '-',
+              '핸들러(ID)': a.handler_id || '-',
+              '이름': a.name || '-',
+              '연락처': a.contact || '-',
+              '종목': a.subject || '-',
+              '사이즈': a.size || '-',
+              '구분': a.division || '-',
+              '견종': a.dog_breed || '-',
+              '견명': a.dog_name || '-',
+              '출진견 성별': a.dog_gender || '-',
+              '발정유무': a.is_heat || '-',
+              '견사진': a.dog_photo || '-',
+              '학생증 사진': a.student_id_photo || '-',
+              '신청옵션': a.options_summary || '-',
+              '입금 상태': a.payment_status || '-'
+            };
           }
-          return { '핸들러ID': a.handler_id, '이름': a.name, '연락처': a.contact, '혈통번호': a.pedigree_number, '입금상태': a.payment_status, '참가비': a.total_amount, '신청일': a.created_at };
+          if (isDiscDog) {
+            return {
+              '신청날짜': a.created_at || '-',
+              '핸들러(ID)': a.handler_id || '-',
+              '이름': a.name || '-',
+              '이름(영문)': a.name_eng || '-',
+              '연락처': a.contact || '-',
+              '견명': a.dog_name || '-',
+              '견명(영문)': a.dog_name_eng || '-',
+              '견종': a.dog_breed || '-',
+              '종목': a.subject || '-',
+              '팀명 (3명 이상)': a.team_name || '-',
+              '학생증사진': a.student_id_photo || '-',
+              '신청옵션': a.options_summary || '-',
+              '입금 상태': a.payment_status || '-'
+            };
+          }
+          if (isFlyball) {
+            return {
+              '신청날짜': a.created_at || '-',
+              '핸들러(ID)': a.handler_id || '-',
+              '이름': a.name || '-',
+              '연락처': a.contact || '-',
+              '견종': a.dog_breed || '-',
+              '견명': a.dog_name || '-',
+              '종목': a.subject || '-',
+              '신청옵션': a.options_summary || '-',
+              '입금 상태': a.payment_status || '-'
+            };
+          }
+          if (isTraining) {
+            return {
+              '신청날짜': a.created_at || '-',
+              '핸들러(ID)': a.handler_id || '-',
+              '이름': a.name || '-',
+              '연락처': a.contact || '-',
+              '종목': a.subject || '-',
+              '견종': a.dog_breed || '-',
+              '견명': a.dog_name || '-',
+              '성별': a.dog_gender || '-',
+              '발정유무': a.is_heat || '-',
+              '혈통서 번호': a.pedigree_no || '-',
+              '구분': a.division || '-',
+              '견사진': a.dog_photo || '-',
+              '학생증 사진': a.student_id_photo || '-',
+              '신청옵션': a.options_summary || '-',
+              '입금 상태': a.payment_status || '-'
+            };
+          }
+          if (isSeminar) {
+            return {
+              '신청날짜': a.created_at || '-',
+              '핸들러(ID)': a.handler_id || '-',
+              '이름': a.name || '-',
+              '연락처': a.contact || '-',
+              '생년월일': a.birthdate || '-',
+              '이메일': a.email || '-',
+              '소속 (직업)': a.affiliation || '-',
+              '신청옵션': a.options_summary || '-',
+              '입금 상태': a.payment_status || '-'
+            };
+          }
+          if (isBreedComp) {
+            return {
+              '신청날짜': a.created_at || '-',
+              '회원 ID': a.handler_id || '-',
+              '이름': a.name || '-',
+              '연락처': a.contact || '-',
+              '혈통서 번호': a.pedigree_number || '-',
+              '신청옵션': a.options_summary || '-',
+              '참가비': a.total_amount ? `${Number(a.total_amount).toLocaleString()}원` : '0원',
+              '입금상태': a.payment_status || '-'
+            };
+          }
+          return { '핸들러ID': a.handler_id, '이름': a.name, '연락처': a.contact, '혈통번호': a.pedigree_number || a.pedigree_no || '-', '입금상태': a.payment_status, '참가비': a.total_amount, '신청일': a.created_at };
         });
       }
 
@@ -935,7 +1056,8 @@ export const CompetitionManagementPage: React.FC<CompetitionManagementPageProps 
         ...finalData.map((row: any) => headers.map(h => `"${(row[h] || '').toString().replace(/"/g, '""')}"`).join(','))
       ].join('\n');
       
-      downloadCsv(csvContent, `도그쇼_신청자명단_카탈로그`);
+      const safeTitle = (title || '대회_신청자명단').replace(/[\\/:*?"<>|]/g, '_').trim();
+      downloadCsv(csvContent, safeTitle);
 
     } catch (e: any) { showAlert('오류', '다운로드 실패: ' + e.message); }
     finally { setIsLoading(false); }

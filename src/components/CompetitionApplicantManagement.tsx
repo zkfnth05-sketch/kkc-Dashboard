@@ -118,8 +118,6 @@ export const CompetitionApplicantManagement: React.FC<CompetitionApplicantManage
             const res = await fetchMembers('dogTab', 1, formPedigree.trim(), 'reg_no', 1);
             if (res.data && res.data.length > 0) {
                 const dog = res.data[0];
-                setFormName(dog.poss_name || formName);
-                setFormContact(dog.poss_phone || formContact);
                 showAlert('조회 성공', `'${dog.name}'(소유자: ${dog.poss_name}) 정보를 불러왔습니다.`);
             } else {
                 showAlert('조회 실패', '해당 등록번호를 가진 견 정보를 찾을 수 없습니다.');
@@ -176,7 +174,7 @@ export const CompetitionApplicantManagement: React.FC<CompetitionApplicantManage
             };
 
             // 🚀 [PEDIGREE FIELD MAPPING] 테이블마다 컬럼명이 다릅니다.
-            if (isBreedExam) {
+            if (isBreedExam || applicantTable === 'dogshow_applicant') {
                 payload.pedigree_number = formPedigree;
             } else {
                 payload.reg_no = formPedigree;

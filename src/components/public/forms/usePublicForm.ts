@@ -151,8 +151,6 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
                     const d = res.data[0];
                     setFormData((prev: any) => ({
                         ...prev,
-                        name: d.poss_name || prev.name,
-                        contact: d.poss_phone || prev.contact,
                         dog_name: d.name || prev.dog_name,
                         dog_breed: d.dog_class || prev.dog_breed,
                         dog_gender: d.sex === '1' ? '수' : d.sex === '2' ? '암' : prev.dog_gender,
