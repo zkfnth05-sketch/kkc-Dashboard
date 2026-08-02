@@ -210,7 +210,12 @@ export const MemberExcelUploadPage: React.FC<MemberExcelUploadPageProps> = ({ on
 
     const handleSubmit = () => {
         if (parsedData && parsedData.length > 0) {
-            onUpload(parsedData);
+            const isConfirmed = window.confirm(
+                `총 ${parsedData.length}명의 회원 데이터를 처리합니다.\n이 작업은 되돌릴 수 없으며, 실제 데이터가 변경됩니다.\n정말로 실행하시겠습니까?`
+            );
+            if (isConfirmed) {
+                onUpload(parsedData);
+            }
         }
     };
 
