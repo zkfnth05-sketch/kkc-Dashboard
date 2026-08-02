@@ -649,7 +649,7 @@ export const deleteOwnerHistory = async (id: string) => fetchBridge({ id, mode: 
 
 export const bulkUpdateProClass = async (membersToUpdate: any[], selectedSkill: string, isSkillDisabled: boolean) => {
     let successCount = 0;
-    let failCount = 0;
+    const failedList: { name: string; birth: string; reason: string }[] = [];
 
     for (const m of membersToUpdate) {
         try {
@@ -698,8 +698,15 @@ export const bulkUpdateProClass = async (membersToUpdate: any[], selectedSkill: 
                 }
 
                 const updateRes = await fetchBridge({ mode: 'update_record', table: 'memTab', data: updateData });
-                if (updateRes.success) successCount++;
-                else failCount++;
+                if (updateRes.success) {
+                    successCount++;
+                } else {
+                    failedList.push({
+                        name: m.name || '',
+                        birth: m.birth || '',
+                        reason: updateRes.error || '회원정보 업데이트 실패'
+                    });
+                }
 
             } else {
                 // [신규 회원: 자동 등록 로직]
@@ -719,15 +726,26 @@ export const bulkUpdateProClass = async (membersToUpdate: any[], selectedSkill: 
                 };
 
                 const createRes = await createMember('memTab', createData);
-                if (createRes.success) successCount++;
-                else failCount++;
+                if (createRes.success) {
+                    successCount++;
+                } else {
+                    failedList.push({
+                        name: m.name || '',
+                        birth: m.birth || '',
+                        reason: createRes.error || '신규 회원 등록 실패'
+                    });
+                }
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error("Bulk update/create execution error:", e);
-            failCount++;
+            failedList.push({
+                name: m.name || '',
+                birth: m.birth || '',
+                reason: e.message || '업데이트 중 에러 발생'
+            });
         }
     }
-    return { successCount, failCount };
+    return { successCount, failCount: failedList.length, failedList };
 };
 
 /**

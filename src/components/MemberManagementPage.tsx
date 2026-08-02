@@ -139,45 +139,59 @@ export const MemberManagementPage: React.FC<MemberManagementPageProps> = ({
   };
 
   const handleExcelUpload = async (newMembers: Partial<Member>[]) => {
-    if (!newMembers || newMembers.length === 0) return;
-    showConfirm('엑셀 대량 가입', `총 ${newMembers.length}명의 회원을 등록하시겠습니까?`, async () => {
-      setIsLoading(true);
-      let successCount = 0;
-      let failCount = 0;
-      try {
-        for (const m of newMembers) {
-          try {
-            const res = await createMember(tableName, m);
-            if (res.success) successCount++;
-            else failCount++;
-          } catch (e) {
-            failCount++;
+    if (!newMembers || newMembers.length === 0) return { total: 0, successCount: 0, failCount: 0, failedList: [] };
+    setIsLoading(true);
+    let successCount = 0;
+    const failedList: { name: string; birth: string; reason: string }[] = [];
+    try {
+      for (const m of newMembers) {
+        try {
+          const res = await createMember(tableName, m);
+          if (res.success) {
+            successCount++;
+          } else {
+            failedList.push({
+              name: m.name || '',
+              birth: m.birth || '',
+              reason: res.error || '회원 등록 실패'
+            });
           }
+        } catch (err: any) {
+          failedList.push({
+            name: m.name || '',
+            birth: m.birth || '',
+            reason: err.message || '오류 발생'
+          });
         }
-        showAlert('일괄 등록 완료', `총 ${newMembers.length}명 중 ${successCount}명 성공, ${failCount}명 실패했습니다.`);
-        loadData(1);
-      } catch (e: any) {
-        showAlert('등록 중 오류 발생', e.message);
-      } finally {
-        setIsLoading(false);
       }
-    });
+      loadData(1);
+      return {
+        total: newMembers.length,
+        successCount,
+        failCount: failedList.length,
+        failedList
+      };
+    } catch (e: any) {
+      showAlert('등록 중 오류 발생', e.message);
+      throw e;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleProClassUpload = async (membersToUpdate: any[], selectedSkill: string, isSkillDisabled: boolean) => {
-    if (!membersToUpdate || membersToUpdate.length === 0) return;
-    showConfirm('직능 일괄 업데이트', `총 ${membersToUpdate.length}명의 직능 정보를 업데이트하시겠습니까?`, async () => {
-      setIsLoading(true);
-      try {
-        const result = await bulkUpdateProClass(membersToUpdate, selectedSkill, isSkillDisabled);
-        showAlert('일괄 업데이트 완료', `총 ${membersToUpdate.length}명 중 ${result.successCount}명 성공, ${result.failCount}명 실패했습니다.`);
-        loadData(1);
-      } catch (e: any) {
-        showAlert('업데이트 중 오류 발생', e.message);
-      } finally {
-        setIsLoading(false);
-      }
-    });
+    if (!membersToUpdate || membersToUpdate.length === 0) return { successCount: 0, failCount: 0, failedList: [] };
+    setIsLoading(true);
+    try {
+      const result = await bulkUpdateProClass(membersToUpdate, selectedSkill, isSkillDisabled);
+      loadData(1);
+      return result;
+    } catch (e: any) {
+      showAlert('업데이트 중 오류 발생', e.message);
+      throw e;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

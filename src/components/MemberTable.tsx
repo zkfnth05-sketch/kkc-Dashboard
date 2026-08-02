@@ -17,8 +17,8 @@ interface MemberTableProps {
   onPageChange: (page: number) => void;
   onCreateMember?: (member: Partial<Member>) => void;
   onDeleteSelected?: (ids: string[]) => void;
-  onExcelUpload?: (members: Partial<Member>[]) => void;
-  onProClassUpload?: (members: any[], selectedSkill: string, isSkillDisabled: boolean) => void;
+  onExcelUpload?: (members: Partial<Member>[]) => Promise<any>;
+  onProClassUpload?: (members: any[], selectedSkill: string, isSkillDisabled: boolean) => Promise<any>;
 }
 
 export const MemberTable: React.FC<MemberTableProps> = ({
@@ -312,18 +312,22 @@ export const MemberTable: React.FC<MemberTableProps> = ({
       {isExcelUploadOpen && (
         <MemberExcelUploadPage
           onClose={() => setIsExcelUploadOpen(false)}
-          onUpload={(members) => {
-            setIsExcelUploadOpen(false);
-            if (onExcelUpload) onExcelUpload(members);
+          onUpload={async (members) => {
+            if (onExcelUpload) {
+              return await onExcelUpload(members);
+            }
+            return { total: 0, successCount: 0, failCount: 0, failedList: [] };
           }}
         />
       )}
       {isProClassUploadOpen && (
         <MemberProClassUploadPage
           onClose={() => setIsProClassUploadOpen(false)}
-          onUpload={(members, skill, disabled) => {
-            setIsProClassUploadOpen(false);
-            if (onProClassUpload) onProClassUpload(members, skill, disabled);
+          onUpload={async (members, skill, disabled) => {
+            if (onProClassUpload) {
+              return await onProClassUpload(members, skill, disabled);
+            }
+            return { successCount: 0, failCount: 0, failedList: [] };
           }}
         />
       )}

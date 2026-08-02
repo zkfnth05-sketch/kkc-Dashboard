@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Upload, ArrowLeft, Download, FileText, CheckCircle2 } from 'lucide-react';
+import { Upload, ArrowLeft, Download, FileText, CheckCircle2, Loader2 } from 'lucide-react';
 import Papa from 'papaparse';
 import { downloadCsv } from '../lib/downloadUtils';
 import { fetchProClasses } from '../services/memberService';
@@ -7,7 +7,7 @@ import { ProClass } from '../types';
 
 interface MemberProClassUploadPageProps {
     onClose: () => void;
-    onUpload: (members: any[], selectedSkill: string, isSkillDisabled: boolean) => void;
+    onUpload: (members: any[], selectedSkill: string, isSkillDisabled: boolean) => Promise<any>;
 }
 
 export const MemberProClassUploadPage: React.FC<MemberProClassUploadPageProps> = ({ onClose, onUpload }) => {
@@ -19,6 +19,12 @@ export const MemberProClassUploadPage: React.FC<MemberProClassUploadPageProps> =
     const [selectedSkill, setSelectedSkill] = useState('');
     const [isSkillDisabled, setIsSkillDisabled] = useState(false);
     const [proClasses, setProClasses] = useState<ProClass[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [uploadResult, setUploadResult] = useState<{
+        successCount: number;
+        failCount: number;
+        failedList: { name: string; birth: string; reason: string }[];
+    } | null>(null);
 
     useEffect(() => {
         fetchProClasses().then(setProClasses).catch(console.error);
@@ -98,10 +104,35 @@ export const MemberProClassUploadPage: React.FC<MemberProClassUploadPageProps> =
         });
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (parsedData && parsedData.length > 0) {
-            onUpload(parsedData, selectedSkill, isSkillDisabled);
+            const isConfirmed = window.confirm(
+                `총 ${parsedData.length}명의 직능 정보를 업데이트하시겠습니까?\n이 작업은 되돌릴 수 없으며, 실제 데이터가 변경됩니다.\n정말로 실행하시겠습니까?`
+            );
+            if (isConfirmed) {
+                setIsSubmitting(true);
+                setErrorMsg(null);
+                setUploadResult(null);
+                try {
+                    const res = await onUpload(parsedData, selectedSkill, isSkillDisabled);
+                    setUploadResult(res);
+                } catch (e: any) {
+                    setErrorMsg("업데이트 중 오류가 발생했습니다: " + e.message);
+                } finally {
+                    setIsSubmitting(false);
+                }
+            }
         }
+    };
+
+    const handleDownloadFailList = () => {
+        if (!uploadResult || uploadResult.failedList.length === 0) return;
+        const headers = ['성명(한글)', '생년월일', '사유'];
+        const csvContent = [
+            headers.join(','),
+            ...uploadResult.failedList.map(row => `"${row.name}","${row.birth}","${row.reason}"`)
+        ].join('\n');
+        downloadCsv(csvContent, '직능업데이트_실패_목록');
     };
 
     return (
@@ -159,40 +190,87 @@ export const MemberProClassUploadPage: React.FC<MemberProClassUploadPageProps> =
                             <Download size={16} /> 엑셀 양식 다운로드
                         </button>
 
-                        <div className={`border-2 border-dashed rounded-lg p-10 flex flex-col items-center justify-center transition-colors ${parsedData ? 'border-green-300 bg-green-50' : errorMsg ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-gray-50'}`}>
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded font-bold transition-colors shadow-sm mb-4 flex items-center gap-2"
-                            >
-                                <FileText size={18} /> 엑셀 파일 선택 및 실행
-                            </button>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                accept=".csv"
-                                onChange={handleFileChange}
-                                className="hidden"
-                            />
+                        {!uploadResult && (
+                            <div className={`border-2 border-dashed rounded-lg p-10 flex flex-col items-center justify-center transition-colors ${parsedData ? 'border-green-300 bg-green-50' : errorMsg ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-gray-50'}`}>
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={isSubmitting}
+                                    className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded font-bold transition-colors shadow-sm mb-4 flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    <FileText size={18} /> 엑셀 파일 선택 및 실행
+                                </button>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    accept=".csv"
+                                    onChange={handleFileChange}
+                                    className="hidden"
+                                />
 
-                            {!selectedFileName ? (
-                                <p className="text-gray-500 text-sm">직능을 먼저 선택하거나, "직능 선택 안함"을 체크하세요.</p>
-                            ) : (
-                                <div className="text-center">
-                                    <p className="font-bold text-gray-800 mb-1">{selectedFileName}</p>
-                                    {parsedData && <p className="text-green-600 text-sm font-medium flex items-center justify-center gap-1"><CheckCircle2 size={16} /> 총 {parsedData.length}건 데이터 로드 완료</p>}
-                                    {errorMsg && <p className="text-red-500 text-sm font-medium">{errorMsg}</p>}
-                                </div>
-                            )}
-                        </div>
+                                {!selectedFileName ? (
+                                    <p className="text-gray-500 text-sm">직능을 먼저 선택하거나, "직능 선택 안함"을 체크하세요.</p>
+                                ) : (
+                                    <div className="text-center">
+                                        <p className="font-bold text-gray-800 mb-1">{selectedFileName}</p>
+                                        {parsedData && <p className="text-green-600 text-sm font-medium flex items-center justify-center gap-1"><CheckCircle2 size={16} /> 총 {parsedData.length}건 데이터 로드 완료</p>}
+                                        {errorMsg && <p className="text-red-500 text-sm font-medium">{errorMsg}</p>}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                        {parsedData && (
+                        {parsedData && !uploadResult && (
                             <div className="mt-6 flex justify-center">
                                 <button
                                     onClick={handleSubmit}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-3 rounded text-lg font-bold transition-colors shadow-md"
+                                    disabled={isSubmitting}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-3 rounded text-lg font-bold transition-colors shadow-md flex items-center gap-2 disabled:opacity-75"
                                 >
-                                    {parsedData.length}명 일괄 업데이트 시작하기
+                                    {isSubmitting && <Loader2 className="animate-spin" size={20} />}
+                                    {isSubmitting ? '일괄 업데이트 진행 중...' : `${parsedData.length}명 일괄 업데이트 시작하기`}
                                 </button>
+                            </div>
+                        )}
+
+                        {uploadResult && (
+                            <div className="mt-8 space-y-6">
+                                <div className="bg-green-50 border border-green-200 text-green-800 p-5 rounded-lg text-[15px] font-bold">
+                                    업데이트 완료: 총 {uploadResult.successCount + uploadResult.failCount}명 중 {uploadResult.successCount}명 성공, {uploadResult.failCount}명 실패.
+                                </div>
+
+                                {uploadResult.failCount > 0 && (
+                                    <div className="border border-red-200 rounded-lg overflow-hidden bg-white">
+                                        <div className="bg-red-50 p-4 border-b border-red-100 flex justify-between items-center">
+                                            <h4 className="text-sm font-bold text-red-700">업데이트 실패 목록</h4>
+                                            <button
+                                                onClick={handleDownloadFailList}
+                                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 text-xs font-bold rounded shadow-sm transition-colors"
+                                            >
+                                                엑셀로 다운로드
+                                            </button>
+                                        </div>
+                                        <div className="max-h-[300px] overflow-y-auto">
+                                            <table className="w-full text-xs text-left border-collapse">
+                                                <thead className="bg-gray-50 text-gray-600 font-bold sticky top-0 border-b">
+                                                    <tr>
+                                                        <th className="p-3">성명(한글)</th>
+                                                        <th className="p-3">생년월일</th>
+                                                        <th className="p-3">사유</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {uploadResult.failedList.map((row, idx) => (
+                                                        <tr key={idx} className="hover:bg-gray-50">
+                                                            <td className="p-3 font-bold text-gray-800">{row.name}</td>
+                                                            <td className="p-3 text-gray-500 font-mono">{row.birth}</td>
+                                                            <td className="p-3 text-red-500 font-medium">{row.reason}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
