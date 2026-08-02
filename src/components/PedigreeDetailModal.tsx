@@ -194,6 +194,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
   const [fontScale, setFontScale] = useState<number>(100);
   const [fontBold, setFontBold] = useState<boolean>(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+  const [resolvedColor, setResolvedColor] = useState<string | null>(null);
 
   const formatDateKr = (dateStr: string) => {
     if (!dateStr || dateStr === '0000-00-00' || dateStr === '-') return '-';
@@ -349,7 +350,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
   const getRealValue = (key: string, type: 'shepherd' | 'jindo' | 'general') => {
     const options = {
-      pedigree,
+      pedigree: resolvedColor ? { ...pedigree, color: resolvedColor } : pedigree,
       useSample: useSampleMode,
       ancestorTree,
       ownerHistory,
@@ -548,7 +549,41 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
 
   const handlePrint = async (type: 'shepherd' | 'jindo' | 'general') => {
     setIsPrinting(true);
+    setResolvedColor(null);
     try {
+      // 🎨 실시간 모색 풀네임 변환 처리 (일반견 인쇄 시 본인견만 대상)
+      let finalColor = pedigree.color || '';
+      if (type === 'general' && finalColor && finalColor !== '-' && finalColor !== '0') {
+        try {
+          let colorRes = await fetchBridge({
+            mode: 'list',
+            table: 'hairTab',
+            search: finalColor,
+            field: 'short_key',
+            exact: true,
+            limit: 1
+          });
+          
+          if ((!colorRes.success || !colorRes.data || colorRes.data.length === 0) && finalColor.trim() !== '') {
+            colorRes = await fetchBridge({
+              mode: 'list',
+              table: 'hairTab',
+              search: finalColor,
+              field: 'hair',
+              exact: true,
+              limit: 1
+            });
+          }
+
+          if (colorRes.success && colorRes.data && colorRes.data.length > 0) {
+            finalColor = colorRes.data[0].hair;
+            setResolvedColor(finalColor);
+          }
+        } catch (e) {
+          console.error("Failed to resolve color name from hairTab:", e);
+        }
+      }
+
       const tree: Record<number, ParentDogInfo> = {};
       
       tree[1] = {
@@ -558,7 +593,7 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
         fullname: pedigree.fullName,
         fa_regno: pedigree.sireRegNo,
         mo_regno: pedigree.damRegNo,
-        hair: pedigree.color,
+        hair: finalColor,
         sex: pedigree.gender,
         birth: pedigree.birthDate,
         dog_class: pedigree.breed,
