@@ -212,30 +212,21 @@ function kkf_portal_handle_nice_callback($input) {
         $enc_data = $res['enc_data'];
         $integrity_value = $res['integrity_value'];
         
-        // 4. 복호화 키 유도 (PBKDF2)
-        $salt = base64_decode($ticket) . $transaction_id;
-        $derived = hash_pbkdf2("sha256", $access_token, $salt, intval($iterators), 64, true);
-        $symmetric_key = substr($derived, 0, 32);
-        $hmac_key = substr($derived, 32, 32);
+        // 4. 복호화 키 유도 (PBKDF2 - NICE OpenAPI 3.1 규격)
+        $keyString = nice_get_key_value($ticket, $transaction_id, intval($iterators));
+        $symmetric_key = substr($keyString, 0, 32);
+        $hmac_key = substr($keyString, 48, 32);
         
-        // HMAC 무결성 검증
-        $enc_raw = base64_decode(str_replace(['-', '_'], ['+', '/'], $enc_data));
-        $my_hmac = base64_encode(hash_hmac('sha256', $enc_raw, $hmac_key, true));
-        $my_hmac_urlsafe = rtrim(str_replace(['+', '/'], ['-', '_'], $my_hmac), '=');
+        // 5. HMAC 무결성 검증 (NICE OpenAPI 3.2 규격)
+        $my_hmac = nice_get_sha256_mac_base64_value($enc_data, $hmac_key);
         
-        if ($my_hmac_urlsafe !== $integrity_value) {
+        if ($my_hmac !== $integrity_value) {
             echo "<h3>무결성 검증 실패 (HMAC 불일치)</h3>";
             exit;
         }
         
-        // AES-256-GCM 복호화 진행 (IV는 앞에서부터 16바이트)
-        $iv_str = substr($enc_data, 0, 16);
-        $ciphertext = base64_decode(substr($enc_data, 16));
-        
-        $tag = substr($ciphertext, -16);
-        $ciphertext_pure = substr($ciphertext, 0, -16);
-        
-        $decrypted = openssl_decrypt($ciphertext_pure, 'aes-256-gcm', $symmetric_key, OPENSSL_RAW_DATA, $iv_str, $tag);
+        // 6. AES-256-GCM 복호화 진행 (NICE OpenAPI 3.3 규격)
+        $decrypted = nice_aes_gcm_dec($enc_data, $symmetric_key);
         
         if ($decrypted === false) {
             echo "<h3>데이터 복호화 실패</h3>";
@@ -411,4 +402,59 @@ function kkf_portal_find_pw_nice_verify($input) {
         'name' => $u['name'],
         'birth' => $u['birth']
     ];
+}
+
+/**
+ * 🔑 NICE 통합인증 키 유도 함수 (NICE OpenAPI 3.1 공식 PHP 규격)
+ */
+function nice_get_key_value(string $ticket, string $transaction_id, int $iterators): string {
+    try {
+        $key = hash_pbkdf2(
+            'sha256',
+            $ticket,
+            $transaction_id,
+            $iterators,
+            64,
+            true
+        );
+        return rtrim(strtr(base64_encode($key), '+/', '-_'), '=');
+    } catch (Exception $e) {
+        error_log("nice_get_key_value Error: " . $e->getMessage());
+        return '';
+    }
+}
+
+/**
+ * 🛡️ NICE 통합인증 HMAC 무결성 검증 함수 (NICE OpenAPI 3.2 공식 PHP 규격)
+ */
+function nice_get_sha256_mac_base64_value($value, $hmacKey) {
+    try {
+        $hashValue = hash_hmac('sha256', $value, $hmacKey, true);
+        $base64Value = base64_encode($hashValue);
+        $urlSafeBase64 = strtr($base64Value, '+/', '-_');
+        return rtrim($urlSafeBase64, '=');
+    } catch (Exception $e) {
+        error_log("nice_get_sha256_mac_base64_value Error: " . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * 🔓 NICE 통합인증 AES-256-GCM 복호화 함수 (NICE OpenAPI 3.3 공식 PHP 규격)
+ */
+function nice_aes_gcm_dec(string $enc_data, string $Key) {
+    $cipherEnc = base64_decode(strtr($enc_data, '-_', '+/'));
+    $iv = substr($cipherEnc, 0, 16);
+    $cipherAndTag = substr($cipherEnc, 16);
+    $cipherLen = strlen($cipherAndTag) - 16;
+    $cipherText = substr($cipherAndTag, 0, $cipherLen);
+    $tag        = substr($cipherAndTag, $cipherLen, 16);
+    return openssl_decrypt(
+        $cipherText,
+        'aes-256-gcm',
+        $Key,
+        OPENSSL_RAW_DATA,
+        $iv,
+        $tag
+    );
 }
