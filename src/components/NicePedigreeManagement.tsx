@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Award, ShieldCheck, FileText, Calendar, Trash2, Edit, RefreshCw, Printer, Download, Eye, Check, X, Image as ImageIcon, Info } from 'lucide-react';
+import { Search, Award, ShieldCheck, FileText, Calendar, Trash2, Edit, RefreshCw, Printer, Download, Eye, Check, X, Image as ImageIcon, Info, Sparkles } from 'lucide-react';
 import { niceAdminFetchPedigrees, niceAdminPedigreeAction, niceAdminDeletePedigree, niceAdminFetchBreedColors } from '../services/portalService';
-import { fetchHairs } from '../services/pedigreeService';
+import { fetchHairs, fetchDogClasses, checkRegNoExists, fetchLastRegNo } from '../services/pedigreeService';
 import { SearchableColorSelect } from './SearchableColorSelect';
 
 interface NicePedigree {
@@ -78,6 +78,8 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
   const [isLoading, setIsLoading] = useState(false);
 
   const [masterHairs, setMasterHairs] = useState<{ uid?: string; name: string }[]>([]);
+  const [dogClasses, setDogClasses] = useState<{ uid?: string; keyy: string; breed: string; group?: string }[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState('');
 
   useEffect(() => {
     fetchHairs().then((res) => {
@@ -85,6 +87,12 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
         setMasterHairs(res);
       }
     }).catch((err) => console.error('hairTab fetch error:', err));
+
+    fetchDogClasses().then((res) => {
+      if (Array.isArray(res)) {
+        setDogClasses(res);
+      }
+    }).catch((err) => console.error('dog_classTab fetch error:', err));
   }, []);
 
   const allColorOptions = React.useMemo(() => {
@@ -99,6 +107,17 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
     });
     return Array.from(map.values());
   }, [masterHairs, breedColors]);
+
+  // 견종 그룹 목록 계산
+  const breedGroups = React.useMemo(() => {
+    return Array.from(new Set(dogClasses.map(d => d.group))).filter(Boolean).sort();
+  }, [dogClasses]);
+
+  // 선택된 그룹에 따른 견종 목록 계산
+  const availableBreeds = React.useMemo(() => {
+    if (!selectedGroup) return dogClasses.map(d => d.breed).sort();
+    return dogClasses.filter(d => d.group === selectedGroup).map(d => d.breed).sort();
+  }, [dogClasses, selectedGroup]);
 
   useEffect(() => {
     if (selectedPedigree?.breed_name) {
@@ -118,19 +137,34 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
   const [totalCount, setTotalCount] = useState(0);
   const [activeSubTab, setActiveSubTab] = useState<'requests' | 'dogtab'>('requests');
 
-  // 관리자 직접 지정/수정용 모색 및 견종 State
+  // 관리자 직접 지정/수정용 모색, 견종, 등록번호 State
   const [editHair, setEditHair] = useState('');
   const [editBreed, setEditBreed] = useState('');
+  const [editRegNo, setEditRegNo] = useState('');
+  const [isAssigningRegNo, setIsAssigningRegNo] = useState(false);
+  const [isCheckingRegNo, setIsCheckingRegNo] = useState(false);
 
   useEffect(() => {
     if (selectedPedigree) {
       setEditHair(selectedPedigree.hair || '');
-      setEditBreed(selectedPedigree.breed_name || '');
+      const bName = selectedPedigree.breed_name || '';
+      setEditBreed(bName);
+      setEditRegNo(selectedPedigree.reg_no || '');
+
+      // 견종 그룹 자동 맞춤
+      if (bName && dogClasses.length > 0) {
+        const found = dogClasses.find(d => d.breed === bName);
+        if (found && found.group) {
+          setSelectedGroup(found.group);
+        }
+      }
     } else {
       setEditHair('');
       setEditBreed('');
+      setEditRegNo('');
+      setSelectedGroup('');
     }
-  }, [selectedPedigree]);
+  }, [selectedPedigree, dogClasses]);
 
   // 심사 처리 피드백 입력란
   const [actionMemo, setActionMemo] = useState('');
@@ -211,6 +245,76 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
     );
   };
 
+  const handleAutoAssignRegNo = async () => {
+    if (!editBreed) {
+      showAlert('견종 선택 필요', '등록번호를 자동 부여하기 전에 견종을 먼저 선택해 주세요.');
+      return;
+    }
+    setIsAssigningRegNo(true);
+    try {
+      const breedInfo = dogClasses.find(d => d.breed === editBreed);
+      const keyy = breedInfo?.keyy ? breedInfo.keyy.trim() : '';
+      const currentYear = new Date().getFullYear();
+      const decadeCode = 'C'; // 2020년대
+      const yearDigit = currentYear % 10; // 6
+      const prefix = `${keyy ? keyy + '-' : ''}${decadeCode}${yearDigit}5`;
+      
+      const lastRegNo = await fetchLastRegNo(prefix);
+      let nextNum = 5001;
+      if (lastRegNo) {
+        const match = lastRegNo.match(/\d{4}/);
+        if (match) {
+          const lastSeq = parseInt(match[0], 10);
+          if (lastSeq >= 5000) {
+            nextNum = lastSeq + 1;
+          }
+        }
+      }
+      const paddedNum = nextNum.toString().padStart(4, '0');
+      const generatedRegNo = `${keyy ? keyy + '-' : ''}${decadeCode}${yearDigit}${paddedNum}-NP`;
+      setEditRegNo(generatedRegNo);
+      showAlert(
+        '등록번호 자동 부여 완료',
+        `✔ [${editBreed}] 견종의 5000번대 모바일 전용 등록번호가 자동 채번되었습니다:\n\n👉 ${generatedRegNo}`
+      );
+    } catch (e) {
+      console.error(e);
+      showAlert('오류', '등록번호 자동 채번 중 통신 오류가 발생했습니다.');
+    } finally {
+      setIsAssigningRegNo(false);
+    }
+  };
+
+  const handleCheckRegNo = async () => {
+    if (!editRegNo || !editRegNo.trim()) {
+      showAlert('조회 오류', '조회할 등록번호를 입력해 주세요.');
+      return;
+    }
+    setIsCheckingRegNo(true);
+    try {
+      const existing = await checkRegNoExists(editRegNo);
+      if (existing) {
+        showAlert(
+          '등록번호 중복 발견',
+          `⚠️ 등록번호 [${editRegNo}]은(는) 이미 데이터베이스에 존재하는 번호입니다.\n\n` +
+          `• 등록 개체명: ${existing.fullname || existing.name || '-'}\n` +
+          `• 소유자: ${existing.poss_name || '-'}\n` +
+          `• 견종: ${existing.dog_class || '-'}`
+        );
+      } else {
+        showAlert(
+          '사용 가능 번호',
+          `✔ 등록번호 [${editRegNo}]은(는) 기존 DB에 중복되지 않는 사용 가능한 번호입니다.`
+        );
+      }
+    } catch (e) {
+      console.error(e);
+      showAlert('오류', '등록번호 조회 도중 오류가 발생했습니다.');
+    } finally {
+      setIsCheckingRegNo(false);
+    }
+  };
+
   const handleAction = async (action: 'approve' | 'reject') => {
     if (!selectedPedigree) return;
 
@@ -226,7 +330,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       async () => {
         setIsSubmitting(true);
         try {
-          const res = await niceAdminPedigreeAction(selectedPedigree.uid, action, actionMemo, editHair, editBreed);
+          const res = await niceAdminPedigreeAction(selectedPedigree.uid, action, actionMemo, editHair, editBreed, editRegNo);
           if (res && res.success) {
             showAlert(action === 'approve' ? '발급 승인 완료' : '반려 완료', res.message || `${actionText} 처리가 완료되었습니다.`);
             setActionMemo('');
@@ -543,20 +647,81 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
               {/* 왼쪽: 기본 및 매핑 정보 */}
               <div className="space-y-6">
                 <div>
-                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">개체 기본 정보</h4>
+                  <div className="flex items-center justify-between border-b pb-2 mb-3">
+                    <h4 className="text-sm font-black text-slate-800">개체 기본 정보</h4>
+                    <button
+                      type="button"
+                      onClick={handleAutoAssignRegNo}
+                      disabled={isAssigningRegNo}
+                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-black flex items-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer"
+                      title="선택한 견종 기반 5000번대 모바일 등록번호 자동 생성"
+                    >
+                      <Sparkles size={13} className={isAssigningRegNo ? 'animate-spin' : ''} />
+                      등록번호 자동 부여
+                    </button>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <DetailItem label="등록 번호" value={selectedPedigree.reg_no} />
+                    {/* 등록번호 (수정 & 중복 조회) */}
+                    <div className="col-span-2 flex flex-col bg-slate-50/70 p-3 rounded-xl border border-slate-200">
+                      <span className="text-xs font-black text-slate-500 mb-1 flex items-center justify-between">
+                        <span>등록 번호 (수정 및 중복 검사)</span>
+                        <span className="text-[10px] text-indigo-600 font-bold">NICE 5000번대 규격</span>
+                      </span>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={editRegNo}
+                          onChange={(e) => setEditRegNo(e.target.value)}
+                          placeholder="등록번호 입력 또는 자동 부여 버튼 클릭"
+                          className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCheckRegNo}
+                          disabled={isCheckingRegNo}
+                          className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center gap-1 shrink-0"
+                        >
+                          <Search size={13} className={isCheckingRegNo ? 'animate-spin' : ''} />
+                          조회
+                        </button>
+                      </div>
+                    </div>
+
                     <DetailItem label="견명" value={selectedPedigree.dog_name} />
+                    <DetailItem label="성별" value={selectedPedigree.gender === 'M' ? '수컷 (Male)' : '암컷 (Female)'} />
+
+                    {/* 견종 그룹 선택 */}
                     <div className="flex flex-col">
-                      <span className="text-xs font-black text-slate-400 mb-1">견종 (수정 지정)</span>
-                      <input
-                        type="text"
+                      <span className="text-xs font-black text-slate-400 mb-1">견종 그룹 (선택)</span>
+                      <select
+                        value={selectedGroup}
+                        onChange={(e) => {
+                          setSelectedGroup(e.target.value);
+                          setEditBreed('');
+                        }}
+                        className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                      >
+                        <option value="">전체 그룹</option>
+                        {breedGroups.map((g) => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 견종 선택 */}
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-400 mb-1">견종 (선택/지정)</span>
+                      <select
                         value={editBreed}
                         onChange={(e) => setEditBreed(e.target.value)}
-                        className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      />
+                        className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-indigo-700 font-black focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                      >
+                        <option value="">견종 선택...</option>
+                        {availableBreeds.map((b) => (
+                          <option key={b} value={b}>{b}</option>
+                        ))}
+                      </select>
                     </div>
-                    <DetailItem label="성별" value={selectedPedigree.gender === 'M' ? '수컷 (Male)' : '암컷 (Female)'} />
                     
                     <div className="col-span-2 bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-200">
                       <div className="flex flex-col mb-2">

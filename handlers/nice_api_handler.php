@@ -107,7 +107,8 @@ function nice_api_db_init($conn) {
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `anc_name` VARCHAR(100) DEFAULT NULL");
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `anc_saho` VARCHAR(100) DEFAULT NULL");
     
-    // 5. nice_dogTab 테이블에 추가 필드 확보 (견사호 및 생년월일 외에 출산/등록수 확장 대응)
+    // 5. nice_dogTab 테이블에 추가 필드 확보 (결제주문번호, 견사호 및 생년월일 외에 출산/등록수 확장 대응)
+    $conn->query("ALTER TABLE `nice_dogTab` ADD COLUMN IF NOT EXISTS `order_no` VARCHAR(100) DEFAULT NULL COMMENT 'NICE 결제주문번호'");
     $conn->query("ALTER TABLE `nice_dogTab` ADD COLUMN IF NOT EXISTS `birth_m` INT(11) DEFAULT NULL");
     $conn->query("ALTER TABLE `nice_dogTab` ADD COLUMN IF NOT EXISTS `birth_f` INT(11) DEFAULT NULL");
     $conn->query("ALTER TABLE `nice_dogTab` ADD COLUMN IF NOT EXISTS `reg_count_m` INT(11) DEFAULT NULL");
@@ -160,7 +161,7 @@ function nice_handle_list($data) {
     
     if (!$user_res || $user_res->num_rows === 0) {
         $conn->close();
-        return ['result_cd' => 'F001', 'list_cnt' => 0, 'list' => []];
+        return ['result_cd' => 'F201', 'list_cnt' => 0, 'list' => []]; // F201: 미등록 회원 CI
     }
     
     $poss_ids = [];
@@ -236,7 +237,7 @@ function nice_handle_detail($data) {
     $user_res = $conn->query("SELECT id, mid FROM memTab WHERE nice_ci = '$e_ci' UNION SELECT id, mid FROM nice_memTab WHERE nice_ci = '$e_ci'");
     if (!$user_res || $user_res->num_rows === 0) {
         $conn->close();
-        return ['result_cd' => 'F002']; // CI 불일치
+        return ['result_cd' => 'F302']; // F302: 소유자 CI 불일치
     }
     
     $poss_ids = [];
@@ -247,7 +248,7 @@ function nice_handle_detail($data) {
     
     if (empty($poss_ids)) {
         $conn->close();
-        return ['result_cd' => 'F002'];
+        return ['result_cd' => 'F302']; // F302: 소유자 CI 불일치
     }
     
     $poss_ids_str = implode(',', $poss_ids);
@@ -259,7 +260,7 @@ function nice_handle_detail($data) {
     
     if (!$dog_res || $dog_res->num_rows === 0) {
         $conn->close();
-        return ['result_cd' => 'F001']; // 정보 없음
+        return ['result_cd' => 'F301']; // F301: 혈통서 정보 없음
     }
     
     $dog = $dog_res->fetch_assoc();
@@ -308,11 +309,120 @@ function nice_handle_detail($data) {
         'mo_name' => $mother['name'],
         'mo_regno' => $mother['reg_no'],
         'anc_name' => isset($dog['anc_name']) ? kkc_convert($dog['anc_name'], 'EUC-KR', true) : kkc_convert($dog['name'], 'EUC-KR', true),
-        'anc_saho' => isset($dog['anc_saho']) ? kkc_convert($dog['anc_saho'], 'EUC-KR', true) : kkc_convert($dog['saho_eng'], 'EUC-KR', true)
+        'anc_saho' => isset($dog['anc_saho']) ? kkc_convert($dog['anc_saho'], 'EUC-KR', true) : kkc_convert($dog['saho_eng'], 'EUC-KR', true),
+        'ancestors' => nice_build_ancestors_list($conn, $dog)
     ];
     
     $conn->close();
     return $res;
+}
+
+/**
+ * 🌳 [별첨3] 강아지 가족 관계도 체계에 맞춘 조상견 계보(ancestors) 생성 함수
+ */
+function nice_build_ancestors_list($conn, $dog) {
+    $ancestors = [];
+    
+    // 부견 계보 (Father line)
+    $fa_reg = $dog['fa_regno'] ?? '';
+    if (!empty($fa_reg)) {
+        $fa_dog = nice_fetch_dog_by_reg_no($conn, $fa_reg);
+        if ($fa_dog) {
+            // 조부모 (fatherFather, fatherMother)
+            $ff_reg = $fa_dog['fa_regno'] ?? '';
+            $fm_reg = $fa_dog['mo_regno'] ?? '';
+            
+            if (!empty($ff_reg)) {
+                $ff_dog = nice_fetch_dog_by_reg_no($conn, $ff_reg);
+                if ($ff_dog) {
+                    $ancestors[] = ['type' => 'fatherFather', 'name' => kkc_convert($ff_dog['fullname'] ?? $ff_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($ff_dog['saho'], 'EUC-KR', true)];
+                    // 증조부모 (fatherFatherFather, fatherFatherMother)
+                    if (!empty($ff_dog['fa_regno'])) {
+                        $fff_dog = nice_fetch_dog_by_reg_no($conn, $ff_dog['fa_regno']);
+                        if ($fff_dog) $ancestors[] = ['type' => 'fatherFatherFather', 'name' => kkc_convert($fff_dog['fullname'] ?? $fff_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($fff_dog['saho'], 'EUC-KR', true)];
+                    }
+                    if (!empty($ff_dog['mo_regno'])) {
+                        $ffm_dog = nice_fetch_dog_by_reg_no($conn, $ff_dog['mo_regno']);
+                        if ($ffm_dog) $ancestors[] = ['type' => 'fatherFatherMother', 'name' => kkc_convert($ffm_dog['fullname'] ?? $ffm_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($ffm_dog['saho'], 'EUC-KR', true)];
+                    }
+                }
+            }
+            
+            if (!empty($fm_reg)) {
+                $fm_dog = nice_fetch_dog_by_reg_no($conn, $fm_reg);
+                if ($fm_dog) {
+                    $ancestors[] = ['type' => 'fatherMother', 'name' => kkc_convert($fm_dog['fullname'] ?? $fm_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($fm_dog['saho'], 'EUC-KR', true)];
+                    // 증조부모 (fatherMotherFather, fatherMotherMother)
+                    if (!empty($fm_dog['fa_regno'])) {
+                        $fmf_dog = nice_fetch_dog_by_reg_no($conn, $fm_dog['fa_regno']);
+                        if ($fmf_dog) $ancestors[] = ['type' => 'fatherMotherFather', 'name' => kkc_convert($fmf_dog['fullname'] ?? $fmf_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($fmf_dog['saho'], 'EUC-KR', true)];
+                    }
+                    if (!empty($fm_dog['mo_regno'])) {
+                        $fmm_dog = nice_fetch_dog_by_reg_no($conn, $fm_dog['mo_regno']);
+                        if ($fmm_dog) $ancestors[] = ['type' => 'fatherMotherMother', 'name' => kkc_convert($fmm_dog['fullname'] ?? $fmm_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($fmm_dog['saho'], 'EUC-KR', true)];
+                    }
+                }
+            }
+        }
+    }
+    
+    // 모견 계보 (Mother line)
+    $mo_reg = $dog['mo_regno'] ?? '';
+    if (!empty($mo_reg)) {
+        $mo_dog = nice_fetch_dog_by_reg_no($conn, $mo_reg);
+        if ($mo_dog) {
+            // 조부모 (motherFather, motherMother)
+            $mf_reg = $mo_dog['fa_regno'] ?? '';
+            $mm_reg = $mo_dog['mo_regno'] ?? '';
+            
+            if (!empty($mf_reg)) {
+                $mf_dog = nice_fetch_dog_by_reg_no($conn, $mf_reg);
+                if ($mf_dog) {
+                    $ancestors[] = ['type' => 'motherFather', 'name' => kkc_convert($mf_dog['fullname'] ?? $mf_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($mf_dog['saho'], 'EUC-KR', true)];
+                    // 증조부모 (motherFatherFather, motherFatherMother)
+                    if (!empty($mf_dog['fa_regno'])) {
+                        $mff_dog = nice_fetch_dog_by_reg_no($conn, $mf_dog['fa_regno']);
+                        if ($mff_dog) $ancestors[] = ['type' => 'motherFatherFather', 'name' => kkc_convert($mff_dog['fullname'] ?? $mff_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($mff_dog['saho'], 'EUC-KR', true)];
+                    }
+                    if (!empty($mf_dog['mo_regno'])) {
+                        $mfm_dog = nice_fetch_dog_by_reg_no($conn, $mf_dog['mo_regno']);
+                        if ($mfm_dog) $ancestors[] = ['type' => 'motherFatherMother', 'name' => kkc_convert($mfm_dog['fullname'] ?? $mfm_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($mfm_dog['saho'], 'EUC-KR', true)];
+                    }
+                }
+            }
+            
+            if (!empty($mm_reg)) {
+                $mm_dog = nice_fetch_dog_by_reg_no($conn, $mm_reg);
+                if ($mm_dog) {
+                    $ancestors[] = ['type' => 'motherMother', 'name' => kkc_convert($mm_dog['fullname'] ?? $mm_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($mm_dog['saho'], 'EUC-KR', true)];
+                    // 증조부모 (motherMotherFather, motherMotherMother)
+                    if (!empty($mm_reg['fa_regno'])) {
+                        $mmf_dog = nice_fetch_dog_by_reg_no($conn, $mm_dog['fa_regno']);
+                        if ($mmf_dog) $ancestors[] = ['type' => 'motherMotherFather', 'name' => kkc_convert($mmf_dog['fullname'] ?? $mmf_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($mmf_dog['saho'], 'EUC-KR', true)];
+                    }
+                    if (!empty($mm_dog['mo_regno'])) {
+                        $mmm_dog = nice_fetch_dog_by_reg_no($conn, $mm_dog['mo_regno']);
+                        if ($mmm_dog) $ancestors[] = ['type' => 'motherMotherMother', 'name' => kkc_convert($mmm_dog['fullname'] ?? $mmm_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($mmm_dog['saho'], 'EUC-KR', true)];
+                    }
+                }
+            }
+        }
+    }
+    
+    return $ancestors;
+}
+
+/**
+ * 🐕 등록번호 기반 개체 정보 보조 조회 함수
+ */
+function nice_fetch_dog_by_reg_no($conn, $reg_no) {
+    if (empty($reg_no)) return null;
+    $e_reg = $conn->real_escape_string($reg_no);
+    $res = $conn->query("SELECT * FROM nice_dogTab WHERE reg_no = '$e_reg' LIMIT 1");
+    if (!$res || $res->num_rows === 0) {
+        $res = $conn->query("SELECT * FROM dogTab WHERE reg_no = '$e_reg' LIMIT 1");
+    }
+    return ($res && $res->num_rows > 0) ? $res->fetch_assoc() : null;
 }
 
 /**
@@ -324,16 +434,16 @@ function nice_handle_request($data) {
     
     $req_name = $conn->real_escape_string($data['req_name'] ?? '');
     $req_mobile = $conn->real_escape_string($data['req_mobile'] ?? '');
-    $poss_ci = $conn->real_escape_string($data['poss_ci'] ?? '');
-    $petpin = $conn->real_escape_string($data['petpin'] ?? '');
+    $poss_ci = $conn->real_escape_string($data['poss_ci'] ?? ($data['req_ci'] ?? ''));
+    $petpin = $conn->real_escape_string($data['petpin'] ?? ($data['muzzle_petpin'] ?? ''));
     $order_no = $conn->real_escape_string($data['order_no'] ?? '');
     $order_dttm = $conn->real_escape_string($data['order_dttm'] ?? '');
     $req_gbn = $conn->real_escape_string($data['req_gbn'] ?? '1');
     $reg_no = $conn->real_escape_string($data['reg_no'] ?? '');
     
-    if (empty($order_no) || empty($poss_ci) || empty($reg_no)) {
+    if (empty($order_no) || empty($poss_ci)) {
         $conn->close();
-        return ['result_cd' => 'F100']; // 파라미터 누락
+        return ['result_cd' => 'F100']; // 파라미터 누락 (order_no, poss_ci 필수)
     }
     
     $name = $conn->real_escape_string($data['name'] ?? '');
@@ -367,11 +477,23 @@ function nice_handle_request($data) {
     $image3_hmac = $conn->real_escape_string($data['image3_hmac'] ?? '');
     $image4_hmac = $conn->real_escape_string($data['image4_hmac'] ?? '');
     
+    // 소유 관계 및 대상 혈통서 정합성 검증 (reg_no 수신 시)
+    if (!empty($reg_no)) {
+        $e_reg = $conn->real_escape_string($reg_no);
+        $dog_chk = $conn->query("SELECT poss_id FROM nice_dogTab WHERE reg_no = '$e_reg' UNION SELECT poss_id FROM dogTab WHERE reg_no = '$e_reg' LIMIT 1");
+        if (!$dog_chk || $dog_chk->num_rows === 0) {
+            // F401: 대상 혈통서 없음 (수신된 reg_no가 협회 DB에 존재하지 않는 경우)
+            // 선택 파라미터이므로 경고 로그 후 진행하거나 수신 허용
+        }
+    }
+
     // 결제 일시 정합성 및 중복 검증
-    $chk = $conn->query("SELECT uid FROM nice_pedigree_requests WHERE order_no = '$order_no' LIMIT 1");
+    $chk = $conn->query("SELECT uid, status FROM nice_pedigree_requests WHERE order_no = '$order_no' LIMIT 1");
     if ($chk && $chk->num_rows > 0) {
         $row = $chk->fetch_assoc();
         $uid = $row['uid'];
+        
+        // 이미 심사 진행중인 건 재요청 시 업데이트 처리 (또는 재심사 req_gbn = 2인 경우 갱신)
         $sql = "UPDATE nice_pedigree_requests SET
             req_name='$req_name', req_mobile='$req_mobile', poss_ci='$poss_ci', petpin='$petpin',
             order_dttm='$order_dttm', req_gbn='$req_gbn', reg_no='$reg_no', name='$name',
@@ -426,13 +548,13 @@ function nice_handle_refund($data) {
     $chk = $conn->query("SELECT uid, status FROM nice_pedigree_requests WHERE order_no = '$order_no' LIMIT 1");
     if (!$chk || $chk->num_rows === 0) {
         $conn->close();
-        return ['result_cd' => 'F001'];
+        return ['result_cd' => 'F601']; // F601: 환불 대상 없음
     }
     
     $row = $chk->fetch_assoc();
     if ($row['status'] === 'R') {
         $conn->close();
-        return ['result_cd' => 'F002'];
+        return ['result_cd' => 'F602']; // F602: 이미 환불된 건
     }
     
     $res = $conn->query("UPDATE nice_pedigree_requests SET status = 'R' WHERE order_no = '$order_no'");
@@ -449,24 +571,25 @@ function nice_handle_image($data) {
     $conn = get_kkc_portal_db();
     nice_api_db_init($conn);
     
-    $reg_no = $conn->real_escape_string($data['reg_no'] ?? '');
+    // V1.62: 혈통서등록번호 대신 결제주문번호(order_no)를 주 키로 사용
+    $order_no = $conn->real_escape_string($data['order_no'] ?? ($data['reg_no'] ?? ''));
     $image_idx = intval($data['image_idx'] ?? 0);
     $image_base64 = $data['image_base64'] ?? '';
     
-    if (empty($reg_no) || empty($image_base64)) {
+    if (empty($order_no) || empty($image_base64)) {
         $conn->close();
         return ['result_cd' => 'F100']; // 필수 파라미터 누락
     }
     
     if ($image_idx < 1 || $image_idx > 4) {
         $conn->close();
-        return ['result_cd' => 'F002'];
+        return ['result_cd' => 'F702']; // F702: 이미지 순번 오류
     }
     
-    $chk = $conn->query("SELECT uid FROM nice_pedigree_requests WHERE reg_no = '$reg_no' ORDER BY uid DESC LIMIT 1");
+    $chk = $conn->query("SELECT uid FROM nice_pedigree_requests WHERE order_no = '$order_no' OR reg_no = '$order_no' ORDER BY uid DESC LIMIT 1");
     if (!$chk || $chk->num_rows === 0) {
         $conn->close();
-        return ['result_cd' => 'F001'];
+        return ['result_cd' => 'F701']; // F701: 대상 혈통서 없음
     }
     
     $row = $chk->fetch_assoc();
@@ -479,9 +602,11 @@ function nice_handle_image($data) {
     }
     
     $decoded = base64_decode($image_base64);
-    if (!$decoded) {
+    $img_len = $decoded ? strlen($decoded) : 0;
+    // 이미지 용량 범위 검증 (500KB ~ 3MB) 및 Base64 디코딩 검증
+    if (!$decoded || $img_len < (500 * 1024) || $img_len > (3 * 1024 * 1024)) {
         $conn->close();
-        return ['result_cd' => 'F003'];
+        return ['result_cd' => 'F703']; // F703: 이미지 규격 및 전송 오류
     }
     
     $filename = '/nice_ped_req_' . $uid . '_img_' . $image_idx . '.jpg';
@@ -491,7 +616,7 @@ function nice_handle_image($data) {
     $save_res = file_put_contents($filepath, $decoded);
     if ($save_res === false) {
         $conn->close();
-        return ['result_cd' => 'F003'];
+        return ['result_cd' => 'F703']; // F703: 이미지 규격 및 전송 오류
     }
     
     $img_col = 'image' . $image_idx . '_path';
@@ -519,7 +644,7 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
         $hmac_key = defined('NICE_HMAC_KEY_UAT') ? NICE_HMAC_KEY_UAT : '12345678123456781234567812345678';
     }
     
-    $client_id = defined('NICE_CLIENT_ID') ? NICE_CLIENT_ID : '369a3862-32bb-4a65-8376-2357619517c9';
+    $client_id = defined('NICE_CLIENT_ID') ? NICE_CLIENT_ID : '369a3882-32bb-4a65-8376-2357619517c9';
     $client_secret = defined('NICE_CLIENT_SECRET') ? NICE_CLIENT_SECRET : '949c318d591d34ee19b2495302314776883cf39';
     
     $json = json_encode($plain_data, JSON_UNESCAPED_UNICODE);
@@ -610,12 +735,15 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
 /**
  * 🚀 [API 004] 모바일혈통서 심사 결과 통보 (Outbound)
  */
-function nice_notify_screening_result($poss_ci, $reg_no, $status, $hair = '', $breed_name = '') {
+function nice_notify_screening_result($poss_ci, $reg_no, $status, $hair = '', $breed_name = '', $order_no = '') {
     $plain = [
         'poss_ci' => $poss_ci,
         'reg_no' => $reg_no,
         'reg_result' => ($status === 'S' || $status === 'Y' ? 'S' : 'F')
     ];
+    if (!empty($order_no)) {
+        $plain['order_no'] = $order_no;
+    }
     if (!empty($hair)) {
         $plain['hair'] = $hair;
     }
@@ -857,66 +985,83 @@ function nice_admin_pedigree_list($input) {
  * 예1) 2026년 1번째 신청 진돗개: KJ-C60000-NP (C=2020년대, 6=2026년, 0000=1번째)
  * 예2) 2031년 100번째 신청 진돗개: KJ-D10100-NP (D=2030년대, 1=2031년, 0100=100번째)
  */
-function nice_generate_unique_reg_no($conn, $breed_code, $apply_year = null) {
-    $breed_key = !empty($breed_code) ? strtoupper(trim($breed_code)) : 'KJ';
+function nice_generate_unique_reg_no($conn, $breed_code = '', $apply_year = null, $breed_name = '') {
     $year = $apply_year ? intval($apply_year) : intval(date('Y'));
     
-    // (2) 기간코드_십 (2000~2009 => A, 2010~2019 => B, 2020~2029 => C, 2030~2039 => D ...)
+    // (1) 기간코드_십 (2000~2009 => A, 2010~2019 => B, 2020~2029 => C, 2030~2039 => D ...)
     $decade_index = intval(floor(($year - 2000) / 10));
     $decade_letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
     $decade_code = isset($decade_letters[$decade_index]) ? $decade_letters[$decade_index] : 'C';
     
-    // (3) 기간코드_일 (신청 연도의 일의 자리: 2026년 => 6)
+    // (2) 기간코드_일 (신청 연도의 일의 자리: 2026년 => 6)
     $single_year_code = strval($year % 10);
     
-    // 접두사: [견종코드]-[기간코드_십][기간코드_일]  (예: KJ-C6)
-    $prefix = $breed_key . '-' . $decade_code . $single_year_code;
+    // NICE 모바일 5000번대 전용 검색 접두사: C65 (예: 2026년 C6 + 5000대 5)
+    $prefix = $decade_code . $single_year_code . '5';
     $prefix_esc = $conn->real_escape_string($prefix);
     
-    // (4) 4자리 순번 (0000~9999) 최대값 탐색
-    $max_seq = -1;
+    // (3) 5000~5999 범위 중 견종별 최고 순번 탐색 (5000부터 시작)
+    $max_seq = 5000;
     
-    $sql1 = "SELECT reg_no FROM dogTab WHERE reg_no LIKE '$prefix_esc%'";
+    $e_breed = !empty($breed_name) ? $conn->real_escape_string(kkc_convert($breed_name, 'EUC-KR', false)) : '';
+    
+    // 1. nice_dogTab (발급 완료 모바일 혈통서) 탐색
+    $sql1 = "SELECT reg_no FROM nice_dogTab WHERE reg_no LIKE '$prefix_esc%'";
+    if (!empty($e_breed)) {
+        $sql1 .= " AND (dog_class = '$e_breed' OR breed_name = '$e_breed')";
+    }
     $res1 = $conn->query($sql1);
     if ($res1) {
         while ($row = $res1->fetch_assoc()) {
             $reg = kkc_convert($row['reg_no'], 'EUC-KR', true);
-            if (preg_match('/' . preg_quote($prefix, '/') . '(\d{4})/', $reg, $m)) {
+            if (preg_match('/' . $decade_code . $single_year_code . '(\d{4})/', $reg, $m)) {
                 $seq = intval($m[1]);
-                if ($seq > $max_seq) $max_seq = $seq;
-            }
-        }
-    }
-    
-    $sql2 = "SELECT reg_no FROM nice_dogTab WHERE reg_no LIKE '$prefix_esc%'";
-    $res2 = $conn->query($sql2);
-    if ($res2) {
-        while ($row = $res2->fetch_assoc()) {
-            $reg = kkc_convert($row['reg_no'], 'EUC-KR', true);
-            if (preg_match('/' . preg_quote($prefix, '/') . '(\d{4})/', $reg, $m)) {
-                $seq = intval($m[1]);
-                if ($seq > $max_seq) $max_seq = $seq;
+                if ($seq >= 5000 && $seq > $max_seq) $max_seq = $seq;
             }
         }
     }
 
-    $sql3 = "SELECT reg_no FROM nice_pedigree_requests WHERE reg_no LIKE '$prefix_esc%'";
-    $res3 = $conn->query($sql3);
-    if ($res3) {
-        while ($row = $res3->fetch_assoc()) {
+    // 2. nice_pedigree_requests (모바일 심사 신청 내역) 탐색
+    $sql2 = "SELECT reg_no FROM nice_pedigree_requests WHERE reg_no LIKE '$prefix_esc%'";
+    if (!empty($breed_name)) {
+        $e_b_utf8 = $conn->real_escape_string($breed_name);
+        $sql2 .= " AND (dog_classTab_name = '$e_b_utf8' OR breed_name = '$e_b_utf8')";
+    }
+    $res2 = $conn->query($sql2);
+    if ($res2) {
+        while ($row = $res2->fetch_assoc()) {
             $reg = $row['reg_no'];
-            if (preg_match('/' . preg_quote($prefix, '/') . '(\d{4})/', $reg, $m)) {
+            if (preg_match('/' . $decade_code . $single_year_code . '(\d{4})/', $reg, $m)) {
                 $seq = intval($m[1]);
-                if ($seq > $max_seq) $max_seq = $seq;
+                if ($seq >= 5000 && $seq > $max_seq) $max_seq = $seq;
             }
         }
     }
     
-    $next_seq = $max_seq + 1; // 0000부터 시작
+    // 3. dogTab (레거시 DB) 탐색
+    $sql3 = "SELECT reg_no FROM dogTab WHERE reg_no LIKE '$prefix_esc%'";
+    if (!empty($e_breed)) {
+        $sql3 .= " AND dog_class = '$e_breed'";
+    }
+    $res3 = $conn->query($sql3);
+    if ($res3) {
+        while ($row = $res3->fetch_assoc()) {
+            $reg = kkc_convert($row['reg_no'], 'EUC-KR', true);
+            if (preg_match('/' . $decade_code . $single_year_code . '(\d{4})/', $reg, $m)) {
+                $seq = intval($m[1]);
+                if ($seq >= 5000 && $seq > $max_seq) $max_seq = $seq;
+            }
+        }
+    }
+    
+    $breed_key = !empty($breed_code) ? strtoupper(trim($breed_code)) : '';
+    $breed_prefix = !empty($breed_key) ? ($breed_key . '-') : '';
+    
+    $next_seq = $max_seq + 1; // 5001부터 시작
     $seq_str = sprintf("%04d", $next_seq);
     
-    // [견종코드]-[기간코드_십][기간코드_일][4자리 순번]-[NP]
-    return $prefix . $seq_str . '-NP';
+    // [견종코드]-[기간코드_십][기간코드_일][4자리 순번] (예: KSZ-C65001)
+    return $breed_prefix . $decade_code . $single_year_code . $seq_str;
 }
 
 /**
@@ -947,18 +1092,22 @@ function nice_admin_pedigree_action($input) {
         return ['success' => false, 'error' => '이미 심사가 완료된 건입니다.'];
     }
 
-    // 🎨 관리자 수정 모색 및 견종 반영
+    // 🎨 관리자 수정 모색, 견종 및 등록번호 반영
     if (isset($input['hair']) && trim($input['hair']) !== '') {
         $req['hair'] = trim($input['hair']);
     }
     if (isset($input['breed_name']) && trim($input['breed_name']) !== '') {
         $req['dog_classTab_name'] = trim($input['breed_name']);
     }
+    if (isset($input['reg_no']) && trim($input['reg_no']) !== '') {
+        $req['reg_no'] = trim($input['reg_no']);
+    }
     
     $conn->query("SET NAMES 'utf8mb4'");
     $e_edit_hair = $conn->real_escape_string($req['hair']);
     $e_edit_breed = $conn->real_escape_string($req['dog_classTab_name']);
-    $conn->query("UPDATE nice_pedigree_requests SET hair = '$e_edit_hair', dog_classTab_name = '$e_edit_breed' WHERE uid = $uid");
+    $e_edit_regno = $conn->real_escape_string($req['reg_no']);
+    $conn->query("UPDATE nice_pedigree_requests SET hair = '$e_edit_hair', dog_classTab_name = '$e_edit_breed', reg_no = '$e_edit_regno' WHERE uid = $uid");
     
     if ($action === 'reject') {
         $log_messages = [];
@@ -973,7 +1122,7 @@ function nice_admin_pedigree_action($input) {
         }
         
         // NICE 통보 (반려: F)
-        $nice_res = nice_notify_screening_result($req['poss_ci'], $req['reg_no'], 'F');
+        $nice_res = nice_notify_screening_result($req['poss_ci'], $req['reg_no'], 'F', '', '', $req['order_no'] ?? '');
         if ($nice_res && isset($nice_res['success']) && $nice_res['success'] === true) {
             $res_data = $nice_res['data'] ?? [];
             $rslt_cd = $res_data['result_cd'] ?? 'F999';
@@ -982,8 +1131,8 @@ function nice_admin_pedigree_action($input) {
             } else {
                 $cd_desc = [
                     'F001' => '소유자 CI 확인실패(미등록CI)',
-                    'F002' => '혈통서등록번호 확인실패(미등록혈통서)',
-                    'F003' => '소유자 CI와 혈통서등록번호 불일치',
+                    'F002' => '결제주문번호 확인 실패 (미심사요청 혈통서)',
+                    'F003' => '소유자 CI와 결제주문번호 불일치',
                     'F999' => '기타 처리중 오류'
                 ];
                 $desc = $cd_desc[$rslt_cd] ?? '알 수 없는 오류';
@@ -1024,23 +1173,35 @@ function nice_admin_pedigree_action($input) {
     if ($is_same_owner && $orig_dog) {
         // 기존 소유견인 경우: 기존 등록번호 끝에 -NP만 붙여서 사용
         $base_reg_no = kkc_convert($orig_dog['reg_no'], 'EUC-KR', true);
-        $np_reg_no = $base_reg_no . '-NP';
+        $np_reg_no = (strpos($base_reg_no, '-NP') !== false) ? $base_reg_no : ($base_reg_no . '-NP');
     } else {
-        // 신규이거나 소유주가 다른 경우: 겹치지 않는 새로운 등록번호 자동 생성 후 -NP 추가
+        // 신규이거나 소유주가 다른 경우: 겹치지 않는 NICE 전용 5000번대 등록번호 자동 생성 후 -NP 추가
         $breed_name_utf8 = $req['dog_classTab_name'];
         $conn->query("SET NAMES 'utf8mb4'");
-        $breed_chk = $conn->query("SELECT keyy FROM dog_classTab WHERE kor_name = '" . $conn->real_escape_string($breed_name_utf8) . "' LIMIT 1");
-        $keyy = 'X';
+        $e_b_utf8 = $conn->real_escape_string($breed_name_utf8);
+        $breed_chk = $conn->query("SELECT keyy FROM dog_classTab WHERE kor_name = '$e_b_utf8' LIMIT 1");
+        
+        $keyy = '';
         if ($breed_chk && $breed_chk->num_rows > 0) {
-            $keyy = $breed_chk->fetch_assoc()['keyy'];
+            $keyy = trim($breed_chk->fetch_assoc()['keyy'] ?? '');
+        }
+        
+        if (empty($keyy)) {
+            // EUC-KR 인코딩 테이블 대비 2차 검색
+            $conn->query("SET NAMES 'binary'");
+            $e_b_euc = $conn->real_escape_string(kkc_convert($breed_name_utf8, 'EUC-KR', false));
+            $breed_chk2 = $conn->query("SELECT keyy FROM dog_classTab WHERE kor_name = '$e_b_euc' LIMIT 1");
+            if ($breed_chk2 && $breed_chk2->num_rows > 0) {
+                $keyy = kkc_convert(trim($breed_chk2->fetch_assoc()['keyy'] ?? ''), 'EUC-KR', true);
+            }
         }
         $conn->query("SET NAMES 'binary'");
         
-        $generated_reg_no = nice_generate_unique_reg_no($conn, $keyy);
-        $np_reg_no = $generated_reg_no . '-NP';
+        $generated_reg_no = nice_generate_unique_reg_no($conn, $keyy, null, $breed_name_utf8);
+        $np_reg_no = (strpos($generated_reg_no, '-NP') !== false) ? $generated_reg_no : ($generated_reg_no . '-NP');
         
         // nice_pedigree_requests의 reg_no도 생성된 고유 번호로 동기화 업데이트
-        $conn->query("UPDATE nice_pedigree_requests SET reg_no = '" . $conn->real_escape_string(kkc_convert($generated_reg_no, 'EUC-KR', false)) . "' WHERE uid = $uid");
+        $conn->query("UPDATE nice_pedigree_requests SET reg_no = '" . $conn->real_escape_string(kkc_convert($np_reg_no, 'EUC-KR', false)) . "' WHERE uid = $uid");
     }
     
     $e_np_reg = $conn->real_escape_string(kkc_convert($np_reg_no, 'EUC-KR', false));
@@ -1210,6 +1371,7 @@ function nice_admin_pedigree_action($input) {
         : "NULL";
 
     $res_fields_update = $conn->query("UPDATE nice_dogTab SET
+        order_no = '" . $conn->real_escape_string($req['order_no'] ?? '') . "',
         birth_m = " . intval($req['birth_m'] ?? 0) . ",
         birth_f = " . intval($req['birth_f'] ?? 0) . ",
         reg_count_m = " . intval($req['reg_count_m'] ?? 0) . ",
@@ -1236,7 +1398,7 @@ function nice_admin_pedigree_action($input) {
     }
     
     // 5. NICE 통보 (승인: S)
-    $nice_res = nice_notify_screening_result($req['poss_ci'], $req['reg_no'], 'S', $req['hair'], $req['dog_classTab_name']);
+    $nice_res = nice_notify_screening_result($req['poss_ci'], $req['reg_no'], 'S', $req['hair'], $req['dog_classTab_name'], $req['order_no'] ?? '');
     if ($nice_res && isset($nice_res['success']) && $nice_res['success'] === true) {
         $res_data = $nice_res['data'] ?? [];
         $rslt_cd = $res_data['result_cd'] ?? 'F999';
@@ -1245,8 +1407,8 @@ function nice_admin_pedigree_action($input) {
         } else {
             $cd_desc = [
                 'F001' => '소유자 CI 확인실패(미등록CI)',
-                'F002' => '혈통서등록번호 확인실패(미등록혈통서)',
-                'F003' => '소유자 CI와 혈통서등록번호 불일치',
+                'F002' => '결제주문번호 확인 실패 (미심사요청 혈통서)',
+                'F003' => '소유자 CI와 결제주문번호 불일치',
                 'F999' => '기타 처리중 오류'
             ];
             $desc = $cd_desc[$rslt_cd] ?? '알 수 없는 오류';
