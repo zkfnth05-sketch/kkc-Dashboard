@@ -396,7 +396,7 @@ function nice_build_ancestors_list($conn, $dog) {
                 if ($mm_dog) {
                     $ancestors[] = ['type' => 'motherMother', 'name' => kkc_convert($mm_dog['fullname'] ?? $mm_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($mm_dog['saho'], 'EUC-KR', true)];
                     // 증조부모 (motherMotherFather, motherMotherMother)
-                    if (!empty($mm_reg['fa_regno'])) {
+                    if (!empty($mm_dog['fa_regno'])) {
                         $mmf_dog = nice_fetch_dog_by_reg_no($conn, $mm_dog['fa_regno']);
                         if ($mmf_dog) $ancestors[] = ['type' => 'motherMotherFather', 'name' => kkc_convert($mmf_dog['fullname'] ?? $mmf_dog['name'], 'EUC-KR', true), 'saho' => kkc_convert($mmf_dog['saho'], 'EUC-KR', true)];
                     }

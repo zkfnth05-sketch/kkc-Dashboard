@@ -7,45 +7,71 @@ import { SearchableColorSelect } from './SearchableColorSelect';
 interface NicePedigree {
   uid: number;
   reg_no: string;
-  dog_name: string;
-  breed_name: string;
-  gender: string;
-  micro: string;
-  owner_name: string;
-  owner_id: string;
-  sire_name: string;
-  dam_name: string;
-  registered_at: string;
+  dog_name?: string;
+  name?: string;
+  breed_name?: string;
+  dog_clasTab_name?: string;
+  gender?: string;
+  sex?: string;
+  micro?: string;
+  owner_name?: string;
+  owner_id?: string;
+  sire_name?: string;
+  dam_name?: string;
+  registered_at?: string;
   status: 'P' | 'Y' | 'N' | 'R';
-  admin_memo: string;
+  admin_memo?: string;
   image1_path?: string;
   image2_path?: string;
   image3_path?: string;
   image4_path?: string;
-  poss_ci: string;
+  poss_ci?: string;
   
-  // 신규 추가 필드 (HeidiSQL 엑셀 정보 기반)
+  // NICE Petpin 데이터베이스 명세 기준 상세 필드
   saho_eng?: string;
   saho?: string;
   hair?: string;
   breeder_name?: string;
+  breed_name_person?: string;
   breeder_addr?: string;
+  breed_addr?: string;
   poss_name?: string;
   poss_addr?: string;
   birth?: string;
   birth_m?: number;
+  birth_M?: number;
   birth_f?: number;
+  birth_F?: number;
   reg_count_m?: number;
+  reg_count_M?: number;
   reg_count_f?: number;
+  reg_count_F?: number;
   reg_date?: string;
+
+  // 부견 정보
   sire_reg_no?: string;
-  dam_reg_no?: string;
   fa_name?: string;
+  father_name?: string;
+  Father_name?: string;
   fa_regno?: string;
+  father_reg_no?: string;
+  fa_saho?: string;
+  father_saho?: string;
+
+  // 모견 정보
+  dam_reg_no?: string;
   mo_name?: string;
+  mother_name?: string;
   mo_regno?: string;
+  mother_reg_no?: string;
+  mo_saho?: string;
+  mother_saho?: string;
+
+  // 조상견 정보
   anc_name?: string;
   anc_saho?: string;
+  anc_type?: string;
+  ancient?: Array<{ type?: string; name?: string; saho?: string }>;
 }
 
 import { PedigreeManagementPage } from './PedigreeManagementPage';
@@ -672,8 +698,12 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                       </div>
                     </div>
 
-                    <DetailItem label="견명" value={selectedPedigree.dog_name} />
-                    <DetailItem label="성별" value={selectedPedigree.gender === 'M' ? '수컷 (Male)' : '암컷 (Female)'} />
+                    <DetailItem label="견명" value={selectedPedigree.dog_name || selectedPedigree.name || '-'} />
+                    <DetailItem label="성별" value={selectedPedigree.gender === 'M' || selectedPedigree.sex === 'M' ? '수컷 (Male)' : '암컷 (Female)'} />
+                    
+                    <div className="col-span-2">
+                      <DetailItem label="마이크로칩 번호" value={selectedPedigree.micro || '-'} fullWidth />
+                    </div>
 
                     {/* 견종 그룹 선택 */}
                     <div className="flex flex-col">
@@ -743,8 +773,8 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                     </div>
                     <DetailItem label="생년월일" value={selectedPedigree.birth || '-'} />
                     <DetailItem label="등록일 (발급일)" value={selectedPedigree.reg_date || '-'} />
-                    <DetailItem label="출산 수 (M : F)" value={`${selectedPedigree.birth_m ?? 0} 남 : ${selectedPedigree.birth_f ?? 0} 여`} />
-                    <DetailItem label="등록 수 (M : F)" value={`${selectedPedigree.reg_count_m ?? 0} 남 : ${selectedPedigree.reg_count_f ?? 0} 여`} />
+                    <DetailItem label="출산 수 (M : F)" value={`${selectedPedigree.birth_m ?? selectedPedigree.birth_M ?? 0} 남 : ${selectedPedigree.birth_f ?? selectedPedigree.birth_F ?? 0} 여`} />
+                    <DetailItem label="등록 수 (M : F)" value={`${selectedPedigree.reg_count_m ?? selectedPedigree.reg_count_M ?? 0} 남 : ${selectedPedigree.reg_count_f ?? selectedPedigree.reg_count_F ?? 0} 여`} />
                     <DetailItem label="견사호 (영문)" value={selectedPedigree.saho_eng || '-'} />
                     <DetailItem label="견사호 (국문)" value={selectedPedigree.saho || '-'} />
                   </div>
@@ -753,27 +783,50 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                 <div>
                   <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">부모견 정보</h4>
                   <div className="grid grid-cols-2 gap-4">
-                    <DetailItem label="부견 이름 (Sire)" value={selectedPedigree.fa_name || selectedPedigree.sire_name || '-'} />
-                    <DetailItem label="부견 등록번호" value={selectedPedigree.fa_regno || selectedPedigree.sire_reg_no || '-'} />
-                    <DetailItem label="모견 이름 (Dam)" value={selectedPedigree.mo_name || selectedPedigree.dam_name || '-'} />
-                    <DetailItem label="모견 등록번호" value={selectedPedigree.mo_regno || selectedPedigree.dam_reg_no || '-'} />
+                    <DetailItem label="부견 이름 (Sire/Father)" value={selectedPedigree.fa_name || selectedPedigree.father_name || selectedPedigree.Father_name || selectedPedigree.sire_name || '-'} />
+                    <DetailItem label="부견 등록번호" value={selectedPedigree.fa_regno || selectedPedigree.father_reg_no || selectedPedigree.sire_reg_no || '-'} />
+                    <div className="col-span-2">
+                      <DetailItem label="부견 견사호 (Father Saho)" value={selectedPedigree.fa_saho || selectedPedigree.father_saho || '-'} fullWidth />
+                    </div>
+                    <DetailItem label="모견 이름 (Dam/Mother)" value={selectedPedigree.mo_name || selectedPedigree.mother_name || selectedPedigree.dam_name || '-'} />
+                    <DetailItem label="모견 등록번호" value={selectedPedigree.mo_regno || selectedPedigree.mother_reg_no || selectedPedigree.dam_reg_no || '-'} />
+                    <div className="col-span-2">
+                      <DetailItem label="모견 견사호 (Mother Saho)" value={selectedPedigree.mo_saho || selectedPedigree.mother_saho || '-'} fullWidth />
+                    </div>
                   </div>
                 </div>
 
                 <div>
                   <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">조상견 정보</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <DetailItem label="조상견 이름" value={selectedPedigree.anc_name || '-'} />
-                    <DetailItem label="조상견 견사호" value={selectedPedigree.anc_saho || '-'} />
-                  </div>
+                  {Array.isArray(selectedPedigree.ancient) && selectedPedigree.ancient.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedPedigree.ancient.map((anc, idx) => (
+                        <div key={idx} className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs flex justify-between items-center">
+                          <div>
+                            <span className="font-bold text-indigo-600 mr-2">[{anc.type || '조상견'}]</span>
+                            <span className="font-black text-slate-800">{anc.name || '-'}</span>
+                          </div>
+                          <div className="text-slate-500 font-bold">견사호: {anc.saho || '-'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                      <DetailItem label="조상견 타입 (Type)" value={selectedPedigree.anc_type || '-'} />
+                      <DetailItem label="조상견 이름 (Name)" value={selectedPedigree.anc_name || '-'} />
+                      <div className="col-span-2">
+                        <DetailItem label="조상견 견사호 (Saho)" value={selectedPedigree.anc_saho || '-'} fullWidth />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
                   <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">번식자 정보</h4>
                   <div className="grid grid-cols-2 gap-4">
-                    <DetailItem label="번식자 이름" value={selectedPedigree.breeder_name || '-'} />
+                    <DetailItem label="번식자 이름" value={selectedPedigree.breeder_name || selectedPedigree.breed_name_person || '-'} />
                     <div className="col-span-2">
-                      <DetailItem label="번식자 주소" value={selectedPedigree.breeder_addr || '-'} fullWidth />
+                      <DetailItem label="번식자 주소" value={selectedPedigree.breeder_addr || selectedPedigree.breed_addr || '-'} fullWidth />
                     </div>
                   </div>
                 </div>
