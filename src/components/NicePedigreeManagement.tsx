@@ -174,7 +174,8 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const res = await niceAdminFetchPedigrees(currentPage, searchQuery, searchField, statusFilter);
+      const currentStatusFilter = activeSubTab === 'dogtab' ? 'Y' : statusFilter;
+      const res = await niceAdminFetchPedigrees(currentPage, searchQuery, searchField, currentStatusFilter);
       if (res && res.success) {
         setPedigrees(res.data || []);
         setTotalCount(res.total || 0);
@@ -198,7 +199,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 
   useEffect(() => {
     loadData();
-  }, [currentPage, statusFilter]);
+  }, [currentPage, statusFilter, activeSubTab]);
 
   // 외부 연동 검색 파라미터 유도
   useEffect(() => {
@@ -364,53 +365,33 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
     }
   };
 
-  if (activeSubTab === 'dogtab') {
-    return (
-      <div className="flex flex-col h-[calc(100vh-4rem)] bg-slate-50 font-sans">
-        {/* 서브 탭 전환기 */}
-        <div className="flex border-b border-slate-200 bg-white px-8 py-3 gap-2 shadow-sm">
-          <button
-            onClick={() => setActiveSubTab('requests')}
-            className="px-5 py-2 text-sm font-black rounded-xl transition-all text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-          >
-            📄 모바일 발급 심사 신청 목록
-          </button>
-          <button
-            onClick={() => setActiveSubTab('dogtab')}
-            className="px-5 py-2 text-sm font-black rounded-xl transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-100"
-          >
-            🐕 발급 완료 혈통서 관리 (nice_dogTab)
-          </button>
-        </div>
-        
-        <div className="flex-1 overflow-hidden">
-          <PedigreeManagementPage
-            tableName="nice_dogTab"
-            memberTableName="nice_memTab"
-            showAlert={showAlert}
-            showConfirm={showConfirm}
-            onGoToPoints={onGoToPoints}
-            onGoToPrizes={onGoToPrizes}
-            onGoToMember={onGoToMember}
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-slate-50 font-sans">
       {/* 서브 탭 전환기 */}
       <div className="flex border-b border-slate-200 bg-white px-8 py-3 gap-2 shadow-sm">
         <button
-          onClick={() => setActiveSubTab('requests')}
-          className="px-5 py-2 text-sm font-black rounded-xl transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+          onClick={() => {
+            setActiveSubTab('requests');
+            setStatusFilter('all');
+          }}
+          className={`px-5 py-2 text-sm font-black rounded-xl transition-all ${
+            activeSubTab === 'requests'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
+              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+          }`}
         >
           📄 모바일 발급 심사 신청 목록
         </button>
         <button
-          onClick={() => setActiveSubTab('dogtab')}
-          className="px-5 py-2 text-sm font-black rounded-xl transition-all text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+          onClick={() => {
+            setActiveSubTab('dogtab');
+            setStatusFilter('Y');
+          }}
+          className={`px-5 py-2 text-sm font-black rounded-xl transition-all ${
+            activeSubTab === 'dogtab'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
+              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+          }`}
         >
           🐕 발급 완료 혈통서 관리 (nice_dogTab)
         </button>
@@ -422,12 +403,16 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
             <span className="p-2 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100">
               <Award size={22} />
             </span>
-            NICE 모바일 혈통서 심사관리
+            {activeSubTab === 'dogtab' ? 'NICE 모바일 발급 완료 혈통서 관리' : 'NICE 모바일 혈통서 심사관리'}
             <span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200">
               NICE PetPin 연동 DB
             </span>
           </h2>
-          <p className="text-slate-400 text-xs mt-1 font-medium">NICE 본인인증을 통과한 소유주가 PetPin 모바일 앱을 통해 신청한 모바일 혈통서 심사 목록입니다.</p>
+          <p className="text-slate-400 text-xs mt-1 font-medium">
+            {activeSubTab === 'dogtab'
+              ? '발급 완료(승인) 처리된 NICE 모바일 혈통서 목록 및 제출된 증빙 사진/상세 내역입니다.'
+              : 'NICE 본인인증을 통과한 소유주가 PetPin 모바일 앱을 통해 신청한 모바일 혈통서 심사 목록입니다.'}
+          </p>
         </div>
 
         {/* 통계 요약 */}
