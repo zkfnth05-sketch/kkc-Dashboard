@@ -84,6 +84,11 @@ if (!defined('NICE_API_ENV')) {
 // WordPress Context 로드
 include_once 'wp-load.php';
 
+// 워드프레스가 /nice/list 주소를 보고 오인해 씌워버리는 404 헤더를 200(정상)으로 강제 복원
+if (function_exists('status_header')) {
+    status_header(200);
+}
+
 // JSON 및 에러 핸들링 설정
 header('Content-Type: application/json; charset=utf-8');
 error_reporting(0);
@@ -121,6 +126,10 @@ if ($auth_token === $secret_token) {
 
 try {
     $input_json = json_decode($raw_input, true) ?: [];
+    // JSON 데이터가 비어있고 일반 POST 데이터($_POST)가 있다면 결합 (multipart/form-data 지원)
+    if (empty($input_json) && !empty($_POST)) {
+        $input_json = $_POST;
+    }
     
     if ($is_admin) {
         // 관리자 요청: 암복호화 생략
@@ -230,7 +239,7 @@ try {
     }
     
     // 4. 응답 평문 데이터 암호화
-    $res_json = json_encode($res_plain, JSON_UNESCAPED_UNICODE);
+    $res_json = json_encode($res_plain, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $res_enc_data = base64_encode(openssl_encrypt($res_json, 'aes-256-cbc', $aes_key, OPENSSL_RAW_DATA, $aes_iv));
     
     // 5. 응답 HMAC 생성 (원래 요청의 key_version 및 req_dttm 재사용)
@@ -244,7 +253,7 @@ try {
     
     header("GW_RSLT_CD: 1200");
     ob_end_clean();
-    echo json_encode($res_body, JSON_UNESCAPED_UNICODE);
+    echo json_encode($res_body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     
 } catch (Exception $e) {
     header("HTTP/1.1 500 Internal Server Error");

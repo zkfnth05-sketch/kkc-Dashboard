@@ -106,6 +106,9 @@ function nice_api_db_init($conn) {
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `mo_regno` VARCHAR(50) DEFAULT NULL");
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `anc_name` VARCHAR(100) DEFAULT NULL");
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `anc_saho` VARCHAR(100) DEFAULT NULL");
+    // 4-1. 환불 관련 감사 필드 추가 (API 006 규격: req_ci, refund_dttm)
+    $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `refund_dttm` VARCHAR(14) DEFAULT NULL COMMENT '환불일시(YYYYMMDDHH24MISS)'");
+    $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `refund_ci` VARCHAR(100) DEFAULT NULL COMMENT '환불 요청자 CI'");
     
     // 5. nice_dogTab 테이블에 추가 필드 확보 (결제주문번호, 견사호 및 생년월일 외에 출산/등록수 확장 대응)
     $conn->query("ALTER TABLE `nice_dogTab` ADD COLUMN IF NOT EXISTS `order_no` VARCHAR(100) DEFAULT NULL COMMENT 'NICE 결제주문번호'");
@@ -126,21 +129,23 @@ function nice_api_db_init($conn) {
  */
 function nice_get_parent_info($conn, $parent_id) {
     if (empty($parent_id) || $parent_id === '0') {
-        return ['name' => '', 'reg_no' => ''];
+        return ['name' => '', 'reg_no' => '', 'saho' => ''];
     }
     $e_parent = $conn->real_escape_string($parent_id);
     // nice_dogTab 먼저 확인 후 dogTab 확인
-    $res = $conn->query("SELECT reg_no, fullname FROM nice_dogTab WHERE uid = '$e_parent' OR reg_no = '$e_parent' LIMIT 1");
+    $res = $conn->query("SELECT reg_no, fullname, saho, saho_eng FROM nice_dogTab WHERE uid = '$e_parent' OR reg_no = '$e_parent' LIMIT 1");
     if (!$res || $res->num_rows === 0) {
-        $res = $conn->query("SELECT reg_no, fullname FROM dogTab WHERE uid = '$e_parent' OR reg_no = '$e_parent' LIMIT 1");
+        $res = $conn->query("SELECT reg_no, fullname, saho, saho_eng FROM dogTab WHERE uid = '$e_parent' OR reg_no = '$e_parent' LIMIT 1");
     }
     if ($res && $row = $res->fetch_assoc()) {
+        $saho = !empty($row['saho']) ? $row['saho'] : ($row['saho_eng'] ?? '');
         return [
             'name' => kkc_convert($row['fullname'], 'EUC-KR', true),
-            'reg_no' => kkc_convert($row['reg_no'], 'EUC-KR', true)
+            'reg_no' => kkc_convert($row['reg_no'], 'EUC-KR', true),
+            'saho' => kkc_convert($saho, 'EUC-KR', true)
         ];
     }
-    return ['name' => '', 'reg_no' => $parent_id];
+    return ['name' => '', 'reg_no' => $parent_id, 'saho' => ''];
 }
 
 /**
@@ -172,7 +177,7 @@ function nice_handle_list($data) {
     
     if (empty($poss_ids)) {
         $conn->close();
-        return ['result_cd' => 'F002', 'list_cnt' => 0, 'list' => []];
+        return ['result_cd' => 'S000', 'list_cnt' => 0, 'list' => []];
     }
     
     $poss_ids_str = implode(',', $poss_ids);
@@ -208,7 +213,7 @@ function nice_handle_list($data) {
     $conn->close();
     
     if (empty($list)) {
-        return ['result_cd' => 'F002', 'list_cnt' => 0, 'list' => []];
+        return ['result_cd' => 'S000', 'list_cnt' => 0, 'list' => []];
     }
     
     return [
@@ -302,10 +307,12 @@ function nice_handle_detail($data) {
         'reg_count_F' => isset($dog['reg_count_f']) ? intval($dog['reg_count_f']) : 0,
         'father_name' => $father['name'],
         'father_reg_no' => $father['reg_no'],
+        'father_saho' => $father['saho'] ?? '',
         'fa_name' => $father['name'],
         'fa_regno' => $father['reg_no'],
         'mother_name' => $mother['name'],
         'mother_reg_no' => $mother['reg_no'],
+        'mother_saho' => $mother['saho'] ?? '',
         'mo_name' => $mother['name'],
         'mo_regno' => $mother['reg_no'],
         'anc_name' => isset($dog['anc_name']) ? kkc_convert($dog['anc_name'], 'EUC-KR', true) : kkc_convert($dog['name'], 'EUC-KR', true),
@@ -441,9 +448,9 @@ function nice_handle_request($data) {
     $req_gbn = $conn->real_escape_string($data['req_gbn'] ?? '1');
     $reg_no = $conn->real_escape_string($data['reg_no'] ?? '');
     
-    if (empty($order_no) || empty($poss_ci)) {
+    if (empty($order_no) || empty($poss_ci) || empty($req_name) || empty($req_mobile) || empty($order_dttm)) {
         $conn->close();
-        return ['result_cd' => 'F100']; // 파라미터 누락 (order_no, poss_ci 필수)
+        return ['result_cd' => 'F100']; // F100: 필수 파라미터 누락
     }
     
     $name = $conn->real_escape_string($data['name'] ?? '');
@@ -534,30 +541,50 @@ function nice_handle_request($data) {
 
 /**
  * 🚀 [API 006] 환불 통보 (Inbound)
+ * 엑셀 명세서 Sheet: 한국애견협회 API 명세 (R100~R113)
+ * 필수 파라미터: req_ci(88), reg_no(26), order_no(100), refund_dttm(14)
  */
 function nice_handle_refund($data) {
     $conn = get_kkc_portal_db();
     nice_api_db_init($conn);
     
-    $order_no = $conn->real_escape_string($data['order_no'] ?? '');
-    if (empty($order_no)) {
+    // ① 4개 필수 파라미터 수신 (엑셀 R105~R108)
+    $req_ci      = $conn->real_escape_string($data['req_ci'] ?? '');
+    $reg_no      = $conn->real_escape_string($data['reg_no'] ?? '');
+    $order_no    = $conn->real_escape_string($data['order_no'] ?? '');
+    $refund_dttm = $conn->real_escape_string($data['refund_dttm'] ?? '');
+    
+    // ② 필수 파라미터 누락 검증 → F100
+    if (empty($req_ci) || empty($reg_no) || empty($order_no) || empty($refund_dttm)) {
         $conn->close();
-        return ['result_cd' => 'F100'];
+        return ['result_cd' => 'F100']; // F100: 필수 파라미터 누락
     }
     
-    $chk = $conn->query("SELECT uid, status FROM nice_pedigree_requests WHERE order_no = '$order_no' LIMIT 1");
+    // ③ order_no + reg_no 2중 교차 검증 → F601
+    $chk = $conn->query("SELECT uid, status, poss_ci FROM nice_pedigree_requests WHERE order_no = '$order_no' AND reg_no = '$reg_no' LIMIT 1");
     if (!$chk || $chk->num_rows === 0) {
-        $conn->close();
-        return ['result_cd' => 'F601']; // F601: 환불 대상 없음
+        // order_no만으로 2차 시도 (reg_no가 아직 미할당된 케이스 대비)
+        $chk = $conn->query("SELECT uid, status, poss_ci FROM nice_pedigree_requests WHERE order_no = '$order_no' LIMIT 1");
+        if (!$chk || $chk->num_rows === 0) {
+            $conn->close();
+            return ['result_cd' => 'F601']; // F601: 환불 대상 없음
+        }
     }
     
     $row = $chk->fetch_assoc();
+    
+    // ④ 중복 환불 검증 → F602
     if ($row['status'] === 'R') {
         $conn->close();
         return ['result_cd' => 'F602']; // F602: 이미 환불된 건
     }
     
-    $res = $conn->query("UPDATE nice_pedigree_requests SET status = 'R' WHERE order_no = '$order_no'");
+    // ⑤ 환불 처리: status=R, refund_dttm 및 refund_ci 감사 기록 저장
+    $res = $conn->query("UPDATE nice_pedigree_requests SET 
+        status = 'R', 
+        refund_dttm = '$refund_dttm', 
+        refund_ci = '$req_ci' 
+        WHERE order_no = '$order_no'");
     $conn->close();
     
     if ($res === false) return ['result_cd' => 'F999'];
@@ -603,8 +630,8 @@ function nice_handle_image($data) {
     
     $decoded = base64_decode($image_base64);
     $img_len = $decoded ? strlen($decoded) : 0;
-    // 이미지 용량 범위 검증 (500KB ~ 3MB) 및 Base64 디코딩 검증
-    if (!$decoded || $img_len < (500 * 1024) || $img_len > (3 * 1024 * 1024)) {
+    // 이미지 용량 범위 검증 (10KB ~ 3MB) 및 Base64 디코딩 검증
+    if (!$decoded || $img_len < (10 * 1024) || $img_len > (3 * 1024 * 1024)) {
         $conn->close();
         return ['result_cd' => 'F703']; // F703: 이미지 규격 및 전송 오류
     }
@@ -647,12 +674,12 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
     $client_id = defined('NICE_CLIENT_ID') ? NICE_CLIENT_ID : '369a3882-32bb-4a65-8376-2357619517c9';
     $client_secret = defined('NICE_CLIENT_SECRET') ? NICE_CLIENT_SECRET : '949c318d591d34ee19b2495302314776883cf39';
     
-    $json = json_encode($plain_data, JSON_UNESCAPED_UNICODE);
+    $json = json_encode($plain_data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $enc_data = base64_encode(openssl_encrypt($json, 'aes-256-cbc', $aes_key, OPENSSL_RAW_DATA, $aes_iv));
     
     $req_dttm = date('YmdHis');
     $key_version = '0001';
-    $sign_str = $key_version . $req_dttm . $enc_data;
+    $sign_str = trim($key_version) . trim($req_dttm) . trim($enc_data);
     $req_hmac = base64_encode(hash_hmac('sha256', $sign_str, $hmac_key, true));
     
     $req_body = [
@@ -666,7 +693,7 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
     
     $ch = curl_init($host . $uri);
     curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($req_body));
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($req_body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
@@ -675,9 +702,9 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
     ]);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     
-    // 3초 타임아웃 및 2초 연결 타임아웃을 지정하여 외부 API 통신 불능 시의 화면 락 현상 원천 차단
-    curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+    // 10초 타임아웃 지정을 지정하여 망 지연 시 원활한 통신 보장
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
     
     // HTTP 응답 헤더에서 GW_RSLT_CD 추출을 위한 콜백 등록
     $response_headers = [];
@@ -718,7 +745,7 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
     
     $res_hmac = $resp_data['res_hmac'] ?? '';
     $res_enc_data = $resp_data['enc_data'];
-    $verify_str = $key_version . $req_dttm . $res_enc_data;
+    $verify_str = trim($key_version) . trim($req_dttm) . trim($res_enc_data);
     $expected_hmac = base64_encode(hash_hmac('sha256', $verify_str, $hmac_key, true));
     
     if ($res_hmac !== $expected_hmac) {
@@ -734,22 +761,136 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
 
 /**
  * 🚀 [API 004] 모바일혈통서 심사 결과 통보 (Outbound)
+ * 엑셀 명세서 Sheet: NICE API 명세 (R02~R37) 및 별첨1 규격 전 항목 포함
  */
-function nice_notify_screening_result($poss_ci, $reg_no, $status, $hair = '', $breed_name = '', $order_no = '') {
+function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_no = '') {
+    $is_approved = ($status === 'S' || $status === 'Y');
+    
     $plain = [
         'poss_ci' => $poss_ci,
-        'reg_no' => $reg_no,
-        'reg_result' => ($status === 'S' || $status === 'Y' ? 'S' : 'F')
+        'order_no' => $order_no,
+        'reg_result' => ($is_approved ? 'S' : 'F'),
+        'reg_no' => $reg_no
     ];
-    if (!empty($order_no)) {
-        $plain['order_no'] = $order_no;
+    
+    $e_order = $conn ? $conn->real_escape_string($order_no) : '';
+    $req = null;
+    if (!empty($e_order)) {
+        $req_res = $conn->query("SELECT * FROM nice_pedigree_requests WHERE order_no = '$e_order' LIMIT 1");
+        if ($req_res && $req_res->num_rows > 0) {
+            $req = $req_res->fetch_assoc();
+        }
     }
-    if (!empty($hair)) {
-        $plain['hair'] = $hair;
+    
+    $dog = $conn ? nice_fetch_dog_by_reg_no($conn, $reg_no) : null;
+    
+    if ($is_approved) {
+        // 승인 (S): NICE API 명세 (Sheet 6 R06~R37 & 별첨1) 기준 전 항목 반환
+        $breed_code = $dog['dog_class'] ?? ($req['dog_classTab_name'] ?? '');
+        $breed_name = $breed_code;
+        if ($conn) {
+            $conn->query("SET NAMES 'utf8mb4'");
+            $class_res = $conn->query("SELECT kor_name FROM dog_classTab WHERE keyy = '" . $conn->real_escape_string($breed_code) . "' OR kor_name = '" . $conn->real_escape_string($breed_code) . "' LIMIT 1");
+            if ($class_res && $c_row = $class_res->fetch_assoc()) {
+                $breed_name = $c_row['kor_name'];
+            }
+            $conn->query("SET NAMES 'binary'");
+        }
+        
+        $father = $conn ? nice_get_parent_info($conn, $dog['fa_regno'] ?? ($req['father_reg_no'] ?? '')) : ['name'=>'', 'reg_no'=>'', 'saho'=>''];
+        $mother = $conn ? nice_get_parent_info($conn, $dog['mo_regno'] ?? ($req['mother_reg_no'] ?? '')) : ['name'=>'', 'reg_no'=>'', 'saho'=>''];
+        
+        $plain['name'] = kkc_convert($dog['fullname'] ?? ($dog['name'] ?? ($req['name'] ?? '')), 'EUC-KR', true);
+        $plain['saho'] = kkc_convert($dog['saho'] ?? ($req['saho'] ?? ''), 'EUC-KR', true);
+        $plain['dog_classTab_name'] = kkc_convert($breed_name, 'EUC-KR', true);
+        $plain['micro'] = kkc_convert($dog['micro'] ?? ($req['micro'] ?? ''), 'EUC-KR', true);
+        $plain['sex'] = kkc_convert($dog['sex'] ?? ($req['sex'] ?? ''), 'EUC-KR', true);
+        $plain['hair'] = kkc_convert($dog['hair'] ?? ($req['hair'] ?? ''), 'EUC-KR', true);
+        $plain['breed_name'] = kkc_convert($dog['breed_name'] ?? ($req['breed_name'] ?? ''), 'EUC-KR', true);
+        $plain['breed_addr'] = kkc_convert($dog['breed_addr'] ?? ($req['breed_addr'] ?? ''), 'EUC-KR', true);
+        $plain['poss_name'] = kkc_convert($dog['poss_name'] ?? ($req['poss_name'] ?? ($req['req_name'] ?? '')), 'EUC-KR', true);
+        $plain['poss_addr'] = kkc_convert($dog['poss_addr'] ?? ($req['poss_addr'] ?? ''), 'EUC-KR', true);
+        $plain['birth'] = kkc_convert($dog['birth'] ?? ($req['birth'] ?? ''), 'EUC-KR', true);
+
+        // [reg_date 발급일시 포맷팅 YYYY-MM-DD HH:MM:SS 적용]
+        $raw_reg_date = trim($dog['reg_date'] ?? ($req['reg_date'] ?? ''));
+        if (empty($raw_reg_date) || $raw_reg_date === '0000-00-00') {
+            $formatted_reg_date = date('Y-m-d H:i:s');
+        } else {
+            $raw_reg_date = str_replace('.', '-', $raw_reg_date);
+            if (strlen($raw_reg_date) === 10) {
+                $formatted_reg_date = $raw_reg_date . ' ' . date('H:i:s');
+            } elseif (strlen($raw_reg_date) === 8 && is_numeric($raw_reg_date)) {
+                $formatted_reg_date = substr($raw_reg_date, 0, 4) . '-' . substr($raw_reg_date, 4, 2) . '-' . substr($raw_reg_date, 6, 2) . ' ' . date('H:i:s');
+            } else {
+                $formatted_reg_date = date('Y-m-d H:i:s', strtotime($raw_reg_date)) ?: date('Y-m-d H:i:s');
+            }
+        }
+        $plain['reg_date'] = kkc_convert($formatted_reg_date, 'EUC-KR', true);
+
+        $plain['birth_m'] = isset($dog['birth_m']) ? intval($dog['birth_m']) : (isset($req['birth_m']) ? intval($req['birth_m']) : 0);
+        $plain['birth_f'] = isset($dog['birth_f']) ? intval($dog['birth_f']) : (isset($req['birth_f']) ? intval($req['birth_f']) : 0);
+        $plain['reg_count_m'] = isset($dog['reg_count_m']) ? intval($dog['reg_count_m']) : (isset($req['reg_count_m']) ? intval($req['reg_count_m']) : 0);
+        $plain['reg_count_f'] = isset($dog['reg_count_f']) ? intval($dog['reg_count_f']) : (isset($req['reg_count_f']) ? intval($req['reg_count_f']) : 0);
+        
+        $plain['father_name'] = $father['name'] ?: kkc_convert($req['father_name'] ?? '', 'EUC-KR', true);
+        $plain['father_reg_no'] = $father['reg_no'] ?: kkc_convert($req['father_reg_no'] ?? '', 'EUC-KR', true);
+        $plain['father_saho'] = $father['saho'] ?? kkc_convert($req['father_saho'] ?? '', 'EUC-KR', true);
+        
+        $plain['mother_name'] = $mother['name'] ?: kkc_convert($req['mother_name'] ?? '', 'EUC-KR', true);
+        $plain['mother_reg_no'] = $mother['reg_no'] ?: kkc_convert($req['mother_reg_no'] ?? '', 'EUC-KR', true);
+        $plain['mother_saho'] = $mother['saho'] ?? kkc_convert($req['mother_saho'] ?? '', 'EUC-KR', true);
+        
+        $plain['ancestors'] = ($conn && $dog) ? nice_build_ancestors_list($conn, $dog) : [];
+    } else {
+        // 반려 (F): 엑셀 규격 Sheet 6 R05
+        // "이전에 NICE에서 심사 요청한 데이터를 그대로 반환"
+        // → 원본 신청(nice_pedigree_requests) 전체 필드 반환 + ancestors 빈 배열 필수 포함
+        if ($req) {
+            // [이슈 B] 반려 시에도 원본 요청 데이터 전체 필드 반환 (6개→전체)
+            $plain['name']              = kkc_convert($req['name'] ?? '', 'EUC-KR', true);
+            $plain['saho']              = kkc_convert($req['saho'] ?? '', 'EUC-KR', true);
+            $plain['dog_classTab_name'] = kkc_convert($req['dog_classTab_name'] ?? '', 'EUC-KR', true);
+            $plain['micro']             = kkc_convert($req['micro'] ?? '', 'EUC-KR', true);
+            $plain['sex']               = kkc_convert($req['sex'] ?? '', 'EUC-KR', true);
+            $plain['hair']              = kkc_convert($req['hair'] ?? '', 'EUC-KR', true);
+            $plain['breed_name']        = kkc_convert($req['breed_name'] ?? '', 'EUC-KR', true);
+            $plain['breed_addr']        = kkc_convert($req['breed_addr'] ?? '', 'EUC-KR', true);
+            $plain['poss_name']         = kkc_convert($req['poss_name'] ?? ($req['req_name'] ?? ''), 'EUC-KR', true);
+            $plain['poss_addr']         = kkc_convert($req['poss_addr'] ?? '', 'EUC-KR', true);
+            $plain['birth']             = kkc_convert($req['birth'] ?? '', 'EUC-KR', true);
+            
+            // [반려 시 reg_date 발급일시 포맷팅 YYYY-MM-DD HH:MM:SS 적용]
+            $raw_rej_date = trim($req['reg_date'] ?? '');
+            if (empty($raw_rej_date) || $raw_rej_date === '0000-00-00') {
+                $formatted_rej_date = date('Y-m-d H:i:s');
+            } else {
+                $raw_rej_date = str_replace('.', '-', $raw_rej_date);
+                if (strlen($raw_rej_date) === 10) {
+                    $formatted_rej_date = $raw_rej_date . ' ' . date('H:i:s');
+                } elseif (strlen($raw_rej_date) === 8 && is_numeric($raw_rej_date)) {
+                    $formatted_rej_date = substr($raw_rej_date, 0, 4) . '-' . substr($raw_rej_date, 4, 2) . '-' . substr($raw_rej_date, 6, 2) . ' ' . date('H:i:s');
+                } else {
+                    $formatted_rej_date = date('Y-m-d H:i:s', strtotime($raw_rej_date)) ?: date('Y-m-d H:i:s');
+                }
+            }
+            $plain['reg_date']          = kkc_convert($formatted_rej_date, 'EUC-KR', true);
+
+            $plain['birth_m']           = intval($req['birth_m'] ?? 0);
+            $plain['birth_f']           = intval($req['birth_f'] ?? 0);
+            $plain['reg_count_m']       = intval($req['reg_count_m'] ?? 0);
+            $plain['reg_count_f']       = intval($req['reg_count_f'] ?? 0);
+            $plain['father_name']       = kkc_convert($req['father_name'] ?? '', 'EUC-KR', true);
+            $plain['father_reg_no']     = kkc_convert($req['father_reg_no'] ?? '', 'EUC-KR', true);
+            $plain['father_saho']       = kkc_convert($req['father_saho'] ?? '', 'EUC-KR', true);
+            $plain['mother_name']       = kkc_convert($req['mother_name'] ?? '', 'EUC-KR', true);
+            $plain['mother_reg_no']     = kkc_convert($req['mother_reg_no'] ?? '', 'EUC-KR', true);
+            $plain['mother_saho']       = kkc_convert($req['mother_saho'] ?? '', 'EUC-KR', true);
+        }
+        // [이슈 A] 반려 시에도 ancestors 필수 필드(Y) 반드시 포함 (엑셀 Sheet 6 R33)
+        $plain['ancestors'] = [];
     }
-    if (!empty($breed_name)) {
-        $plain['breed_name'] = $breed_name;
-    }
+    
     return nice_outbound_call('/api/v1.0/pet/pedigree/result', '2601228117', $plain);
 }
 
@@ -1122,7 +1263,7 @@ function nice_admin_pedigree_action($input) {
         }
         
         // NICE 통보 (반려: F)
-        $nice_res = nice_notify_screening_result($req['poss_ci'], $req['reg_no'], 'F', '', '', $req['order_no'] ?? '');
+        $nice_res = nice_notify_screening_result($conn, $req['poss_ci'], $req['reg_no'], 'F', $req['order_no'] ?? '');
         if ($nice_res && isset($nice_res['success']) && $nice_res['success'] === true) {
             $res_data = $nice_res['data'] ?? [];
             $rslt_cd = $res_data['result_cd'] ?? 'F999';
@@ -1443,7 +1584,7 @@ function nice_admin_pedigree_action($input) {
     }
     
     // 5. NICE 통보 (승인: S)
-    $nice_res = nice_notify_screening_result($req['poss_ci'], $req['reg_no'], 'S', $req['hair'], $req['dog_classTab_name'], $req['order_no'] ?? '');
+    $nice_res = nice_notify_screening_result($conn, $req['poss_ci'], $np_reg_no, 'S', $req['order_no'] ?? '');
     if ($nice_res && isset($nice_res['success']) && $nice_res['success'] === true) {
         $res_data = $nice_res['data'] ?? [];
         $rslt_cd = $res_data['result_cd'] ?? 'F999';
