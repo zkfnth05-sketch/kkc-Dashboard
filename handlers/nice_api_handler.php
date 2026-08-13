@@ -664,15 +664,16 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
         $aes_key = defined('NICE_AES_KEY_PROD') ? NICE_AES_KEY_PROD : 'abcdefgh12345678abcdefgh12345678';
         $aes_iv = defined('NICE_AES_IV_PROD') ? NICE_AES_IV_PROD : 'abcdefgh12345678';
         $hmac_key = defined('NICE_HMAC_KEY_PROD') ? NICE_HMAC_KEY_PROD : 'abcdefgh12345678abcdefgh12345678';
+        $client_id = defined('NICE_CLIENT_ID_PROD') ? NICE_CLIENT_ID_PROD : '369a3882-32bb-4a65-8376-2357619517c9';
+        $client_secret = defined('NICE_CLIENT_SECRET_PROD') ? NICE_CLIENT_SECRET_PROD : '949c318d591d34ee19b2495302314776883cf39';
     } else {
         $host = 'https://usvc.niceapi.co.kr:32501';
         $aes_key = defined('NICE_AES_KEY_UAT') ? NICE_AES_KEY_UAT : '12345678123456781234567812345678';
         $aes_iv = defined('NICE_AES_IV_UAT') ? NICE_AES_IV_UAT : '1234567812345678';
         $hmac_key = defined('NICE_HMAC_KEY_UAT') ? NICE_HMAC_KEY_UAT : '12345678123456781234567812345678';
+        $client_id = defined('NICE_CLIENT_ID_UAT') ? NICE_CLIENT_ID_UAT : '771accb9-47fa-45d7-be3f-8dc9aeeb9808';
+        $client_secret = defined('NICE_CLIENT_SECRET_UAT') ? NICE_CLIENT_SECRET_UAT : 'e226d243e071ca3caa9ba618370d7626';
     }
-    
-    $client_id = defined('NICE_CLIENT_ID') ? NICE_CLIENT_ID : '369a3882-32bb-4a65-8376-2357619517c9';
-    $client_secret = defined('NICE_CLIENT_SECRET') ? NICE_CLIENT_SECRET : '949c318d591d34ee19b2495302314776883cf39';
     
     $json = json_encode($plain_data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $enc_data = base64_encode(openssl_encrypt($json, 'aes-256-cbc', $aes_key, OPENSSL_RAW_DATA, $aes_iv));
@@ -891,7 +892,11 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
         $plain['ancestors'] = [];
     }
     
-    return nice_outbound_call('/api/v1.0/pet/pedigree/result', '2601228117', $plain);
+    $env = defined('NICE_API_ENV') ? NICE_API_ENV : 'UAT';
+    $product_id = ($env === 'PROD') 
+        ? (defined('NICE_PRODUCT_ID_RESULT_PROD') ? NICE_PRODUCT_ID_RESULT_PROD : '2601228117')
+        : (defined('NICE_PRODUCT_ID_RESULT_UAT') ? NICE_PRODUCT_ID_RESULT_UAT : '2601687173');
+    return nice_outbound_call('/api/v1.0/pet/pedigree/result', $product_id, $plain);
 }
 
 /**
@@ -903,7 +908,11 @@ function nice_notify_ownership_transfer($poss_ci, $move_ci, $reg_no) {
         'move_ci' => $move_ci,
         'reg_no' => $reg_no
     ];
-    return nice_outbound_call('/api/v1.0/pet/pedigree/transfer', '2601941116', $plain);
+    $env = defined('NICE_API_ENV') ? NICE_API_ENV : 'UAT';
+    $product_id = ($env === 'PROD') 
+        ? (defined('NICE_PRODUCT_ID_TRANSFER_PROD') ? NICE_PRODUCT_ID_TRANSFER_PROD : '2601941116')
+        : (defined('NICE_PRODUCT_ID_TRANSFER_UAT') ? NICE_PRODUCT_ID_TRANSFER_UAT : '2601981174');
+    return nice_outbound_call('/api/v1.0/pet/pedigree/transfer', $product_id, $plain);
 }
 
 /**
