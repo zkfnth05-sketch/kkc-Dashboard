@@ -811,8 +811,7 @@ export const generateShepherdPrintHtml = (options: PedigreePrintOptions): string
     let val = options.useSample ? getShepherdSampleValue(key) : getShepherdRealValue(key, options);
     if (val === undefined || val === null) val = '';
 
-    const isBold = key === 'dog_name' || key === 'reg_no' || key === 'microchip' || key.endsWith('_name');
-    const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: inherit; text-align: left;' : '');
+    const fontStyle = (key === 'dog_name' ? 'font-family: inherit; text-align: left;' : '');
     const isAncestor = key.startsWith('ancestor_');
     const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_ok_term') || key.endsWith('_ok_content') || key.endsWith('_reg') || (key.startsWith('ancestor_') && key.endsWith('_name'));
     const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all; line-height: 1.15;' : '';

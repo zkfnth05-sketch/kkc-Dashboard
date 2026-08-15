@@ -137,12 +137,28 @@ export const getGeneralRealValue = (key: string, options: PedigreePrintOptions) 
   if (key === 'dog_breeder_addr') return pedigree.breederAddr || '-';
   if (key === 'dog_owner') return pedigree.owner || '-';
   if (key === 'dog_owner_addr') return pedigree.ownerAddr || '-';
-  if (key === 'reg_no') return pedigree.regNo || '-';
-  if (key === 'dog_dna') return '';
-  if (key === 'microchip') return '';
-  if (key === 'foreign_no') return (pedigree.foreignNo && pedigree.foreignNo !== '-') ? pedigree.foreignNo : '';
-  if (key === 'foreign_no2') return (pedigree.foreignNo2 && pedigree.foreignNo2 !== '-') ? pedigree.foreignNo2 : '';
-  if (key === 'domestic_no') return (pedigree.domesticNo && pedigree.domesticNo !== '-') ? pedigree.domesticNo : '';
+  if (key === 'reg_no') {
+    const isValid = (v: any) => {
+      if (!v) return false;
+      const s = String(v).trim();
+      return s !== '' && s !== '-' && s !== '0' && s !== 'null' && s !== 'undefined' && s !== '미등록';
+    };
+
+    const reg = isValid(pedigree.regNo) ? pedigree.regNo.trim() : '';
+    const domestic = isValid(pedigree.domesticNo) ? pedigree.domesticNo.trim() : '';
+    const foreign1 = isValid(pedigree.foreignNo) ? pedigree.foreignNo.trim() : '';
+    const foreign2 = isValid(pedigree.foreignNo2) ? pedigree.foreignNo2.trim() : '';
+
+    const lines: string[] = [];
+    if (reg) {
+      lines.push(reg);
+    }
+    const others = [domestic, foreign1, foreign2].filter(Boolean);
+    if (others.length > 0) {
+      lines.push(others.join(' '));
+    }
+    return lines.join('\n');
+  }
   if (key === 'other_org' || key === 'other_org_no') return ((pedigree as any).otherOrgNo || (pedigree as any).other_org || (pedigree as any).other_org_no || '');
   if (key === 'dongtae_no' || key === 'dog_litter') return jindoLitterList || '-';
   if (key === 'dog_breed') return pedigree.breed || '-';
@@ -298,7 +314,7 @@ export const getGeneralRealValue = (key: string, options: PedigreePrintOptions) 
 export const getGeneralSampleValue = (key: string) => {
   const generalData: Record<string, string> = {
     dog_name: 'A-ISAM OF DOG MASTER',
-    reg_no: 'BM-C50074',
+    reg_no: 'BM-C50074\nKKC-D12345 SZ-2385565',
     dog_breed: 'Belgian Malinois',
     dog_gender: 'MALE 수컷',
     dog_birth: '2025-01-19',
@@ -412,11 +428,10 @@ export const generateGeneralPrintHtml = (options: PedigreePrintOptions): string 
     let val = options.useSample ? getGeneralSampleValue(key) : getGeneralRealValue(key, options);
     if (val === undefined || val === null) val = '';
 
-    const isBold = (key === 'dog_name' ? false : (key === 'reg_no' || key.endsWith('_name')));
-    const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? " font-family: 'Times New Roman', Georgia, serif; text-align: center; font-weight: 300; letter-spacing: -0.03em; transform: scaleX(0.85); transform-origin: center; display: inline-block;" : '');
+    const fontStyle = '';
     const isAncestor = key.startsWith('ancestor_');
-    const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter';
-    const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
+    const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key === 'reg_no';
+    const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all; line-height: 1.2;' : '';
     
     let widthStyle = '';
     const matchAncestor = key.match(/^ancestor_(\d+)_/);

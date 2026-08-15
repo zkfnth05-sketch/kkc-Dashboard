@@ -88,12 +88,14 @@ const wrapTextAt40 = (text: string): string => wrapTextAt(text, 40);
 
 const getFieldLabel = (key: string): string => {
   if (key.startsWith('ancestor_')) {
-    const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|litter|birth|foreign|slash\d)$/);
+    const match = key.match(/^ancestor_(\d+)_(name|reg|domestic|foreign|extra|win|train|dna|bone|color|micro|litter|birth|slash\d)$/);
     if (match) {
       const node = match[1];
       const field = match[2];
       const fieldName = field === 'name' ? '견명' 
                       : field === 'reg' ? '등록번호'
+                      : field === 'domestic' ? '국내타단체 번호'
+                      : field === 'foreign' ? '외국타단체 번호'
                       : field === 'extra' ? '모색/특징'
                       : field === 'win' ? '수상내역'
                       : field === 'train' ? '훈련자격'
@@ -103,7 +105,6 @@ const getFieldLabel = (key: string): string => {
                       : field === 'micro' ? '마이크로칩'
                       : field === 'litter' ? '동태 등록번호'
                       : field === 'birth' ? '생년월일'
-                      : field === 'foreign' ? '외국타단체 번호'
                       : '구분선';
       return `조상 ${node} ${fieldName}`;
     }
@@ -1932,8 +1933,8 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                             className={`absolute select-none pointer-events-auto border transition-all
                               ${(key === 'dog_name' && activePrintType === 'general') ? 'text-center' : 'text-left'}
                               ${isEditingCoords ? 'cursor-move' : 'cursor-pointer'}
-                              ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_ok_term') || key.endsWith('_ok_content') || (key.startsWith('ancestor_') && key.endsWith('_name'))) ? 'whitespace-pre-line break-words' : 'whitespace-nowrap'}
-                              ${(key !== 'dog_relate' && key !== 'dongtae_no' && key !== 'dog_litter' && !key.startsWith('ancestor_') && (activePrintType !== 'general' || key !== 'dog_color')) ? 'truncate' : ''}
+                              ${(key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_ok_term') || key.endsWith('_ok_content') || (key.startsWith('ancestor_') && key.endsWith('_name')) || (activePrintType === 'general' && key === 'reg_no') || key.endsWith('_reg')) ? 'whitespace-pre-line break-words' : 'whitespace-nowrap'}
+                              ${(key !== 'dog_relate' && key !== 'dongtae_no' && key !== 'dog_litter' && !key.startsWith('ancestor_') && (activePrintType !== 'general' || (key !== 'dog_color' && key !== 'reg_no')) && !key.endsWith('_reg')) ? 'truncate' : ''}
                               ${genStyle} ${highlightStyle} ${opacityStyle}
                             `}
                             style={{
@@ -1948,12 +1949,12 @@ export const PedigreeDetailModal: React.FC<PedigreeDetailModalProps> = ({
                                 }
                                 return `${size}em`;
                               })(),
-                              fontWeight: isBold ? 'bold' : ((key === 'dog_name' && activePrintType === 'general') ? '300' : 'inherit'),
-                              fontFamily: (key === 'dog_name' && activePrintType === 'general') ? "'Times New Roman', Georgia, serif" : 'inherit',
-                              letterSpacing: (key === 'dog_name' && activePrintType === 'general') ? '-0.03em' : 'normal',
-                              transform: (key === 'dog_name' && activePrintType === 'general') ? 'scaleX(0.85)' : 'none',
-                              transformOrigin: (key === 'dog_name' && activePrintType === 'general') ? 'center' : 'initial',
-                              display: (key === 'dog_name' && activePrintType === 'general') ? 'inline-block' : 'block',
+                              fontWeight: 'inherit',
+                              fontFamily: 'inherit',
+                              letterSpacing: 'normal',
+                              transform: 'none',
+                              transformOrigin: 'initial',
+                              display: 'block',
                               width: (() => {
                                 let w = coord.width || (key === 'dog_name' && activePrintType === 'general' ? 120 : undefined);
 

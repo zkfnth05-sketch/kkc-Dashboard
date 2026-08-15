@@ -33,8 +33,14 @@ const isSahoAlreadyInName = (name: string, saho: string) => {
   return sahoWords.every(word => cleanName.includes(word));
 };
 
+const isValidValue = (val: any) => {
+  if (!val) return false;
+  const str = String(val).trim().toLowerCase();
+  return str !== '' && str !== '0' && str !== '-' && str !== 'null' && str !== 'undefined' && str !== '미등록';
+};
+
 const formatRegNo = (regNo: string) => {
-  if (!regNo) return '';
+  if (!isValidValue(regNo)) return '';
   const r = regNo.trim();
   if (r.toUpperCase().startsWith('NR')) {
     return 'NR';
@@ -231,7 +237,7 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
   
   // Ancestors
   if (key.startsWith('ancestor_')) {
-    const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|birth|foreign|litter|slash1|slash2|slash3|slash4)$/);
+    const match = key.match(/^ancestor_(\d+)_(name|reg|domestic|foreign|extra|win|train|dna|bone|color|micro|birth|litter|slash1|slash2|slash3|slash4)$/);
     if (match) {
       const nodeId = parseInt(match[1]);
       const field = match[2];
@@ -265,16 +271,22 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
       }
 
       if (field === 'reg') {
+        // 🌟 조부모 (4~7번): 오직 KKC 등록번호 1개만 단독 출력
+        if (nodeId >= 4 && nodeId <= 7) {
+          const rVal = formatRegNo(dog.reg_no || '');
+          return isValidValue(rVal) ? rVal : '';
+        }
+
         if (nodeId >= 2 && nodeId <= 15) {
           const rVal = formatRegNo(dog.reg_no || '');
           const dom = formatRegNo(dog.foreign100 || '');
           const train = (dog.spec_train || '').trim();
           const micro = (dog.micro || (dog as any).microchip || '').trim();
           const parts: string[] = [];
-          if (rVal && rVal !== '0' && rVal !== '-') parts.push(rVal);
-          if (dom && dom !== '0' && dom !== '-') parts.push(dom);
-          if (train && train !== '0' && train !== '-') parts.push(train);
-          if (micro && micro !== '0' && micro !== '-') parts.push(micro);
+          if (isValidValue(rVal)) parts.push(rVal);
+          if (isValidValue(dom)) parts.push(dom);
+          if (isValidValue(train)) parts.push(train);
+          if (isValidValue(micro)) parts.push(micro);
           return parts.join(' ');
         }
         
@@ -282,37 +294,48 @@ export const getJindoRealValue = (key: string, options: PedigreePrintOptions) =>
         const rVal = formatRegNo(dog.reg_no || '');
         const dom = formatRegNo(dog.foreign100 || '');
         let regVal = '';
-        if (rVal && rVal !== '0' && rVal !== '-') {
+        if (isValidValue(rVal)) {
           regVal = rVal;
-          if (dom && dom !== '0' && dom !== '-') {
+          if (isValidValue(dom)) {
             regVal += ' ' + dom;
           }
-        } else if (dom && dom !== '0' && dom !== '-') {
+        } else if (isValidValue(dom)) {
           regVal = dom;
         } else {
           const f1 = formatRegNo(dog.foreign_no || '');
           const f2 = formatRegNo(dog.foreign_no2 || '');
-          regVal = (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
+          regVal = (isValidValue(f1) && isValidValue(f2)) ? `${f1} ${f2}` : (isValidValue(f1) ? f1 : (isValidValue(f2) ? f2 : ''));
         }
         return regVal;
       }
 
-      if (field === 'extra') {
-        return getColorAbbr(dog.hair || '') || '';
+      // 🌟 국내타단체 전용 독립 필드
+      if (field === 'domestic') {
+        const domVal = (dog.foreign100 || (dog as any).domesticNo || (dog as any).domestic_no || (dog as any).foreign_100 || '').trim();
+        const dom = formatRegNo(domVal);
+        return isValidValue(dom) ? dom : '';
       }
 
-      if (field === 'win') return dog.spec_win || '';
-      if (field === 'train') return dog.spec_train || '';
-      if (field === 'dna') return dog.spec_dna || '';
-      if (field === 'bone') return dog.spec_bone || '';
-      if (field === 'color') return getColorAbbr(dog.hair || '') || '';
-      if (field === 'micro') return dog.micro || (dog as any).microchip || '';
-      if (field === 'birth') return formatDateHyphen(dog.birth || '') || '';
+      // 🌟 외국타단체 전용 독립 필드
       if (field === 'foreign') {
-        const f1 = formatRegNo(dog.foreign_no || '');
-        const f2 = formatRegNo(dog.foreign_no2 || '');
-        return (f1 && f2) ? `${f1} ${f2}` : (f1 || f2 || '');
+        const f1Val = (dog.foreign_no || (dog as any).foreignNo || '').trim();
+        const f2Val = (dog.foreign_no2 || (dog as any).foreignNo2 || '').trim();
+        const f1 = formatRegNo(f1Val);
+        const f2 = formatRegNo(f2Val);
+        return (isValidValue(f1) && isValidValue(f2)) ? `${f1} ${f2}` : (isValidValue(f1) ? f1 : (isValidValue(f2) ? f2 : ''));
       }
+
+      if (field === 'extra') {
+        return isValidValue(dog.hair) ? getColorAbbr(dog.hair || '') : '';
+      }
+
+      if (field === 'win') return isValidValue(dog.spec_win) ? dog.spec_win : '';
+      if (field === 'train') return isValidValue(dog.spec_train) ? dog.spec_train : '';
+      if (field === 'dna') return isValidValue(dog.spec_dna) ? dog.spec_dna : '';
+      if (field === 'bone') return isValidValue(dog.spec_bone) ? dog.spec_bone : '';
+      if (field === 'color') return isValidValue(dog.hair) ? getColorAbbr(dog.hair || '') : '';
+      if (field === 'micro') return isValidValue(dog.micro || (dog as any).microchip) ? (dog.micro || (dog as any).microchip) : '';
+      if (field === 'birth') return formatDateHyphen(dog.birth || '') || '';
     }
   }
   return '';
@@ -357,7 +380,7 @@ export const getJindoSampleValue = (key: string) => {
   if (key === 'issue_date') return '2026-03-17';
   
   if (key.startsWith('ancestor_')) {
-    const match = key.match(/^ancestor_(\d+)_(name|reg|extra|win|train|dna|bone|color|micro|litter|slash1|slash2|slash3|slash4)$/);
+    const match = key.match(/^ancestor_(\d+)_(name|reg|domestic|foreign|extra|win|train|dna|bone|color|micro|litter|slash1|slash2|slash3|slash4)$/);
     if (match) {
       const node = parseInt(match[1]);
       const field = match[2];
@@ -377,6 +400,19 @@ export const getJindoSampleValue = (key: string) => {
         if (field === 'color') return '황구';
         if (field === 'litter') return 'KJ-C10077~KJ-C10079';
         return '';
+      }
+      if (node === 4) {
+        if (field === 'domestic') return 'KJN 19-100028';
+      }
+      if (node === 5) {
+        if (field === 'domestic') return 'KJN 18-050020';
+      }
+      if (node === 6) {
+        if (field === 'domestic') return 'HKF-130839';
+        if (field === 'foreign') return 'KJN 18-100003';
+      }
+      if (node === 7) {
+        if (field === 'domestic') return 'KJN 17-100066';
       }
       if (field === 'color') return '황구';
       return field === 'name' ? `진도 조상 ${node}` : field === 'reg' ? `KJ-A00${node}` : '';
@@ -415,11 +451,10 @@ export const generateJindoPrintHtml = (options: PedigreePrintOptions): string =>
     let val = options.useSample ? getJindoSampleValue(key) : getJindoRealValue(key, options);
     if (val === undefined || val === null) val = '';
 
-    const isBold = key === 'dog_name' || key === 'reg_no' || key.endsWith('_name');
-    const fontStyle = (isBold ? 'font-weight: bold;' : '') + (key === 'dog_name' ? ' font-family: inherit; text-align: left;' : '');
+    const fontStyle = (key === 'dog_name' ? 'font-family: inherit; text-align: left;' : '');
     const isAncestor = key.startsWith('ancestor_');
-    const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_name');
-    const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all;' : '';
+    const isWrap = key === 'dog_relate' || key === 'dongtae_no' || key === 'dog_litter' || key.endsWith('_litter') || key.endsWith('_name') || key.endsWith('_reg');
+    const wrapStyle = isWrap ? 'white-space: pre-line; word-break: break-all; line-height: 1.2;' : '';
     let coordWidth = coord.width;
     const widthStyle = coordWidth 
       ? (isAncestor 
