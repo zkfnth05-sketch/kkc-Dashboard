@@ -62,53 +62,6 @@ export const FormShell: React.FC<FormShellProps> = ({
                         {children}
                     </div>
 
-                    {/* 💰 [FEE OPTIONS DISPLAY] */}
-                    {options.length > 0 && (
-                        <div className="mt-8 pt-6 border-t border-slate-100 animate-in slide-in-from-bottom-5 duration-700">
-                            <h3 className="text-sm font-black text-slate-900 mb-4 flex items-center gap-2">
-                                <div className="w-1.5 h-4 bg-teal-500 rounded-full" />
-                                추가 옵션 및 참가비 선택
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {options.map(opt => {
-                                    const idStr = String(opt.id);
-                                    const isSelected = selectedOptionIds.has(idStr);
-                                    const isRequired = opt.is_required === 1 || opt.is_required === '1';
-                                    return (
-                                        <button
-                                            key={opt.id}
-                                            type="button"
-                                            onClick={() => onOptionToggle?.(idStr)}
-                                            className={`p-4 rounded-2xl border-2 text-left transition-all flex justify-between items-center group ${
-                                                isSelected 
-                                                ? 'bg-teal-50 border-teal-500 shadow-sm' 
-                                                : 'bg-white border-slate-100 hover:border-slate-200'
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${
-                                                    isSelected ? 'bg-teal-500 border-teal-500' : 'bg-white border-slate-200'
-                                                }`}>
-                                                    {isSelected && <Check size={12} className="text-white" />}
-                                                </div>
-                                                <div className="space-y-0.5">
-                                                    <p className={`text-xs font-bold ${isSelected ? 'text-teal-900' : 'text-slate-700'}`}>
-                                                        {opt.option_name}
-                                                        {isRequired && <span className="ml-2 px-1.5 py-0.5 bg-rose-500 text-white text-[9px] rounded-md">필수</span>}
-                                                    </p>
-                                                    {opt.description && <p className="text-[10px] text-slate-400">{opt.description}</p>}
-                                                </div>
-                                            </div>
-                                            <span className={`text-xs font-black ${isSelected ? 'text-teal-600' : 'text-slate-600'}`}>
-                                                +{Number(opt.amount).toLocaleString()}원
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
                     {/* 💳 [PAYMENT SECTION] */}
                     {totalAmount > 0 && (
                         <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">

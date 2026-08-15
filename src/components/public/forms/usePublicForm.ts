@@ -29,7 +29,7 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
     });
 
     // 🐶 [DEFAULT ENTRY GENERATOR]
-    const createDefaultEntry = () => ({
+    const createDefaultEntry = (initialOptIds: string[] = []) => ({
         id: Math.random().toString(36).substring(2, 9),
         subject: '',
         dog_breed: '',
@@ -47,8 +47,12 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
         entry_type: '',
         entry_category: '',
         dog_photo: '',
-        student_id_photo: ''
+        student_id_photo: '',
+        selectedOptionIds: initialOptIds
     });
+
+    const [eventOptions, setEventOptions] = useState<any[]>([]);
+    const [selectedOptionIds, setSelectedOptionIds] = useState<Set<string>>(new Set());
 
     // 📋 [ENTRIES ARRAY (MULTI-ENTRY)]
     const [entries, setEntries] = useState<any[]>([createDefaultEntry()]);
@@ -100,7 +104,10 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
 
     // ➕ [ENTRY ACTIONS]
     const addEntry = () => {
-        setEntries(prev => [...prev, createDefaultEntry()]);
+        const requiredIds = eventOptions
+            .filter((opt: any) => opt.is_required === 1 || opt.is_required === '1')
+            .map((opt: any) => String(opt.id));
+        setEntries(prev => [...prev, createDefaultEntry(requiredIds)]);
     };
 
     const removeEntry = (index: number) => {
@@ -120,6 +127,30 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
         });
     };
 
+    // 💰 [PER-ENTRY OPTION TOGGLE]
+    const toggleEntryOption = (entryIndex: number, optionId: string | number) => {
+        const idStr = String(optionId);
+        setEntries(prev => {
+            const updated = [...prev];
+            const currentEntry = updated[entryIndex];
+            if (!currentEntry) return prev;
+
+            const currentOpts = new Set(currentEntry.selectedOptionIds || []);
+            if (currentOpts.has(idStr)) {
+                const opt = eventOptions.find(o => String(o.id) === idStr);
+                if (opt?.is_required === 1 || opt?.is_required === '1') return prev;
+                currentOpts.delete(idStr);
+            } else {
+                currentOpts.add(idStr);
+            }
+            updated[entryIndex] = {
+                ...currentEntry,
+                selectedOptionIds: Array.from(currentOpts)
+            };
+            return updated;
+        });
+    };
+
     const copyEntryFromFirst = (targetIndex: number) => {
         if (targetIndex <= 0 || !entries[0]) return;
         const source = entries[0];
@@ -135,11 +166,12 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
                 pedigree_no: source.pedigree_no || '',
                 pedigree_number: source.pedigree_number || '',
                 size: source.size || '',
-                division: source.division || '일반부'
+                division: source.division || '일반부',
+                selectedOptionIds: [...(source.selectedOptionIds || [])]
             };
             return updated;
         });
-        showAlert('완료', '1번 출전견의 정보가 복사되었습니다. 출진 종목을 선택해주세요.');
+        showAlert('완료', '1번 출전견의 정보가 복사되었습니다. 출진 종목 및 참가비를 선택해주세요.');
     };
 
     const handleApplicantChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -155,9 +187,6 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
             updateEntry(0, name, value);
         }
     };
-
-    const [eventOptions, setEventOptions] = useState<any[]>([]);
-    const [selectedOptionIds, setSelectedOptionIds] = useState<Set<string>>(new Set());
 
     // 💰 [FETCH OPTIONS]
     useEffect(() => {
@@ -184,33 +213,29 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
                         .filter((opt: any) => opt.is_required === 1 || opt.is_required === '1')
                         .map((opt: any) => String(opt.id));
                     setSelectedOptionIds(new Set(required));
+                    
+                    // 각 엔트리에 필수 옵션 채우기
+                    setEntries(prev => prev.map(e => ({
+                        ...e,
+                        selectedOptionIds: (e.selectedOptionIds && e.selectedOptionIds.length > 0) ? e.selectedOptionIds : required
+                    })));
                 }
             }
         };
         loadOptions();
     }, [competition]);
 
-    // 💰 [TOTAL CALCULATION (PER ENTRY MULTIPLIER)]
-    const optionBaseSum = eventOptions.reduce((sum, opt) => {
-        if (selectedOptionIds.has(String(opt.id))) {
-            return sum + parseInt(opt.option_price);
-        }
-        return sum;
+    // 💰 [TOTAL CALCULATION (SUM OF ALL ENTRIES' INDEPENDENT OPTIONS)]
+    const totalAmount = entries.reduce((acc, entry) => {
+        const optIds = new Set(entry.selectedOptionIds || (entry === entries[0] ? Array.from(selectedOptionIds) : []));
+        const entrySum = eventOptions
+            .filter(opt => optIds.has(String(opt.id)))
+            .reduce((sum, opt) => sum + (parseInt(opt.option_price || opt.amount) || 0), 0);
+        return acc + entrySum;
     }, 0);
 
-    const totalAmount = entries.length > 0 ? (optionBaseSum * entries.length) : optionBaseSum;
-
     const handleOptionToggle = (id: string | number) => {
-        const idStr = String(id);
-        const newSelected = new Set(selectedOptionIds);
-        if (newSelected.has(idStr)) {
-            const opt = eventOptions.find(o => String(o.id) === idStr);
-            if (opt?.is_required === 1 || opt?.is_required === '1') return;
-            newSelected.delete(idStr);
-        } else {
-            newSelected.add(idStr);
-        }
-        setSelectedOptionIds(newSelected);
+        toggleEntryOption(0, id);
     };
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string, entryIndex: number = 0) => {
@@ -336,9 +361,13 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
                 .map(opt => opt.option_name)
                 .join(', ');
 
-            // 🚀 [CREATE PAYLOADS FOR EACH ENTRY]
+            // 🚀 [CREATE PAYLOADS FOR EACH ENTRY WITH INDEPENDENT OPTIONS & AMOUNT]
             const payloads: any[] = entries.map((entry, index) => {
-                const singleAmount = entries.length > 0 ? Math.round(totalAmount / entries.length) : totalAmount;
+                const optIds = new Set(entry.selectedOptionIds || (entry === entries[0] ? Array.from(selectedOptionIds) : []));
+                const entrySelectedOpts = eventOptions.filter(opt => optIds.has(String(opt.id)));
+                const singleAmount = entrySelectedOpts.reduce((sum, opt) => sum + (parseInt(opt.option_price || opt.amount) || 0), 0);
+                const selectedOptNames = entrySelectedOpts.map(opt => opt.option_name).join(', ');
+
                 const combinedData = {
                     ...applicantInfo,
                     ...entry,
@@ -451,6 +480,7 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
         addEntry,
         removeEntry,
         updateEntry,
+        toggleEntryOption,
         copyEntryFromFirst,
         handleSearchDogForEntry,
         formData,
