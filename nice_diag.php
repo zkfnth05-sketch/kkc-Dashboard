@@ -194,7 +194,7 @@ if ($test === 'api004_approve') {
         'mother_name'=>'모견테스트', 'mother_reg_no'=>'KSZ-C64002-NP', 'mother_saho'=>'MO-001',
         'ancestors'=>[]
     ];
-    show_result(nice_call($HOST, '/api/v1.0/pet/pedigree/result', '2601228117',
+    show_result(nice_call($HOST, '/api/v1.0/pet/pedigree/result', '2601687173',
         $plain, $AES_KEY, $AES_IV, $HMAC_KEY, $CLIENT_ID, $CLIENT_SEC, $KEY_VER));
 }
 
@@ -216,7 +216,7 @@ if ($test === 'api004_reject') {
         'mother_name'=>'', 'mother_reg_no'=>'', 'mother_saho'=>'',
         'ancestors'=>[]
     ];
-    show_result(nice_call($HOST, '/api/v1.0/pet/pedigree/result', '2601228117',
+    show_result(nice_call($HOST, '/api/v1.0/pet/pedigree/result', '2601687173',
         $plain, $AES_KEY, $AES_IV, $HMAC_KEY, $CLIENT_ID, $CLIENT_SEC, $KEY_VER));
 }
 
@@ -230,7 +230,7 @@ if ($test === 'api005') {
         'move_ci'=>'MOVECI88XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
         'reg_no'=>'KSZ-C65001-NP'
     ];
-    show_result(nice_call($HOST, '/api/v1.0/pet/pedigree/transfer', '2601941116',
+    show_result(nice_call($HOST, '/api/v1.0/pet/pedigree/transfer', '2601981174',
         $plain, $AES_KEY, $AES_IV, $HMAC_KEY, $CLIENT_ID, $CLIENT_SEC, $KEY_VER));
 }
 

@@ -87,13 +87,10 @@ if (!defined('NICE_API_ENV')) {
     define('NICE_API_ENV', 'UAT'); // UAT or PROD
 }
 
-// WordPress Context 로드
-include_once 'wp-load.php';
-
-// 워드프레스가 /nice/list 주소를 보고 오인해 씌워버리는 404 헤더를 200(정상)으로 강제 복원
-if (function_exists('status_header')) {
-    status_header(200);
-}
+// 🚀 [워드프레스 비의존 순수 독립 고성능 모드] 대용량 3MB Base64 이미지 502 차단
+@ini_set('memory_limit', '512M');
+@ini_set('max_execution_time', '120');
+@set_time_limit(120);
 
 // JSON 및 에러 핸들링 설정
 header('Content-Type: application/json; charset=utf-8');

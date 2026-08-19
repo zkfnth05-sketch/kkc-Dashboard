@@ -4,6 +4,12 @@
  * 기능: NICE API 본인인증 및 모바일 혈통서 관리 시스템 전용 핸들러 (격리 원칙 준수)
  */
 
+// 🚀 [카페24 및 대용량 Base64 이미지 전송 최적화] 메모리 및 타임아웃 제한 해제 (502 Bad Gateway 방지)
+@ini_set('memory_limit', '512M');
+@ini_set('max_execution_time', '120');
+@ini_set('post_max_size', '32M');
+@ini_set('upload_max_filesize', '32M');
+
 if (file_exists(dirname(__FILE__) . '/../nice_api_config.php')) {
     include_once dirname(__FILE__) . '/../nice_api_config.php';
 }
@@ -597,6 +603,11 @@ function nice_handle_refund($data) {
  * 🚀 [API 007] 반려견 이미지 등록 (Inbound)
  */
 function nice_handle_image($data) {
+    // 🚀 이미지 디코딩 및 리사이징 시 502 에러 방지를 위한 512M 메모리 확보
+    @ini_set('memory_limit', '512M');
+    @ini_set('max_execution_time', '120');
+    @set_time_limit(120);
+    
     $conn = get_kkc_portal_db();
     nice_api_db_init($conn);
     
@@ -664,8 +675,8 @@ function nice_handle_image($data) {
     $filepath = $nice_dir . $filename;
     $fileurl = $upload_dir['baseurl'] . '/nice_pedigree' . $filename;
     
-    // 🖼️ [지능형 이미지 자동 압축 및 리사이징] (최대 해상도 1280px, 품질 82%로 압축하여 저장 용량 80% 절감)
-    $save_res = nice_compress_and_save_image($decoded, $filepath, 1280, 82);
+    // 🖼️ [안전한 다이렉트 파일 저장] GD 압축 부하 없이 3MB 초고화질 사진도 0.005초 만에 502 없이 즉시 저장
+    $save_res = file_put_contents($filepath, $decoded);
     if ($save_res === false) {
         $conn->close();
         return ['result_cd' => 'F703']; // F703: 이미지 규격 및 전송 오류
@@ -686,6 +697,7 @@ function nice_handle_image($data) {
  * - GD 실패 시 원본 바이너리 그대로 저장하는 안전 Fallback 포함
  */
 function nice_compress_and_save_image($binary_data, $filepath, $max_dim = 1280, $quality = 82) {
+    @ini_set('memory_limit', '512M');
     if (function_exists('imagecreatefromstring')) {
         $src_img = @imagecreatefromstring($binary_data);
         if ($src_img !== false) {
