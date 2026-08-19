@@ -201,11 +201,13 @@ function nice_handle_list($data) {
         while ($d = $dog_res->fetch_assoc()) {
             $breed_code = $d['dog_class'];
             $breed_name = isset($breed_map[$breed_code]) ? $breed_map[$breed_code] : $breed_code;
+            // dog_classTab에서 utf8mb4로 읽어온 견종명은 이미 UTF-8이므로 이중 변환(Double UTF-8 mojibake) 방지
+            $dog_class_name = (is_string($breed_name) && mb_check_encoding($breed_name, 'UTF-8')) ? $breed_name : kkc_convert($breed_name, 'EUC-KR', true);
             
             $list[] = [
                 'reg_no' => kkc_convert($d['reg_no'], 'EUC-KR', true),
                 'name' => kkc_convert($d['fullname'], 'EUC-KR', true),
-                'dog_classTab_name' => kkc_convert($breed_name, 'EUC-KR', true)
+                'dog_classTab_name' => $dog_class_name
             ];
         }
     }
@@ -287,7 +289,7 @@ function nice_handle_detail($data) {
         'name' => kkc_convert($dog['fullname'], 'EUC-KR', true),
         'saho_eng' => kkc_convert($dog['saho_eng'], 'EUC-KR', true),
         'saho' => kkc_convert($dog['saho'], 'EUC-KR', true),
-        'dog_classTab_name' => kkc_convert($breed_name, 'EUC-KR', true),
+        'dog_classTab_name' => (is_string($breed_name) && mb_check_encoding($breed_name, 'UTF-8')) ? $breed_name : kkc_convert($breed_name, 'EUC-KR', true),
         'micro' => kkc_convert($dog['micro'], 'EUC-KR', true),
         'sex' => kkc_convert($dog['sex'], 'EUC-KR', true),
         'hair' => kkc_convert($dog['hair'], 'EUC-KR', true),
@@ -613,27 +615,42 @@ function nice_handle_image($data) {
         return ['result_cd' => 'F702']; // F702: 이미지 순번 오류
     }
     
-    $chk = $conn->query("SELECT uid FROM nice_pedigree_requests WHERE order_no = '$order_no' OR reg_no = '$order_no' ORDER BY uid DESC LIMIT 1");
-    if (!$chk || $chk->num_rows === 0) {
-        $conn->close();
-        return ['result_cd' => 'F701']; // F701: 대상 혈통서 없음
-    }
-    
-    $row = $chk->fetch_assoc();
-    $uid = $row['uid'];
-    
-    $upload_dir = wp_upload_dir();
-    $nice_dir = $upload_dir['basedir'] . '/nice_pedigree';
-    if (!file_exists($nice_dir)) {
-        wp_mkdir_p($nice_dir);
-    }
-    
     $decoded = base64_decode($image_base64);
     $img_len = $decoded ? strlen($decoded) : 0;
     // 이미지 용량 범위 검증 (10KB ~ 3MB) 및 Base64 디코딩 검증
     if (!$decoded || $img_len < (10 * 1024) || $img_len > (3 * 1024 * 1024)) {
         $conn->close();
         return ['result_cd' => 'F703']; // F703: 이미지 규격 및 전송 오류
+    }
+    
+    // 1. 주문번호(order_no) 기준 기존 레코드 확인 또는 임시 레코드 선(先)생성
+    $chk = $conn->query("SELECT uid FROM nice_pedigree_requests WHERE order_no = '$order_no' OR reg_no = '$order_no' ORDER BY uid DESC LIMIT 1");
+    if ($chk && $chk->num_rows > 0) {
+        $row = $chk->fetch_assoc();
+        $uid = $row['uid'];
+    } else {
+        // 심사 요청(API 003) 전 이미지가 먼저 업로드되는 경우 임시 레코드 선등록
+        $init_sql = "INSERT INTO nice_pedigree_requests (order_no, req_name, req_mobile, poss_ci, petpin, order_dttm, req_gbn, reg_no, status) 
+                     VALUES ('$order_no', '', '', '', '', '', '1', '', 'P')";
+        $ins_res = $conn->query($init_sql);
+        if ($ins_res) {
+            $uid = $conn->insert_id;
+        } else {
+            // 동시성 등으로 인해 이미 생성되었는지 2차 확인
+            $chk2 = $conn->query("SELECT uid FROM nice_pedigree_requests WHERE order_no = '$order_no' LIMIT 1");
+            if ($chk2 && $chk2->num_rows > 0) {
+                $uid = $chk2->fetch_assoc()['uid'];
+            } else {
+                $conn->close();
+                return ['result_cd' => 'F999'];
+            }
+        }
+    }
+    
+    $upload_dir = wp_upload_dir();
+    $nice_dir = $upload_dir['basedir'] . '/nice_pedigree';
+    if (!file_exists($nice_dir)) {
+        wp_mkdir_p($nice_dir);
     }
     
     $filename = '/nice_ped_req_' . $uid . '_img_' . $image_idx . '.jpg';
@@ -803,7 +820,7 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
         
         $plain['name'] = kkc_convert($dog['fullname'] ?? ($dog['name'] ?? ($req['name'] ?? '')), 'EUC-KR', true);
         $plain['saho'] = kkc_convert($dog['saho'] ?? ($req['saho'] ?? ''), 'EUC-KR', true);
-        $plain['dog_classTab_name'] = kkc_convert($breed_name, 'EUC-KR', true);
+        $plain['dog_classTab_name'] = (is_string($breed_name) && mb_check_encoding($breed_name, 'UTF-8')) ? $breed_name : kkc_convert($breed_name, 'EUC-KR', true);
         $plain['micro'] = kkc_convert($dog['micro'] ?? ($req['micro'] ?? ''), 'EUC-KR', true);
         $plain['sex'] = kkc_convert($dog['sex'] ?? ($req['sex'] ?? ''), 'EUC-KR', true);
         $plain['hair'] = kkc_convert($dog['hair'] ?? ($req['hair'] ?? ''), 'EUC-KR', true);
@@ -851,7 +868,8 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
             // [이슈 B] 반려 시에도 원본 요청 데이터 전체 필드 반환 (6개→전체)
             $plain['name']              = kkc_convert($req['name'] ?? '', 'EUC-KR', true);
             $plain['saho']              = kkc_convert($req['saho'] ?? '', 'EUC-KR', true);
-            $plain['dog_classTab_name'] = kkc_convert($req['dog_classTab_name'] ?? '', 'EUC-KR', true);
+            $req_dog_class              = $req['dog_classTab_name'] ?? '';
+            $plain['dog_classTab_name'] = (is_string($req_dog_class) && mb_check_encoding($req_dog_class, 'UTF-8')) ? $req_dog_class : kkc_convert($req_dog_class, 'EUC-KR', true);
             $plain['micro']             = kkc_convert($req['micro'] ?? '', 'EUC-KR', true);
             $plain['sex']               = kkc_convert($req['sex'] ?? '', 'EUC-KR', true);
             $plain['hair']              = kkc_convert($req['hair'] ?? '', 'EUC-KR', true);
