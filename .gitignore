@@ -25,9 +25,21 @@ dist-ssr
 
 .vercel
 
-# Scratch scripts
+# Scratch scripts & temp files
 scratch/
+scratch_*
+test_*
+final_recovery_check.html
+_temp_scripts/
+*.csv
+*.xlsx
+*.txt
+*.overall_export_metadata
+deploy.bat
+.user.ini
+파이어베이스 콘솔db/
 
 # NICE API Config
 nice_api_config.php
+
 

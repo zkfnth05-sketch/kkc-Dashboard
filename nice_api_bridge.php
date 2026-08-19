@@ -4,6 +4,12 @@
  * 기능: NICE ↔ 한국애견협회 API 연동 전용 독립 게이트웨이
  */
 
+// 🚀 [카페24 및 대용량 Base64 이미지 전송 최적화] 메모리 및 타임아웃 제한 해제 (502 Bad Gateway 방지)
+@ini_set('memory_limit', '512M');
+@ini_set('max_execution_time', '120');
+@ini_set('post_max_size', '32M');
+@ini_set('upload_max_filesize', '32M');
+
 // CORS 허용 헤더 설정 (WordPress 로드 전에 처리해야 브라우저 OPTIONS preflight가 통과됨)
 header('Access-Control-Allow-Origin: *'); 
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');

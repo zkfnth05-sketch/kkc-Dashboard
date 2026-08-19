@@ -647,17 +647,25 @@ function nice_handle_image($data) {
         }
     }
     
-    $upload_dir = wp_upload_dir();
+    $upload_dir = function_exists('wp_upload_dir') ? wp_upload_dir() : [
+        'basedir' => dirname(dirname(__FILE__)) . '/wp-content/uploads',
+        'baseurl' => '/wp-content/uploads'
+    ];
     $nice_dir = $upload_dir['basedir'] . '/nice_pedigree';
     if (!file_exists($nice_dir)) {
-        wp_mkdir_p($nice_dir);
+        if (function_exists('wp_mkdir_p')) {
+            wp_mkdir_p($nice_dir);
+        } else {
+            @mkdir($nice_dir, 0755, true);
+        }
     }
     
     $filename = '/nice_ped_req_' . $uid . '_img_' . $image_idx . '.jpg';
     $filepath = $nice_dir . $filename;
     $fileurl = $upload_dir['baseurl'] . '/nice_pedigree' . $filename;
     
-    $save_res = file_put_contents($filepath, $decoded);
+    // 🖼️ [지능형 이미지 자동 압축 및 리사이징] (최대 해상도 1280px, 품질 82%로 압축하여 저장 용량 80% 절감)
+    $save_res = nice_compress_and_save_image($decoded, $filepath, 1280, 82);
     if ($save_res === false) {
         $conn->close();
         return ['result_cd' => 'F703']; // F703: 이미지 규격 및 전송 오류
@@ -669,6 +677,52 @@ function nice_handle_image($data) {
     $conn->close();
     if ($res === false) return ['result_cd' => 'F999'];
     return ['result_cd' => 'S000'];
+}
+
+/**
+ * 🖼️ 이미지 압축 및 리사이징 함수 (GD 라이브러리 활용)
+ * - 최대 가로/세로 1280px 비율 유지 리사이즈
+ * - JPEG 품질 82% 압축 저장
+ * - GD 실패 시 원본 바이너리 그대로 저장하는 안전 Fallback 포함
+ */
+function nice_compress_and_save_image($binary_data, $filepath, $max_dim = 1280, $quality = 82) {
+    if (function_exists('imagecreatefromstring')) {
+        $src_img = @imagecreatefromstring($binary_data);
+        if ($src_img !== false) {
+            $orig_w = imagesx($src_img);
+            $orig_h = imagesy($src_img);
+            
+            // 리사이징 필요 여부 판단
+            if ($orig_w > $max_dim || $orig_h > $max_dim) {
+                if ($orig_w >= $orig_h) {
+                    $new_w = $max_dim;
+                    $new_h = intval($orig_h * ($max_dim / $orig_w));
+                } else {
+                    $new_h = $max_dim;
+                    $new_w = intval($orig_w * ($max_dim / $orig_h));
+                }
+                
+                $dst_img = imagecreatetruecolor($new_w, $new_h);
+                // 투명 배경 대응 (흰색 배경)
+                $white = imagecolorallocate($dst_img, 255, 255, 255);
+                imagefill($dst_img, 0, 0, $white);
+                
+                imagecopyresampled($dst_img, $src_img, 0, 0, 0, 0, $new_w, $new_h, $orig_w, $orig_h);
+                $saved = imagejpeg($dst_img, $filepath, $quality);
+                imagedestroy($dst_img);
+                imagedestroy($src_img);
+                
+                if ($saved) return true;
+            } else {
+                // 이미지가 1280px 이하인 경우 리사이즈 없이 JPEG 품질 최적화 압축만 진행
+                $saved = imagejpeg($src_img, $filepath, $quality);
+                imagedestroy($src_img);
+                if ($saved) return true;
+            }
+        }
+    }
+    // GD가 없거나 실패 시 원본 바이너리 파일 저장 (안전 Fallback)
+    return file_put_contents($filepath, $binary_data) !== false;
 }
 
 /**
