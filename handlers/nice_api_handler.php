@@ -1319,6 +1319,7 @@ function nice_generate_unique_reg_no($conn, $breed_code = '', $apply_year = null
 function nice_admin_pedigree_action($input) {
     $conn = get_kkc_portal_db();
     nice_api_db_init($conn);
+    $conn->query("SET NAMES 'utf8mb4'");
     
     $uid = intval($input['uid'] ?? 0);
     $action = $input['action'] ?? ''; // 'approve' or 'reject'
