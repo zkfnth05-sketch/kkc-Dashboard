@@ -19,12 +19,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// 임시 데이터 초기화 (초코 상태를 심사대기 P로 강제 초기화하는 주소)
-if (isset($_GET['reset_choco'])) {
+// 임시 데이터 초기화 (초코 및 테스트 심사 건 상태를 심사대기 P로 초기화)
+if (isset($_GET['reset_test']) || isset($_GET['reset_choco'])) {
     include_once 'handlers/nice_api_handler.php';
     $conn = get_kkc_portal_db();
-    $conn->query("UPDATE nice_pedigree_requests SET status = 'P' WHERE name = '초코' OR name = '" . $conn->real_escape_string(kkc_convert('초코', 'EUC-KR', false)) . "'");
-    echo "초코의 상태가 심사대기(P)로 초기화되었습니다!";
+    $conn->query("UPDATE nice_pedigree_requests SET status = 'P', admin_memo = NULL WHERE uid IN (80, 81) OR name = '초코'");
+    $conn->query("DELETE FROM nice_dogTab WHERE reg_no LIKE '%-NP%' AND (fullname LIKE '%초코%' OR fullname LIKE '%80%' OR uid > 0 AND reg_no IN (SELECT reg_no FROM nice_pedigree_requests WHERE uid IN (80, 81)))");
+    echo "테스트 심사 건(80, 81, 초코)이 심사대기(P) 상태로 초기화되었습니다!";
     $conn->close();
     exit;
 }

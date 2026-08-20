@@ -1401,7 +1401,8 @@ function nice_admin_pedigree_action($input) {
     }
     
     // [승인 처리 로직]
-    // 2. 소유주의 mid/id 확인 (NICE CI 1차 조회)
+    // 2. 소유주의 mid/id 확인 (NICE CI 1차 조회 - EUC-KR 테이블 인코딩 안전을 위해 binary 설정)
+    $conn->query("SET NAMES 'binary'");
     $e_ci = $conn->real_escape_string($req['poss_ci']);
     $usr = $conn->query("SELECT id, name, mid, birth, hp FROM memTab WHERE nice_ci = '$e_ci' LIMIT 1")->fetch_assoc();
     if (!$usr) {
