@@ -995,7 +995,7 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
     $product_id = ($env === 'PROD') 
         ? (defined('NICE_PRODUCT_ID_RESULT_PROD') ? NICE_PRODUCT_ID_RESULT_PROD : '2601228117')
         : (defined('NICE_PRODUCT_ID_RESULT_UAT') ? NICE_PRODUCT_ID_RESULT_UAT : '2601687173');
-    return nice_outbound_call('/api/v1.0/pet/pedigree/result', $product_id, $plain);
+    return nice_outbound_call('/pet/pedigree/result', $product_id, $plain);
 }
 
 /**
@@ -1011,7 +1011,7 @@ function nice_notify_ownership_transfer($poss_ci, $move_ci, $reg_no) {
     $product_id = ($env === 'PROD') 
         ? (defined('NICE_PRODUCT_ID_TRANSFER_PROD') ? NICE_PRODUCT_ID_TRANSFER_PROD : '2601941116')
         : (defined('NICE_PRODUCT_ID_TRANSFER_UAT') ? NICE_PRODUCT_ID_TRANSFER_UAT : '2601981174');
-    return nice_outbound_call('/api/v1.0/pet/pedigree/transfer', $product_id, $plain);
+    return nice_outbound_call('/pet/pedigree/transfer', $product_id, $plain);
 }
 
 /**
