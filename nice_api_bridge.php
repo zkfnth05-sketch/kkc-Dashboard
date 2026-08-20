@@ -139,27 +139,31 @@ try {
         $mode = isset($input_json['mode']) ? $input_json['mode'] : ($_GET['mode'] ?? '');
         $res_data = [];
         
-        switch ($mode) {
-            case 'admin_nice_member_list':
-                $res_data = nice_admin_member_list($input_json);
-                break;
-            case 'admin_nice_pedigree_list':
-                $res_data = nice_admin_pedigree_list($input_json);
-                break;
-            case 'admin_nice_pedigree_action':
-                $res_data = nice_admin_pedigree_action($input_json);
-                break;
-            case 'admin_nice_member_delete':
-                $res_data = nice_admin_member_delete($input_json);
-                break;
-            case 'admin_nice_pedigree_delete':
-                $res_data = nice_admin_pedigree_delete($input_json);
-                break;
-            case 'admin_nice_get_breed_colors':
-                $res_data = nice_admin_get_breed_colors($input_json);
-                break;
-            default:
-                throw new Exception("알 수 없는 관리자 모드: $mode");
+        try {
+            switch ($mode) {
+                case 'admin_nice_member_list':
+                    $res_data = nice_admin_member_list($input_json);
+                    break;
+                case 'admin_nice_pedigree_list':
+                    $res_data = nice_admin_pedigree_list($input_json);
+                    break;
+                case 'admin_nice_pedigree_action':
+                    $res_data = nice_admin_pedigree_action($input_json);
+                    break;
+                case 'admin_nice_member_delete':
+                    $res_data = nice_admin_member_delete($input_json);
+                    break;
+                case 'admin_nice_pedigree_delete':
+                    $res_data = nice_admin_pedigree_delete($input_json);
+                    break;
+                case 'admin_nice_get_breed_colors':
+                    $res_data = nice_admin_get_breed_colors($input_json);
+                    break;
+                default:
+                    $res_data = ['success' => false, 'error' => "알 수 없는 관리자 모드: $mode"];
+            }
+        } catch (Throwable $e) {
+            $res_data = ['success' => false, 'error' => "서버 오류: " . $e->getMessage()];
         }
         
         ob_end_clean();

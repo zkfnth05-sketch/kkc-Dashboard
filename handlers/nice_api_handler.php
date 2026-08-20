@@ -801,9 +801,9 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
     ]);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     
-    // 10초 타임아웃 지정을 지정하여 망 지연 시 원활한 통신 보장
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    // 5초 타임아웃을 지정하여 관리자 화면 지연 방지 및 원활한 통신 보장
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
     
     // HTTP 응답 헤더에서 GW_RSLT_CD 추출을 위한 콜백 등록
     $response_headers = [];
@@ -1370,26 +1370,30 @@ function nice_admin_pedigree_action($input) {
             return ['success' => false, 'error' => "반려 상태 업데이트 실패: " . $err];
         }
         
-        // NICE 통보 (반려: F)
-        $nice_res = nice_notify_screening_result($conn, $req['poss_ci'], $req['reg_no'], 'F', $req['order_no'] ?? '');
-        if ($nice_res && isset($nice_res['success']) && $nice_res['success'] === true) {
-            $res_data = $nice_res['data'] ?? [];
-            $rslt_cd = $res_data['result_cd'] ?? 'F999';
-            if ($rslt_cd === 'S000') {
-                $log_messages[] = "✔ [NICE API] NICE 서버 심사 결과 반려(F) 통보 성공 (S000)";
+        // NICE 통보 (반려: F) - 안전한 통신 격리
+        try {
+            $nice_res = nice_notify_screening_result($conn, $req['poss_ci'], $req['reg_no'], 'F', $req['order_no'] ?? '');
+            if ($nice_res && isset($nice_res['success']) && $nice_res['success'] === true) {
+                $res_data = $nice_res['data'] ?? [];
+                $rslt_cd = $res_data['result_cd'] ?? 'F999';
+                if ($rslt_cd === 'S000') {
+                    $log_messages[] = "✔ [NICE API] NICE 서버 심사 결과 반려(F) 통보 성공 (S000)";
+                } else {
+                    $cd_desc = [
+                        'F001' => '소유자 CI 확인실패(미등록CI)',
+                        'F002' => '결제주문번호 확인 실패 (미심사요청 혈통서)',
+                        'F003' => '소유자 CI와 결제주문번호 불일치',
+                        'F999' => '기타 처리중 오류'
+                    ];
+                    $desc = $cd_desc[$rslt_cd] ?? '알 수 없는 오류';
+                    $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 반려(F) 통보 처리 실패: $rslt_cd ($desc)";
+                }
             } else {
-                $cd_desc = [
-                    'F001' => '소유자 CI 확인실패(미등록CI)',
-                    'F002' => '결제주문번호 확인 실패 (미심사요청 혈통서)',
-                    'F003' => '소유자 CI와 결제주문번호 불일치',
-                    'F999' => '기타 처리중 오류'
-                ];
-                $desc = $cd_desc[$rslt_cd] ?? '알 수 없는 오류';
-                $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 반려(F) 통보 처리 실패: $rslt_cd ($desc)";
+                $err_msg = isset($nice_res['error']) ? $nice_res['error'] : '통신 실패';
+                $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 반려(F) 통보 실패: " . $err_msg;
             }
-        } else {
-            $err_msg = isset($nice_res['error']) ? $nice_res['error'] : '통신 실패';
-            $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 반려(F) 통보 실패: " . $err_msg;
+        } catch (Throwable $te) {
+            $log_messages[] = "⚠ [NICE API 통신 예외] " . $te->getMessage();
         }
         
         $conn->close();
@@ -1691,26 +1695,30 @@ function nice_admin_pedigree_action($input) {
         return ['success' => false, 'error' => "심사 신청 상태 업데이트 실패: " . $err];
     }
     
-    // 5. NICE 통보 (승인: S)
-    $nice_res = nice_notify_screening_result($conn, $req['poss_ci'], $np_reg_no, 'S', $req['order_no'] ?? '');
-    if ($nice_res && isset($nice_res['success']) && $nice_res['success'] === true) {
-        $res_data = $nice_res['data'] ?? [];
-        $rslt_cd = $res_data['result_cd'] ?? 'F999';
-        if ($rslt_cd === 'S000') {
-            $log_messages[] = "✔ [NICE API] NICE 서버 심사 결과 승인(S) 통보 성공 (S000)";
+    // 5. NICE 통보 (승인: S) - 안전한 통신 격리
+    try {
+        $nice_res = nice_notify_screening_result($conn, $req['poss_ci'], $np_reg_no, 'S', $req['order_no'] ?? '');
+        if ($nice_res && isset($nice_res['success']) && $nice_res['success'] === true) {
+            $res_data = $nice_res['data'] ?? [];
+            $rslt_cd = $res_data['result_cd'] ?? 'F999';
+            if ($rslt_cd === 'S000') {
+                $log_messages[] = "✔ [NICE API] NICE 서버 심사 결과 승인(S) 통보 성공 (S000)";
+            } else {
+                $cd_desc = [
+                    'F001' => '소유자 CI 확인실패(미등록CI)',
+                    'F002' => '결제주문번호 확인 실패 (미심사요청 혈통서)',
+                    'F003' => '소유자 CI와 결제주문번호 불일치',
+                    'F999' => '기타 처리중 오류'
+                ];
+                $desc = $cd_desc[$rslt_cd] ?? '알 수 없는 오류';
+                $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 승인(S) 통보 처리 실패: $rslt_cd ($desc)";
+            }
         } else {
-            $cd_desc = [
-                'F001' => '소유자 CI 확인실패(미등록CI)',
-                'F002' => '결제주문번호 확인 실패 (미심사요청 혈통서)',
-                'F003' => '소유자 CI와 결제주문번호 불일치',
-                'F999' => '기타 처리중 오류'
-            ];
-            $desc = $cd_desc[$rslt_cd] ?? '알 수 없는 오류';
-            $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 승인(S) 통보 처리 실패: $rslt_cd ($desc)";
+            $err_msg = isset($nice_res['error']) ? $nice_res['error'] : '통신 실패';
+            $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 승인(S) 통보 실패: " . $err_msg;
         }
-    } else {
-        $err_msg = isset($nice_res['error']) ? $nice_res['error'] : '통신 실패';
-        $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 승인(S) 통보 실패: " . $err_msg;
+    } catch (Throwable $te) {
+        $log_messages[] = "⚠ [NICE API 통신 예외] " . $te->getMessage();
     }
     
     $conn->close();
