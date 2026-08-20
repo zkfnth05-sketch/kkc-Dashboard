@@ -981,25 +981,33 @@ const DetailItem: React.FC<{ label: string; value: string; fullWidth?: boolean }
   </div>
 );
 
-const ImageDocCard: React.FC<{ label: string; path?: string }> = ({ label, path }) => (
-  <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex flex-col h-48 shadow-sm">
-    <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-200 text-[10px] font-black text-slate-500 truncate">
-      {label}
-    </div>
-    <div className="flex-1 flex items-center justify-center p-2">
-      {path ? (
-        <a href={path} target="_blank" rel="noopener noreferrer" className="block w-full h-full relative group">
-          <img src={path} alt={label} className="w-full h-full object-contain rounded-lg transition-transform group-hover:scale-[1.02]" />
-          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity rounded-lg">
-            새창에서 보기
+const ImageDocCard: React.FC<{ label: string; path?: string }> = ({ label, path }) => {
+  const fullUrl = path
+    ? (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')
+        ? path
+        : `https://kkc3349.mycafe24.com${path.startsWith('/') ? '' : '/'}${path}`)
+    : undefined;
+
+  return (
+    <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex flex-col h-48 shadow-sm">
+      <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-200 text-[10px] font-black text-slate-500 truncate">
+        {label}
+      </div>
+      <div className="flex-1 flex items-center justify-center p-2">
+        {fullUrl ? (
+          <a href={fullUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-full relative group">
+            <img src={fullUrl} alt={label} className="w-full h-full object-contain rounded-lg transition-transform group-hover:scale-[1.02]" />
+            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity rounded-lg">
+              새창에서 보기
+            </div>
+          </a>
+        ) : (
+          <div className="text-center text-slate-300">
+            <ImageIcon size={32} className="mx-auto mb-1 opacity-60" />
+            <span className="text-[10px] font-bold">미첨부</span>
           </div>
-        </a>
-      ) : (
-        <div className="text-center text-slate-300">
-          <ImageIcon size={32} className="mx-auto mb-1 opacity-60" />
-          <span className="text-[10px] font-bold">미첨부</span>
-        </div>
-      )}
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};

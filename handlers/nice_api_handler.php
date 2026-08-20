@@ -289,6 +289,21 @@ function nice_handle_detail($data) {
     $father = nice_get_parent_info($conn, $dog['fa_regno']);
     $mother = nice_get_parent_info($conn, $dog['mo_regno']);
     
+    // [reg_date 발급일시 포맷팅 YYYY-MM-DD HH:MM:SS 적용]
+    $raw_reg_date = trim($dog['reg_date'] ?? '');
+    if (empty($raw_reg_date) || $raw_reg_date === '0000-00-00') {
+        $formatted_reg_date = date('Y-m-d H:i:s');
+    } else {
+        $raw_reg_date = str_replace('.', '-', $raw_reg_date);
+        if (strlen($raw_reg_date) === 10) {
+            $formatted_reg_date = $raw_reg_date . ' ' . date('H:i:s');
+        } elseif (strlen($raw_reg_date) === 8 && is_numeric($raw_reg_date)) {
+            $formatted_reg_date = substr($raw_reg_date, 0, 4) . '-' . substr($raw_reg_date, 4, 2) . '-' . substr($raw_reg_date, 6, 2) . ' ' . date('H:i:s');
+        } else {
+            $formatted_reg_date = date('Y-m-d H:i:s', strtotime($raw_reg_date)) ?: date('Y-m-d H:i:s');
+        }
+    }
+    
     $res = [
         'result_cd' => 'S000',
         'reg_no' => kkc_convert($dog['reg_no'], 'EUC-KR', true),
@@ -304,7 +319,7 @@ function nice_handle_detail($data) {
         'poss_name' => kkc_convert($dog['poss_name'], 'EUC-KR', true),
         'poss_addr' => kkc_convert($dog['poss_addr'], 'EUC-KR', true),
         'birth' => kkc_convert($dog['birth'], 'EUC-KR', true),
-        'reg_date' => kkc_convert($dog['reg_date'], 'EUC-KR', true),
+        'reg_date' => kkc_convert($formatted_reg_date, 'EUC-KR', true),
         'birth_m' => isset($dog['birth_m']) ? intval($dog['birth_m']) : 0,
         'birth_M' => isset($dog['birth_m']) ? intval($dog['birth_m']) : 0,
         'birth_f' => isset($dog['birth_f']) ? intval($dog['birth_f']) : 0,
