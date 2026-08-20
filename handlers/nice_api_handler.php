@@ -1357,7 +1357,9 @@ function nice_admin_pedigree_action($input) {
     $e_edit_hair = $conn->real_escape_string($req['hair']);
     $e_edit_breed = $conn->real_escape_string($req['dog_classTab_name']);
     $e_edit_regno = $conn->real_escape_string($req['reg_no']);
-    $conn->query("UPDATE nice_pedigree_requests SET hair = '$e_edit_hair', dog_classTab_name = '$e_edit_breed', reg_no = '$e_edit_regno' WHERE uid = $uid");
+    if (!$conn->query("UPDATE nice_pedigree_requests SET hair = '$e_edit_hair', dog_classTab_name = '$e_edit_breed', reg_no = '$e_edit_regno' WHERE uid = $uid")) {
+        throw new Exception("[Step 1 - req_update] " . $conn->error);
+    }
     
     if ($action === 'reject') {
         $log_messages = [];
@@ -1642,7 +1644,7 @@ function nice_admin_pedigree_action($input) {
             } else {
                 $err = $conn->error;
                 $conn->close();
-                return ['success' => false, 'error' => "신규 모바일 혈통서 생성 실패: " . $err];
+                return ['success' => false, 'error' => "[Step 7 - nice_dogTab INSERT 실패]: " . $err];
             }
         } else {
             $log_messages[] = "✔ [nice_dogTab] 이미 모바일 혈통서가 존재하여 생성을 건너뛰었습니다.";
@@ -1673,7 +1675,7 @@ function nice_admin_pedigree_action($input) {
     } else {
         $err = $conn->error;
         $conn->close();
-        return ['success' => false, 'error' => "모바일 혈통서 메타데이터 동기화 실패: " . $err];
+        return ['success' => false, 'error' => "[Step 8 - nice_dogTab UPDATE 실패]: " . $err];
     }
     
     // 4. 심사 요청 상태 갱신
