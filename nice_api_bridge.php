@@ -164,7 +164,7 @@ try {
                     $res_data = ['success' => false, 'error' => "알 수 없는 관리자 모드: $mode"];
             }
         } catch (Throwable $e) {
-            $res_data = ['success' => false, 'error' => "서버 오류: " . $e->getMessage()];
+            $res_data = ['success' => false, 'error' => "서버 오류 (" . basename($e->getFile()) . ":" . $e->getLine() . "): " . $e->getMessage()];
         }
         
         ob_end_clean();
