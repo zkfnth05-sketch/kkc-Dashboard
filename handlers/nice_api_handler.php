@@ -1254,7 +1254,8 @@ function nice_generate_unique_reg_no($conn, $breed_code = '', $apply_year = null
     
     $e_breed = !empty($breed_name) ? $conn->real_escape_string(kkc_convert($breed_name, 'EUC-KR', false)) : '';
     
-    // 1. nice_dogTab (발급 완료 모바일 혈통서) 탐색
+    // 1. nice_dogTab (발급 완료 모바일 혈통서 - EUC-KR 테이블) 탐색
+    $conn->query("SET NAMES 'binary'");
     $sql1 = "SELECT reg_no FROM nice_dogTab WHERE reg_no LIKE '$prefix_esc%'";
     if (!empty($e_breed)) {
         $sql1 .= " AND (dog_class = '$e_breed' OR breed_name = '$e_breed')";
@@ -1270,7 +1271,8 @@ function nice_generate_unique_reg_no($conn, $breed_code = '', $apply_year = null
         }
     }
 
-    // 2. nice_pedigree_requests (모바일 심사 신청 내역) 탐색
+    // 2. nice_pedigree_requests (모바일 심사 신청 내역 - utf8mb4 테이블) 탐색
+    $conn->query("SET NAMES 'utf8mb4'");
     $sql2 = "SELECT reg_no FROM nice_pedigree_requests WHERE reg_no LIKE '$prefix_esc%'";
     if (!empty($breed_name)) {
         $e_b_utf8 = $conn->real_escape_string($breed_name);
