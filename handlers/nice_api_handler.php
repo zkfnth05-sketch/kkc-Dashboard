@@ -1485,15 +1485,15 @@ function nice_admin_pedigree_action($input) {
                 $keyy = kkc_convert(trim($breed_chk2->fetch_assoc()['keyy'] ?? ''), 'EUC-KR', true);
             }
         }
-        $conn->query("SET NAMES 'binary'");
-        
         $generated_reg_no = nice_generate_unique_reg_no($conn, $keyy, null, $breed_name_utf8);
         $np_reg_no = (strpos($generated_reg_no, '-NP') !== false) ? $generated_reg_no : ($generated_reg_no . '-NP');
         
-        // nice_pedigree_requests의 reg_no도 생성된 고유 번호로 동기화 업데이트
-        $conn->query("UPDATE nice_pedigree_requests SET reg_no = '" . $conn->real_escape_string(kkc_convert($np_reg_no, 'EUC-KR', false)) . "' WHERE uid = $uid");
+        // nice_pedigree_requests (utf8mb4 테이블)에 reg_no 동기화 업데이트
+        $conn->query("SET NAMES 'utf8mb4'");
+        $conn->query("UPDATE nice_pedigree_requests SET reg_no = '" . $conn->real_escape_string($np_reg_no) . "' WHERE uid = $uid");
     }
     
+    $conn->query("SET NAMES 'binary'");
     $e_np_reg = $conn->real_escape_string(kkc_convert($np_reg_no, 'EUC-KR', false));
     $log_messages = [];
 
