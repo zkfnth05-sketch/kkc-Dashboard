@@ -1401,12 +1401,47 @@ function nice_admin_pedigree_action($input) {
     }
     
     // [승인 처리 로직]
-    // 2. 소유주의 mid/id 확인 (NICE 핀 CI 인증 회원만 안전하게 단일 조회)
+    // 2. 소유주의 mid/id 확인
+    // 2-1. 1차 조회: NICE 핀(nice_ci)으로 이미 인증된 회원인지 확인
     $conn->query("SET NAMES 'binary'");
     $e_ci = $conn->real_escape_string($req['poss_ci']);
     $usr = $conn->query("SELECT id, name, mid, birth, hp FROM memTab WHERE nice_ci = '$e_ci' LIMIT 1")->fetch_assoc();
     if (!$usr) {
         $usr = $conn->query("SELECT id, name, mid, birth, hp FROM nice_memTab WHERE nice_ci = '$e_ci' LIMIT 1")->fetch_assoc();
+    }
+
+    // 2-2. 2차 조회: 아직 CI가 연동되지 않은 협회 기존 회원인 경우 [이름 + 전화번호]로 계정 자동 매칭
+    if (!$usr && (!empty($req['poss_name']) || !empty($req['req_name']))) {
+        $req_name = trim(!empty($req['poss_name']) ? $req['poss_name'] : $req['req_name']);
+        $req_mobile = trim($req['req_mobile'] ?? '');
+        $clean_hp = preg_replace('/[^0-9]/', '', $req_mobile);
+        
+        if (!empty($req_name) && !empty($clean_hp)) {
+            $e_name_euc = $conn->real_escape_string(kkc_convert($req_name, 'EUC-KR', false));
+            $e_name_utf8 = $conn->real_escape_string($req_name);
+            
+            $sql_match = "SELECT mid, id, name, birth, hp FROM memTab 
+                WHERE (name = '$e_name_euc' OR name = '$e_name_utf8')
+                AND (
+                    REPLACE(REPLACE(hp, '-', ''), ' ', '') = '$clean_hp'
+                    OR REPLACE(REPLACE(tel, '-', ''), ' ', '') = '$clean_hp'
+                    OR REPLACE(REPLACE(phone, '-', ''), ' ', '') = '$clean_hp'
+                ) LIMIT 1";
+            $match_res = $conn->query($sql_match);
+            
+            if ($match_res && $match_res->num_rows > 0) {
+                $usr = $match_res->fetch_assoc();
+                
+                // 기존 회원 계정에 이번 NICE CI만 안전하게 자동 연동 (birth 수정 제외로 인코딩 에러 원천 차단)
+                if (!empty($usr['mid']) && !empty($e_ci)) {
+                    try {
+                        $conn->query("UPDATE memTab SET nice_ci = '$e_ci', nice_verified_at = NOW() WHERE mid = " . intval($usr['mid']));
+                    } catch (Throwable $e) {
+                        // CI 업데이트 실패 시에도 메인 혈통서 발급은 안전하게 계속 진행
+                    }
+                }
+            }
+        }
     }
     $poss_id = $usr ? $usr['id'] : '';
     
