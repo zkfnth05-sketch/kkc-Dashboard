@@ -1289,7 +1289,8 @@ function nice_generate_unique_reg_no($conn, $breed_code = '', $apply_year = null
         }
     }
     
-    // 3. dogTab (레거시 DB) 탐색
+    // 3. dogTab (레거시 DB - EUC-KR 테이블) 탐색
+    $conn->query("SET NAMES 'binary'");
     $sql3 = "SELECT reg_no FROM dogTab WHERE reg_no LIKE '$prefix_esc%'";
     if (!empty($e_breed)) {
         $sql3 .= " AND dog_class = '$e_breed'";
