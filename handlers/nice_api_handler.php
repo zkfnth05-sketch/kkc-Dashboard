@@ -1401,57 +1401,12 @@ function nice_admin_pedigree_action($input) {
     }
     
     // [승인 처리 로직]
-    // 2. 소유주의 mid/id 확인 (NICE CI 1차 조회 - EUC-KR 테이블 인코딩 안전을 위해 binary 설정)
+    // 2. 소유주의 mid/id 확인 (NICE 핀 CI 인증 회원만 안전하게 단일 조회)
     $conn->query("SET NAMES 'binary'");
     $e_ci = $conn->real_escape_string($req['poss_ci']);
     $usr = $conn->query("SELECT id, name, mid, birth, hp FROM memTab WHERE nice_ci = '$e_ci' LIMIT 1")->fetch_assoc();
     if (!$usr) {
         $usr = $conn->query("SELECT id, name, mid, birth, hp FROM nice_memTab WHERE nice_ci = '$e_ci' LIMIT 1")->fetch_assoc();
-    }
-
-    // 2-2. CI가 아직 없는 기존 알리고/레거시 회원 매칭: [성명 + 전화번호] 2가지 기반 매칭 및 생년월일/CI 보완
-    if (!$usr && (!empty($req['poss_name']) || !empty($req['req_name']))) {
-        $req_name = trim(!empty($req['poss_name']) ? $req['poss_name'] : $req['req_name']);
-        $req_mobile = trim($req['req_mobile'] ?? '');
-        $req_birth = trim($req['birth'] ?? '');
-        
-        $clean_hp = preg_replace('/[^0-9]/', '', $req_mobile);
-        
-        if (!empty($req_name) && !empty($clean_hp)) {
-            $conn->query("SET NAMES 'binary'");
-            $e_name_euc = $conn->real_escape_string(kkc_convert($req_name, 'EUC-KR', false));
-            $e_name_utf8 = $conn->real_escape_string($req_name);
-            
-            // 성명 + (휴대폰번호 hp 또는 일반전화번호 tel/phone) 2개 연락처 필드 모두 교차 매칭
-            $sql_match = "SELECT mid, id, name, birth, hp FROM memTab 
-                WHERE (name = '$e_name_euc' OR name = '$e_name_utf8')
-                AND (
-                    REPLACE(REPLACE(hp, '-', ''), ' ', '') = '$clean_hp'
-                    OR REPLACE(REPLACE(tel, '-', ''), ' ', '') = '$clean_hp'
-                    OR REPLACE(REPLACE(phone, '-', ''), ' ', '') = '$clean_hp'
-                ) LIMIT 1";
-            $match_res = $conn->query($sql_match);
-            
-            if ($match_res && $match_res->num_rows > 0) {
-                $usr = $match_res->fetch_assoc();
-                
-                // 기존 레거시 회원 계정에 이번 NICE CI 및 검증된 올바른 생년월일 자동 업데이트
-                if (!empty($usr['mid'])) {
-                    $update_fields = [];
-                    if (!empty($e_ci)) $update_fields[] = "nice_ci = '$e_ci'";
-                    $update_fields[] = "nice_verified_at = NOW()";
-                    
-                    // 정확한 NICE 인증 생년월일 정보가 전달되었다면 생년월일 오기/누락 보정
-                    if (!empty($req_birth)) {
-                        $update_fields[] = "birth = '" . $conn->real_escape_string(kkc_convert($req_birth, 'EUC-KR', false)) . "'";
-                    }
-                    
-                    if (count($update_fields) > 0) {
-                        $conn->query("UPDATE memTab SET " . implode(', ', $update_fields) . " WHERE mid = " . intval($usr['mid']));
-                    }
-                }
-            }
-        }
     }
     $poss_id = $usr ? $usr['id'] : '';
     
