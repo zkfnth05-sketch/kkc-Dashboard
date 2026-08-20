@@ -1425,11 +1425,8 @@ function nice_admin_pedigree_action($input) {
             
             $sql_match = "SELECT mid, id, name, birth, hp FROM memTab 
                 WHERE name = '$e_name_euc'
-                AND (
-                    REPLACE(REPLACE(hp, '-', ''), ' ', '') = '$clean_hp'
-                    OR REPLACE(REPLACE(tel, '-', ''), ' ', '') = '$clean_hp'
-                    OR REPLACE(REPLACE(phone, '-', ''), ' ', '') = '$clean_hp'
-                ) LIMIT 1";
+                AND REPLACE(REPLACE(hp, '-', ''), ' ', '') = '$clean_hp'
+                LIMIT 1";
             $match_res = $conn->query($sql_match);
             
             if ($match_res && $match_res->num_rows > 0) {
