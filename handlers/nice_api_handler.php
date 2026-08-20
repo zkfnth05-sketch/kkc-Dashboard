@@ -1421,7 +1421,7 @@ function nice_admin_pedigree_action($input) {
             $e_name_utf8 = $conn->real_escape_string($req_name);
             
             $sql_match = "SELECT mid, id, name, birth, hp FROM memTab 
-                WHERE (name = '$e_name_euc' OR name = '$e_name_utf8')
+                WHERE name = '$e_name_euc'
                 AND (
                     REPLACE(REPLACE(hp, '-', ''), ' ', '') = '$clean_hp'
                     OR REPLACE(REPLACE(tel, '-', ''), ' ', '') = '$clean_hp'
