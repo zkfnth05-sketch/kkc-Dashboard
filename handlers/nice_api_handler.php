@@ -30,6 +30,41 @@ if (!function_exists('kkc_convert')) {
 }
 
 /**
+ * 📅 단순 날짜 YYYYMMDD (8자리) 통일 포맷터
+ */
+if (!function_exists('nice_format_date_ymd')) {
+    function nice_format_date_ymd($d) {
+        if (empty($d) || $d === '0000-00-00' || $d === '00000000') return '';
+        $raw = preg_replace('/[^0-9]/', '', (string)$d);
+        if (strlen($raw) >= 8) {
+            return substr($raw, 0, 8);
+        }
+        $ts = strtotime((string)$d);
+        return $ts ? date('Ymd', $ts) : '';
+    }
+}
+
+/**
+ * 🕒 일시 YYYYMMDDHHmmss (14자리) 통일 포맷터
+ */
+if (!function_exists('nice_format_datetime_ymdhis')) {
+    function nice_format_datetime_ymdhis($dt) {
+        if (empty($dt) || $dt === '0000-00-00' || $dt === '0000-00-00 00:00:00') {
+            return date('YmdHis');
+        }
+        $raw = preg_replace('/[^0-9]/', '', (string)$dt);
+        if (strlen($raw) === 14) {
+            return $raw;
+        }
+        if (strlen($raw) === 8) {
+            return $raw . date('His');
+        }
+        $ts = strtotime((string)$dt);
+        return $ts ? date('YmdHis', $ts) : date('YmdHis');
+    }
+}
+
+/**
  * 🔒 포털 DB 연결 객체 반환 함수
  */
 if (!function_exists('get_kkc_portal_db')) {
@@ -289,20 +324,8 @@ function nice_handle_detail($data) {
     $father = nice_get_parent_info($conn, $dog['fa_regno']);
     $mother = nice_get_parent_info($conn, $dog['mo_regno']);
     
-    // [reg_date 발급일시 포맷팅 YYYY-MM-DD HH:MM:SS 적용]
-    $raw_reg_date = trim($dog['reg_date'] ?? '');
-    if (empty($raw_reg_date) || $raw_reg_date === '0000-00-00') {
-        $formatted_reg_date = date('Y-m-d H:i:s');
-    } else {
-        $raw_reg_date = str_replace('.', '-', $raw_reg_date);
-        if (strlen($raw_reg_date) === 10) {
-            $formatted_reg_date = $raw_reg_date . ' ' . date('H:i:s');
-        } elseif (strlen($raw_reg_date) === 8 && is_numeric($raw_reg_date)) {
-            $formatted_reg_date = substr($raw_reg_date, 0, 4) . '-' . substr($raw_reg_date, 4, 2) . '-' . substr($raw_reg_date, 6, 2) . ' ' . date('H:i:s');
-        } else {
-            $formatted_reg_date = date('Y-m-d H:i:s', strtotime($raw_reg_date)) ?: date('Y-m-d H:i:s');
-        }
-    }
+    $formatted_birth = nice_format_date_ymd($dog['birth'] ?? '');
+    $formatted_reg_date = nice_format_datetime_ymdhis($dog['reg_date'] ?? '');
     
     $res = [
         'result_cd' => 'S000',
@@ -318,8 +341,8 @@ function nice_handle_detail($data) {
         'breed_addr' => kkc_convert($dog['breed_addr'], 'EUC-KR', true),
         'poss_name' => kkc_convert($dog['poss_name'], 'EUC-KR', true),
         'poss_addr' => kkc_convert($dog['poss_addr'], 'EUC-KR', true),
-        'birth' => kkc_convert($dog['birth'], 'EUC-KR', true),
-        'reg_date' => kkc_convert($formatted_reg_date, 'EUC-KR', true),
+        'birth' => $formatted_birth,
+        'reg_date' => $formatted_reg_date,
         'birth_m' => isset($dog['birth_m']) ? intval($dog['birth_m']) : 0,
         'birth_M' => isset($dog['birth_m']) ? intval($dog['birth_m']) : 0,
         'birth_f' => isset($dog['birth_f']) ? intval($dog['birth_f']) : 0,
@@ -571,22 +594,24 @@ function nice_handle_refund($data) {
     $conn = get_kkc_portal_db();
     nice_api_db_init($conn);
     
-    // ① 4개 필수 파라미터 수신 (엑셀 R105~R108)
+    // ① 파라미터 수신 (order_no 기준 식별)
     $req_ci      = $conn->real_escape_string($data['req_ci'] ?? '');
     $reg_no      = $conn->real_escape_string($data['reg_no'] ?? '');
     $order_no    = $conn->real_escape_string($data['order_no'] ?? '');
     $refund_dttm = $conn->real_escape_string($data['refund_dttm'] ?? '');
     
-    // ② 필수 파라미터 누락 검증 → F100
-    if (empty($req_ci) || empty($reg_no) || empty($order_no) || empty($refund_dttm)) {
+    // ② 필수 파라미터 누락 검증 (발급 전 환불 시 reg_no는 미채번 상태이므로 빈값 허용)
+    if (empty($req_ci) || empty($order_no) || empty($refund_dttm)) {
         $conn->close();
         return ['result_cd' => 'F100']; // F100: 필수 파라미터 누락
     }
     
-    // ③ order_no + reg_no 2중 교차 검증 → F601
-    $chk = $conn->query("SELECT uid, status, poss_ci FROM nice_pedigree_requests WHERE order_no = '$order_no' AND reg_no = '$reg_no' LIMIT 1");
+    // ③ order_no 기준 대상 조회 (reg_no 있는 경우 2중 교차 검증)
+    $chk = null;
+    if (!empty($reg_no)) {
+        $chk = $conn->query("SELECT uid, status, poss_ci FROM nice_pedigree_requests WHERE order_no = '$order_no' AND reg_no = '$reg_no' LIMIT 1");
+    }
     if (!$chk || $chk->num_rows === 0) {
-        // order_no만으로 2차 시도 (reg_no가 아직 미할당된 케이스 대비)
         $chk = $conn->query("SELECT uid, status, poss_ci FROM nice_pedigree_requests WHERE order_no = '$order_no' LIMIT 1");
         if (!$chk || $chk->num_rows === 0) {
             $conn->close();
@@ -909,23 +934,8 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
         $plain['breed_addr'] = kkc_convert($dog['breed_addr'] ?? ($req['breed_addr'] ?? ''), 'EUC-KR', true);
         $plain['poss_name'] = kkc_convert($dog['poss_name'] ?? ($req['poss_name'] ?? ($req['req_name'] ?? '')), 'EUC-KR', true);
         $plain['poss_addr'] = kkc_convert($dog['poss_addr'] ?? ($req['poss_addr'] ?? ''), 'EUC-KR', true);
-        $plain['birth'] = kkc_convert($dog['birth'] ?? ($req['birth'] ?? ''), 'EUC-KR', true);
-
-        // [reg_date 발급일시 포맷팅 YYYY-MM-DD HH:MM:SS 적용]
-        $raw_reg_date = trim($dog['reg_date'] ?? ($req['reg_date'] ?? ''));
-        if (empty($raw_reg_date) || $raw_reg_date === '0000-00-00') {
-            $formatted_reg_date = date('Y-m-d H:i:s');
-        } else {
-            $raw_reg_date = str_replace('.', '-', $raw_reg_date);
-            if (strlen($raw_reg_date) === 10) {
-                $formatted_reg_date = $raw_reg_date . ' ' . date('H:i:s');
-            } elseif (strlen($raw_reg_date) === 8 && is_numeric($raw_reg_date)) {
-                $formatted_reg_date = substr($raw_reg_date, 0, 4) . '-' . substr($raw_reg_date, 4, 2) . '-' . substr($raw_reg_date, 6, 2) . ' ' . date('H:i:s');
-            } else {
-                $formatted_reg_date = date('Y-m-d H:i:s', strtotime($raw_reg_date)) ?: date('Y-m-d H:i:s');
-            }
-        }
-        $plain['reg_date'] = kkc_convert($formatted_reg_date, 'EUC-KR', true);
+        $plain['birth'] = nice_format_date_ymd($dog['birth'] ?? ($req['birth'] ?? ''));
+        $plain['reg_date'] = nice_format_datetime_ymdhis($dog['reg_date'] ?? ($req['reg_date'] ?? ''));
 
         $plain['birth_m'] = isset($dog['birth_m']) ? intval($dog['birth_m']) : (isset($req['birth_m']) ? intval($req['birth_m']) : 0);
         $plain['birth_f'] = isset($dog['birth_f']) ? intval($dog['birth_f']) : (isset($req['birth_f']) ? intval($req['birth_f']) : 0);
@@ -958,23 +968,8 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
             $plain['breed_addr']        = kkc_convert($req['breed_addr'] ?? '', 'EUC-KR', true);
             $plain['poss_name']         = kkc_convert($req['poss_name'] ?? ($req['req_name'] ?? ''), 'EUC-KR', true);
             $plain['poss_addr']         = kkc_convert($req['poss_addr'] ?? '', 'EUC-KR', true);
-            $plain['birth']             = kkc_convert($req['birth'] ?? '', 'EUC-KR', true);
-            
-            // [반려 시 reg_date 발급일시 포맷팅 YYYY-MM-DD HH:MM:SS 적용]
-            $raw_rej_date = trim($req['reg_date'] ?? '');
-            if (empty($raw_rej_date) || $raw_rej_date === '0000-00-00') {
-                $formatted_rej_date = date('Y-m-d H:i:s');
-            } else {
-                $raw_rej_date = str_replace('.', '-', $raw_rej_date);
-                if (strlen($raw_rej_date) === 10) {
-                    $formatted_rej_date = $raw_rej_date . ' ' . date('H:i:s');
-                } elseif (strlen($raw_rej_date) === 8 && is_numeric($raw_rej_date)) {
-                    $formatted_rej_date = substr($raw_rej_date, 0, 4) . '-' . substr($raw_rej_date, 4, 2) . '-' . substr($raw_rej_date, 6, 2) . ' ' . date('H:i:s');
-                } else {
-                    $formatted_rej_date = date('Y-m-d H:i:s', strtotime($raw_rej_date)) ?: date('Y-m-d H:i:s');
-                }
-            }
-            $plain['reg_date']          = kkc_convert($formatted_rej_date, 'EUC-KR', true);
+            $plain['birth']             = nice_format_date_ymd($req['birth'] ?? '');
+            $plain['reg_date']          = !empty($req['reg_date']) ? nice_format_datetime_ymdhis($req['reg_date']) : '';
 
             $plain['birth_m']           = intval($req['birth_m'] ?? 0);
             $plain['birth_f']           = intval($req['birth_f'] ?? 0);
@@ -993,7 +988,7 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
     
     $env = defined('NICE_API_ENV') ? NICE_API_ENV : 'UAT';
     $product_id = ($env === 'PROD') 
-        ? (defined('NICE_PRODUCT_ID_RESULT_PROD') ? NICE_PRODUCT_ID_RESULT_PROD : '2601228117')
+        ? (defined('NICE_PRODUCT_ID_RESULT_PROD') ? NICE_PRODUCT_ID_RESULT_PROD : '2601941116')
         : (defined('NICE_PRODUCT_ID_RESULT_UAT') ? NICE_PRODUCT_ID_RESULT_UAT : '2601687173');
     return nice_outbound_call('/pet/pedigree/result', $product_id, $plain);
 }
@@ -1010,7 +1005,7 @@ function nice_notify_ownership_transfer($poss_ci, $move_ci, $reg_no) {
     $env = defined('NICE_API_ENV') ? NICE_API_ENV : 'UAT';
     $product_id = ($env === 'PROD') 
         ? (defined('NICE_PRODUCT_ID_TRANSFER_PROD') ? NICE_PRODUCT_ID_TRANSFER_PROD : '2601941116')
-        : (defined('NICE_PRODUCT_ID_TRANSFER_UAT') ? NICE_PRODUCT_ID_TRANSFER_UAT : '2601981174');
+        : (defined('NICE_PRODUCT_ID_TRANSFER_UAT') ? NICE_PRODUCT_ID_TRANSFER_UAT : '2601687173');
     return nice_outbound_call('/pet/pedigree/transfer', $product_id, $plain);
 }
 

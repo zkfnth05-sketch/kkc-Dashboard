@@ -188,7 +188,7 @@ if ($test === 'api004_approve') {
         'micro'=>'900000000000001', 'sex'=>'수', 'hair'=>'황',
         'breed_name'=>'테스트견사', 'breed_addr'=>'서울시 강남구 테스트로 1',
         'poss_name'=>'홍길동', 'poss_addr'=>'서울시 강남구 테헤란로 1',
-        'birth'=>'2023-01-01', 'reg_date'=>date('Y-m-d'),
+        'birth'=>'20230101', 'reg_date'=>date('YmdHis'),
         'birth_m'=>3, 'birth_f'=>3, 'reg_count_m'=>1, 'reg_count_f'=>0,
         'father_name'=>'부견테스트', 'father_reg_no'=>'KSZ-C64001-NP', 'father_saho'=>'FA-001',
         'mother_name'=>'모견테스트', 'mother_reg_no'=>'KSZ-C64002-NP', 'mother_saho'=>'MO-001',
@@ -210,7 +210,7 @@ if ($test === 'api004_reject') {
         'micro'=>'900000000000001', 'sex'=>'수', 'hair'=>'황',
         'breed_name'=>'테스트견사', 'breed_addr'=>'서울시 강남구 테스트로 1',
         'poss_name'=>'홍길동', 'poss_addr'=>'서울시 강남구 테헤란로 1',
-        'birth'=>'2023-01-01', 'reg_date'=>'',
+        'birth'=>'20230101', 'reg_date'=>'',
         'birth_m'=>3, 'birth_f'=>3, 'reg_count_m'=>1, 'reg_count_f'=>0,
         'father_name'=>'', 'father_reg_no'=>'', 'father_saho'=>'',
         'mother_name'=>'', 'mother_reg_no'=>'', 'mother_saho'=>'',
@@ -230,7 +230,7 @@ if ($test === 'api005') {
         'move_ci'=>'MOVECI88XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
         'reg_no'=>'KSZ-C65001-NP'
     ];
-    show_result(nice_call($HOST, '/pet/pedigree/transfer', '2601981174',
+    show_result(nice_call($HOST, '/pet/pedigree/transfer', '2601687173',
         $plain, $AES_KEY, $AES_IV, $HMAC_KEY, $CLIENT_ID, $CLIENT_SEC, $KEY_VER));
 }
 
