@@ -1364,21 +1364,24 @@ function nice_admin_pedigree_action($input) {
         $conn->query("SET NAMES 'utf8mb4'"); // 한글 반려 사유 처리를 위해 명시적으로 utf8mb4 설정
         $res_req = $conn->query("UPDATE nice_pedigree_requests SET status = 'N', admin_memo = '$admin_memo' WHERE uid = $uid");
         if ($res_req) {
-            $log_messages[] = "✔ [nice_pedigree_requests] 심사 신청 상태 반려(N)로 업데이트 완료";
+            $log_messages[] = "✔ [심사 신청 상태] 반려(N)로 정상 업데이트 완료";
         } else {
             $err = $conn->error;
             $conn->close();
-            return ['success' => false, 'error' => "반려 상태 업데이트 실패: " . $err];
+            return ['success' => false, 'error' => "❌ [KKC 내부 DB 오류] 반려 상태 업데이트 실패: " . $err];
         }
         
         // NICE 통보 (반려: F) - 안전한 통신 격리
+        $nice_status_msg = "";
+        $is_nice_success = false;
         try {
             $nice_res = nice_notify_screening_result($conn, $req['poss_ci'], $req['reg_no'], 'F', $req['order_no'] ?? '');
             if ($nice_res && isset($nice_res['success']) && $nice_res['success'] === true) {
                 $res_data = $nice_res['data'] ?? [];
                 $rslt_cd = $res_data['result_cd'] ?? 'F999';
                 if ($rslt_cd === 'S000') {
-                    $log_messages[] = "✔ [NICE API] NICE 서버 심사 결과 반려(F) 통보 성공 (S000)";
+                    $is_nice_success = true;
+                    $nice_status_msg = "✔ [NICE 서버 통보] 정상 완료 (응답코드: S000)";
                 } else {
                     $cd_desc = [
                         'F001' => '소유자 CI 확인실패(미등록CI)',
@@ -1387,18 +1390,30 @@ function nice_admin_pedigree_action($input) {
                         'F999' => '기타 처리중 오류'
                     ];
                     $desc = $cd_desc[$rslt_cd] ?? '알 수 없는 오류';
-                    $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 반려(F) 통보 처리 실패: $rslt_cd ($desc)";
+                    $nice_status_msg = "⚠ [NICE 서버 처리 실패] $rslt_cd ($desc)";
                 }
             } else {
                 $err_msg = isset($nice_res['error']) ? $nice_res['error'] : '통신 실패';
-                $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 반려(F) 통보 실패: " . $err_msg;
+                $nice_status_msg = "⚠ [NICE 서버 통보 실패] " . $err_msg;
             }
         } catch (Throwable $te) {
-            $log_messages[] = "⚠ [NICE API 통신 예외] " . $te->getMessage();
+            $nice_status_msg = "⚠ [NICE 서버 통신 예외] " . $te->getMessage();
         }
         
         $conn->close();
-        return ['success' => true, 'message' => "❌ [반려 되었습니다]\n\n" . implode("\n", $log_messages)];
+        
+        $final_title = $is_nice_success
+            ? "❌ [혈통서 심사 반려 완료]"
+            : "⚠️ [KKC 반려 처리 완료 / NICE 통보 주의]";
+            
+        $summary = $final_title . "\n\n"
+            . "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            . "1️⃣ [1단계: KKC 내부 DB 처리]\n"
+            . implode("\n", $log_messages) . "\n\n"
+            . "2️⃣ [2단계: NICE 서버 통보]\n"
+            . $nice_status_msg;
+            
+        return ['success' => true, 'is_nice_success' => $is_nice_success, 'message' => $summary];
     }
     
     // [승인 처리 로직]
@@ -1677,21 +1692,24 @@ function nice_admin_pedigree_action($input) {
     $conn->query("SET NAMES 'utf8mb4'");
     $res_req = $conn->query("UPDATE nice_pedigree_requests SET status = 'Y', admin_memo = '$admin_memo' WHERE uid = $uid");
     if ($res_req) {
-        $log_messages[] = "✔ [nice_pedigree_requests] 심사 신청 상태 승인(Y)으로 업데이트 완료";
+        $log_messages[] = "✔ [심사 신청 상태] 승인(Y)으로 정상 업데이트 완료";
     } else {
         $err = $conn->error;
         $conn->close();
-        return ['success' => false, 'error' => "심사 신청 상태 업데이트 실패: " . $err];
+        return ['success' => false, 'error' => "❌ [KKC 내부 DB 오류] 심사 신청 상태 업데이트 실패: " . $err];
     }
     
     // 5. NICE 통보 (승인: S) - 안전한 통신 격리
+    $nice_status_msg = "";
+    $is_nice_success = false;
     try {
         $nice_res = nice_notify_screening_result($conn, $req['poss_ci'], $np_reg_no, 'S', $req['order_no'] ?? '');
         if ($nice_res && isset($nice_res['success']) && $nice_res['success'] === true) {
             $res_data = $nice_res['data'] ?? [];
             $rslt_cd = $res_data['result_cd'] ?? 'F999';
             if ($rslt_cd === 'S000') {
-                $log_messages[] = "✔ [NICE API] NICE 서버 심사 결과 승인(S) 통보 성공 (S000)";
+                $is_nice_success = true;
+                $nice_status_msg = "✔ [NICE 서버 통보] 정상 완료 (응답코드: S000)";
             } else {
                 $cd_desc = [
                     'F001' => '소유자 CI 확인실패(미등록CI)',
@@ -1700,18 +1718,30 @@ function nice_admin_pedigree_action($input) {
                     'F999' => '기타 처리중 오류'
                 ];
                 $desc = $cd_desc[$rslt_cd] ?? '알 수 없는 오류';
-                $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 승인(S) 통보 처리 실패: $rslt_cd ($desc)";
+                $nice_status_msg = "⚠ [NICE 서버 처리 실패] $rslt_cd ($desc)";
             }
         } else {
             $err_msg = isset($nice_res['error']) ? $nice_res['error'] : '통신 실패';
-            $log_messages[] = "⚠ [NICE API] NICE 서버 심사 결과 승인(S) 통보 실패: " . $err_msg;
+            $nice_status_msg = "⚠ [NICE 서버 통보 실패] " . $err_msg;
         }
     } catch (Throwable $te) {
-        $log_messages[] = "⚠ [NICE API 통신 예외] " . $te->getMessage();
+        $nice_status_msg = "⚠ [NICE 서버 통신 예외] " . $te->getMessage();
     }
     
     $conn->close();
-    return ['success' => true, 'message' => "🎉 [발급이 완료 되었습니다]\n\n" . implode("\n", $log_messages)];
+    
+    $final_title = $is_nice_success 
+        ? "🎉 [모바일 혈통서 발급 및 나이스 통보 완료]" 
+        : "⚠️ [KKC 발급 완료 / 나이스 서버 통보 주의]";
+        
+    $summary = $final_title . "\n\n"
+        . "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        . "1️⃣ [1단계: KKC 내부 DB 처리]\n"
+        . implode("\n", $log_messages) . "\n\n"
+        . "2️⃣ [2단계: NICE 서버 통보]\n"
+        . $nice_status_msg;
+        
+    return ['success' => true, 'is_nice_success' => $is_nice_success, 'message' => $summary];
 }
 
 /**

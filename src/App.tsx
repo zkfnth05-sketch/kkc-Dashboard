@@ -34,13 +34,13 @@ const GlobalModal = ({ isOpen, type, title, message, onConfirm, onCancel }: any)
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden border">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             {type === 'confirm' ? <AlertCircle className="text-orange-500" size={24} /> : <CheckCircle className="text-green-500" size={24} />}
             <h3 className="text-lg font-bold text-gray-800">{title}</h3>
           </div>
-          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{message}</p>
+          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line max-h-[60vh] overflow-y-auto">{message}</p>
         </div>
         <div className="bg-gray-50 p-4 flex justify-end gap-2 border-t">
           {type === 'confirm' && <button onClick={onCancel} className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded transition-colors">취소</button>}

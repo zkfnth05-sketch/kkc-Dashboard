@@ -359,12 +359,17 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
         try {
           const res = await niceAdminPedigreeAction(selectedPedigree.uid, action, actionMemo, editHair, editBreed, editRegNo);
           if (res && res.success) {
-            showAlert(action === 'approve' ? '발급 승인 완료' : '반려 완료', res.message || `${actionText} 처리가 완료되었습니다.`);
+            const isWarning = res.is_nice_success === false || (typeof res.message === 'string' && res.message.includes('⚠'));
+            const popupTitle = isWarning
+              ? (action === 'approve' ? '⚠️ 발급 완료 (나이스 통보 확인 필요)' : '⚠️ 반려 완료 (나이스 통보 확인 필요)')
+              : (action === 'approve' ? '🎉 발급 승인 완료' : '❌ 반려 처리 완료');
+            
+            showAlert(popupTitle, res.message || `${actionText} 처리가 완료되었습니다.`);
             setActionMemo('');
             setSelectedPedigree(null); // 상세 보기 모달 창을 닫아 데이터 갱신을 즉시 체감할 수 있도록 함
             loadData();
           } else {
-            showAlert('처리 실패', res.error || '서버 오류가 발생했습니다.');
+            showAlert('❌ [KKC 내부 DB 오류] 처리 실패', res?.error || '서버 오류가 발생했습니다.');
           }
         } catch (e) {
           console.error(e);
