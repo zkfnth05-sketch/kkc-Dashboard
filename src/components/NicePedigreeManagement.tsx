@@ -345,6 +345,25 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
   const handleAction = async (action: 'approve' | 'reject') => {
     if (!selectedPedigree) return;
 
+    if (action === 'approve') {
+      if (!selectedGroup || !selectedGroup.trim()) {
+        showAlert('견종 그룹 선택 필요', '견종 그룹을 먼저 선택해 주세요.');
+        return;
+      }
+      if (!editBreed || !editBreed.trim()) {
+        showAlert('견종 선택 필요', '견종을 선택해 주세요.');
+        return;
+      }
+      if (!editHair || !editHair.trim()) {
+        showAlert('모색 입력 필요', '모색(털 색상)을 선택하거나 입력해 주세요.');
+        return;
+      }
+      if (!editRegNo || !editRegNo.trim()) {
+        showAlert('등록번호 입력 필요', '등록번호를 자동 부여하거나 직접 입력해 주세요.');
+        return;
+      }
+    }
+
     if (action === 'reject' && !actionMemo.trim()) {
       showAlert('반려 사유 누락', '반려 사유(의견)를 작성한 후에 반려 처리를 진행해 주세요.');
       return;

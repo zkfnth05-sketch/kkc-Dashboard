@@ -16,7 +16,7 @@ if (file_exists(dirname(__FILE__) . '/../nice_api_config.php')) {
 
 if (!defined('ABSPATH')) exit;
 
-// 🎯 [지능형 인코딩 변환기]
+// 🎯 [지능형 인코딩 변환기 - 이중 인코딩 방지 안전 필터 적용]
 if (!function_exists('kkc_convert')) {
     function kkc_convert($data, $enc = 'EUC-KR', $to_utf8 = true) {
         if (is_array($data)) {
@@ -25,12 +25,23 @@ if (!function_exists('kkc_convert')) {
         }
         if (!is_string($data) || $data === '') return $data;
         if (strtoupper($enc) === 'UTF-8') return $data;
-        return $to_utf8 ? @mb_convert_encoding($data, 'UTF-8', 'CP949') : @mb_convert_encoding($data, 'CP949', 'UTF-8');
+        
+        if ($to_utf8) {
+            // 🛡️ 이미 정상적인 UTF-8 한글/문자열인 경우 다시 변환하여 깨지는 것(이중 인코딩/모지바케) 원천 차단
+            if (mb_check_encoding($data, 'UTF-8') && preg_match('/[\x{ac00}-\x{d7a3}]/u', $data)) {
+                return $data;
+            }
+            return @mb_convert_encoding($data, 'UTF-8', 'CP949, EUC-KR');
+        } else {
+            // UTF-8 -> CP949 변환
+            if (!mb_check_encoding($data, 'UTF-8')) return $data;
+            return @mb_convert_encoding($data, 'CP949', 'UTF-8');
+        }
     }
 }
 
 /**
- * 📅 단순 날짜 YYYYMMDD (8자리) 통일 포맷터
+ * 📅 단순 날짜 YYYYMMDD (8자리 순수 숫자) 포맷터 (NICE API 파서 규격)
  */
 if (!function_exists('nice_format_date_ymd')) {
     function nice_format_date_ymd($d) {
@@ -45,7 +56,7 @@ if (!function_exists('nice_format_date_ymd')) {
 }
 
 /**
- * 🕒 일시 YYYYMMDDHHmmss (14자리) 통일 포맷터
+ * 🕒 일시 YYYYMMDDHHMMSS (14자리 순수 숫자) 표준 포맷터 (NICE API 파서 규격)
  */
 if (!function_exists('nice_format_datetime_ymdhis')) {
     function nice_format_datetime_ymdhis($dt) {
@@ -63,6 +74,20 @@ if (!function_exists('nice_format_datetime_ymdhis')) {
         return $ts ? date('YmdHis', $ts) : date('YmdHis');
     }
 }
+
+/**
+ * ⚥ 성별 M/F 통일 포맷터 (NICE 규격: M, F)
+ */
+if (!function_exists('nice_format_sex')) {
+    function nice_format_sex($s) {
+        $s = trim((string)$s);
+        if ($s === 'M' || $s === 'F') return $s;
+        if ($s === '수' || $s === '1' || $s === '남' || strcasecmp($s, 'male') === 0) return 'M';
+        if ($s === '암' || $s === '2' || $s === '여' || strcasecmp($s, 'female') === 0) return 'F';
+        return !empty($s) ? substr($s, 0, 2) : 'M';
+    }
+}
+
 
 /**
  * 🔒 포털 DB 연결 객체 반환 함수
@@ -320,6 +345,7 @@ function nice_handle_detail($data) {
     if ($class_res && $c_row = $class_res->fetch_assoc()) {
         $breed_name = $c_row['kor_name'];
     }
+    $conn->query("SET NAMES 'binary'");
     
     $father = nice_get_parent_info($conn, $dog['fa_regno']);
     $mother = nice_get_parent_info($conn, $dog['mo_regno']);
@@ -335,7 +361,7 @@ function nice_handle_detail($data) {
         'saho' => kkc_convert($dog['saho'], 'EUC-KR', true),
         'dog_classTab_name' => (is_string($breed_name) && mb_check_encoding($breed_name, 'UTF-8')) ? $breed_name : kkc_convert($breed_name, 'EUC-KR', true),
         'micro' => kkc_convert($dog['micro'], 'EUC-KR', true),
-        'sex' => kkc_convert($dog['sex'], 'EUC-KR', true),
+        'sex' => nice_format_sex($dog['sex']),
         'hair' => kkc_convert($dog['hair'], 'EUC-KR', true),
         'breed_name' => kkc_convert($dog['breed_name'], 'EUC-KR', true),
         'breed_addr' => kkc_convert($dog['breed_addr'], 'EUC-KR', true),
@@ -928,7 +954,7 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
         $plain['saho'] = kkc_convert($dog['saho'] ?? ($req['saho'] ?? ''), 'EUC-KR', true);
         $plain['dog_classTab_name'] = (is_string($breed_name) && mb_check_encoding($breed_name, 'UTF-8')) ? $breed_name : kkc_convert($breed_name, 'EUC-KR', true);
         $plain['micro'] = kkc_convert($dog['micro'] ?? ($req['micro'] ?? ''), 'EUC-KR', true);
-        $plain['sex'] = kkc_convert($dog['sex'] ?? ($req['sex'] ?? ''), 'EUC-KR', true);
+        $plain['sex'] = nice_format_sex($dog['sex'] ?? ($req['sex'] ?? ''));
         $plain['hair'] = kkc_convert($dog['hair'] ?? ($req['hair'] ?? ''), 'EUC-KR', true);
         $plain['breed_name'] = kkc_convert($dog['breed_name'] ?? ($req['breed_name'] ?? ''), 'EUC-KR', true);
         $plain['breed_addr'] = kkc_convert($dog['breed_addr'] ?? ($req['breed_addr'] ?? ''), 'EUC-KR', true);
@@ -938,19 +964,29 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
         $plain['reg_date'] = nice_format_datetime_ymdhis($dog['reg_date'] ?? ($req['reg_date'] ?? ''));
 
         $plain['birth_m'] = isset($dog['birth_m']) ? intval($dog['birth_m']) : (isset($req['birth_m']) ? intval($req['birth_m']) : 0);
+        $plain['birth_M'] = $plain['birth_m'];
         $plain['birth_f'] = isset($dog['birth_f']) ? intval($dog['birth_f']) : (isset($req['birth_f']) ? intval($req['birth_f']) : 0);
+        $plain['birth_F'] = $plain['birth_f'];
         $plain['reg_count_m'] = isset($dog['reg_count_m']) ? intval($dog['reg_count_m']) : (isset($req['reg_count_m']) ? intval($req['reg_count_m']) : 0);
+        $plain['reg_count_M'] = $plain['reg_count_m'];
         $plain['reg_count_f'] = isset($dog['reg_count_f']) ? intval($dog['reg_count_f']) : (isset($req['reg_count_f']) ? intval($req['reg_count_f']) : 0);
+        $plain['reg_count_F'] = $plain['reg_count_f'];
         
         $plain['father_name'] = $father['name'] ?: kkc_convert($req['father_name'] ?? '', 'EUC-KR', true);
         $plain['father_reg_no'] = $father['reg_no'] ?: kkc_convert($req['father_reg_no'] ?? '', 'EUC-KR', true);
         $plain['father_saho'] = $father['saho'] ?? kkc_convert($req['father_saho'] ?? '', 'EUC-KR', true);
+        $plain['fa_name'] = $plain['father_name'];
+        $plain['fa_regno'] = $plain['father_reg_no'];
         
         $plain['mother_name'] = $mother['name'] ?: kkc_convert($req['mother_name'] ?? '', 'EUC-KR', true);
         $plain['mother_reg_no'] = $mother['reg_no'] ?: kkc_convert($req['mother_reg_no'] ?? '', 'EUC-KR', true);
         $plain['mother_saho'] = $mother['saho'] ?? kkc_convert($req['mother_saho'] ?? '', 'EUC-KR', true);
+        $plain['mo_name'] = $plain['mother_name'];
+        $plain['mo_regno'] = $plain['mother_reg_no'];
         
-        $plain['ancestors'] = ($conn && $dog) ? nice_build_ancestors_list($conn, $dog) : [];
+        $anc_list = ($conn && $dog) ? nice_build_ancestors_list($conn, $dog) : [];
+        $plain['ancestors'] = $anc_list;
+        $plain['ancient'] = $anc_list;
     } else {
         // 반려 (F): 엑셀 규격 Sheet 6 R05
         // "이전에 NICE에서 심사 요청한 데이터를 그대로 반환"
@@ -962,7 +998,7 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
             $req_dog_class              = $req['dog_classTab_name'] ?? '';
             $plain['dog_classTab_name'] = (is_string($req_dog_class) && mb_check_encoding($req_dog_class, 'UTF-8')) ? $req_dog_class : kkc_convert($req_dog_class, 'EUC-KR', true);
             $plain['micro']             = kkc_convert($req['micro'] ?? '', 'EUC-KR', true);
-            $plain['sex']               = kkc_convert($req['sex'] ?? '', 'EUC-KR', true);
+            $plain['sex']               = nice_format_sex($req['sex'] ?? '');
             $plain['hair']              = kkc_convert($req['hair'] ?? '', 'EUC-KR', true);
             $plain['breed_name']        = kkc_convert($req['breed_name'] ?? '', 'EUC-KR', true);
             $plain['breed_addr']        = kkc_convert($req['breed_addr'] ?? '', 'EUC-KR', true);
