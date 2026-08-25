@@ -354,7 +354,7 @@ function kkf_portal_nice_get_verified_data($input) {
 /**
  * 📱 [Portal] 비밀번호 찾기용 아이핀 검증 처리 및 비밀번호 재설정 우회용 키 세팅
  */
-function kkf_portal_find_pw_nice_verify($input) {
+function kkf_portal_nice_find_pw_verify($input) {
     $web_tx = trim($input['web_transaction_id'] ?? '');
     if (empty($web_tx)) return ['success' => false, 'error' => '트랜잭션 ID가 누락되었습니다.'];
     
@@ -376,10 +376,12 @@ function kkf_portal_find_pw_nice_verify($input) {
     $conn = get_kkc_portal_db();
     
     $e_name = $conn->real_escape_string(kkc_convert($name, 'EUC-KR', false));
-    $e_birth = $conn->real_escape_string(substr($birth, 2)); // YYMMDD
+    $birth_6 = (strlen($birth) >= 8) ? substr($birth, 2) : $birth; // YYMMDD
+    $e_birth_6 = $conn->real_escape_string($birth_6);
+    $e_birth_full = $conn->real_escape_string($birth);
     
     $conn->query("SET NAMES 'binary'");
-    $res = $conn->query("SELECT * FROM memTab WHERE name = '$e_name' AND birth = '$e_birth' LIMIT 1");
+    $res = $conn->query("SELECT * FROM memTab WHERE name = '$e_name' AND (birth = '$e_birth_6' OR birth = '$e_birth_full') LIMIT 1");
     $u_raw = $res ? $res->fetch_assoc() : null;
     $conn->close();
     
@@ -403,6 +405,12 @@ function kkf_portal_find_pw_nice_verify($input) {
         'birth' => $u['birth']
     ];
 }
+
+// 📱 별칭 호환성 유지
+function kkf_portal_find_pw_nice_verify($input) {
+    return kkf_portal_nice_find_pw_verify($input);
+}
+
 
 /**
  * 🔑 NICE 통합인증 키 유도 함수 (NICE OpenAPI 3.1 공식 PHP 규격)

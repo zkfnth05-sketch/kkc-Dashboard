@@ -246,8 +246,19 @@ try {
         exit;
     }
     
-    // 4. 응답 평문 데이터 암호화
+    // 4. 응답 평문 데이터 UTF-8 정제 및 JSON 인코딩
+    if (function_exists('kkc_convert')) {
+        $res_plain = kkc_convert($res_plain, 'EUC-KR', true);
+    }
     $res_json = json_encode($res_plain, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if ($res_json === false) {
+        array_walk_recursive($res_plain, function(&$item) {
+            if (is_string($item)) {
+                $item = mb_convert_encoding($item, 'UTF-8', 'UTF-8, CP949, EUC-KR, UHC, ISO-8859-1');
+            }
+        });
+        $res_json = json_encode($res_plain, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
     $res_enc_data = base64_encode(openssl_encrypt($res_json, 'aes-256-cbc', $aes_key, OPENSSL_RAW_DATA, $aes_iv));
     
     // 5. 응답 HMAC 생성 (원래 요청의 key_version 및 req_dttm 재사용)

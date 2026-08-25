@@ -104,8 +104,28 @@ export const niceAdminDeleteMember = (mid: number) =>
 export const niceAdminFetchPedigrees = (page: number, search: string, field: string = 'all', status: string = 'all') =>
   portalFetchNice('admin_nice_pedigree_list', { page, search, field, status });
 
-export const niceAdminPedigreeAction = (uid: number, action: 'approve' | 'reject', memo: string, hair?: string, breed_name?: string, reg_no?: string) =>
-  portalFetchNice('admin_nice_pedigree_action', { uid, action, memo, hair, breed_name, reg_no });
+export const niceAdminPedigreeAction = (
+  uid: number,
+  action: 'approve' | 'reject',
+  memo: string,
+  hair?: string,
+  breed_name?: string,
+  reg_no?: string,
+  fa_name?: string,
+  mo_name?: string
+) =>
+  portalFetchNice('admin_nice_pedigree_action', {
+    uid,
+    action,
+    memo,
+    hair,
+    breed_name,
+    reg_no,
+    fa_name,
+    mo_name,
+    father_name: fa_name,
+    mother_name: mo_name
+  });
 
 export const niceAdminDeletePedigree = (uid: number) =>
   portalFetchNice('admin_nice_pedigree_delete', { uid });

@@ -83,7 +83,13 @@ try {
     } else if ($mode === 'portal_nice_get_verified_data') {
         $output = kkf_portal_nice_get_verified_data($input);
     } else if ($mode === 'portal_nice_find_pw_verify') {
-        $output = kkf_portal_nice_find_pw_verify($input);
+        if (function_exists('kkf_portal_nice_find_pw_verify')) {
+            $output = kkf_portal_nice_find_pw_verify($input);
+        } else if (function_exists('kkf_portal_find_pw_nice_verify')) {
+            $output = kkf_portal_find_pw_nice_verify($input);
+        } else {
+            $output = ['success' => false, 'error' => '아이핀 검증 핸들러 함수를 찾을 수 없습니다.'];
+        }
     } else {
         $output['error'] = '모드 없음: ' . $mode;
     }

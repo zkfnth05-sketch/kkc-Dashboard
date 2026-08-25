@@ -393,7 +393,7 @@ function nice_handle_detail($data) {
     ];
     
     $conn->close();
-    return $res;
+    return kkc_convert($res, 'EUC-KR', true);
 }
 
 /**
@@ -1376,7 +1376,7 @@ function nice_admin_pedigree_action($input) {
         return ['success' => false, 'error' => '이미 심사가 완료된 건입니다.'];
     }
 
-    // 🎨 관리자 수정 모색, 견종 및 등록번호 반영
+    // 🎨 관리자 수정 모색, 견종, 등록번호 및 부모견 영문 이름 반영
     if (isset($input['hair']) && trim($input['hair']) !== '') {
         $req['hair'] = trim($input['hair']);
     }
@@ -1386,12 +1386,46 @@ function nice_admin_pedigree_action($input) {
     if (isset($input['reg_no']) && trim($input['reg_no']) !== '') {
         $req['reg_no'] = trim($input['reg_no']);
     }
+    if (isset($input['fa_name']) || isset($input['father_name'])) {
+        $req['father_name'] = trim($input['fa_name'] ?? ($input['father_name'] ?? ''));
+        $req['fa_name'] = $req['father_name'];
+    }
+    if (isset($input['mo_name']) || isset($input['mother_name'])) {
+        $req['mother_name'] = trim($input['mo_name'] ?? ($input['mother_name'] ?? ''));
+        $req['mo_name'] = $req['mother_name'];
+    }
+    if (isset($input['fa_regno']) || isset($input['father_reg_no'])) {
+        $req['father_reg_no'] = trim($input['fa_regno'] ?? ($input['father_reg_no'] ?? ''));
+        $req['fa_regno'] = $req['father_reg_no'];
+    }
+    if (isset($input['mo_regno']) || isset($input['mother_reg_no'])) {
+        $req['mother_reg_no'] = trim($input['mo_regno'] ?? ($input['mother_reg_no'] ?? ''));
+        $req['mo_regno'] = $req['mother_reg_no'];
+    }
     
     $conn->query("SET NAMES 'utf8mb4'");
     $e_edit_hair = $conn->real_escape_string($req['hair']);
     $e_edit_breed = $conn->real_escape_string($req['dog_classTab_name']);
     $e_edit_regno = $conn->real_escape_string($req['reg_no']);
-    if (!$conn->query("UPDATE nice_pedigree_requests SET hair = '$e_edit_hair', dog_classTab_name = '$e_edit_breed', reg_no = '$e_edit_regno' WHERE uid = $uid")) {
+    $e_edit_fa_name = $conn->real_escape_string($req['fa_name'] ?? ($req['father_name'] ?? ''));
+    $e_edit_mo_name = $conn->real_escape_string($req['mo_name'] ?? ($req['mother_name'] ?? ''));
+    $e_edit_fa_reg = $conn->real_escape_string($req['fa_regno'] ?? ($req['father_reg_no'] ?? ''));
+    $e_edit_mo_reg = $conn->real_escape_string($req['mo_regno'] ?? ($req['mother_reg_no'] ?? ''));
+    
+    $upd_sql = "UPDATE nice_pedigree_requests SET 
+        hair = '$e_edit_hair', 
+        dog_classTab_name = '$e_edit_breed', 
+        reg_no = '$e_edit_regno',
+        fa_name = '$e_edit_fa_name',
+        father_name = '$e_edit_fa_name',
+        mo_name = '$e_edit_mo_name',
+        mother_name = '$e_edit_mo_name',
+        fa_regno = '$e_edit_fa_reg',
+        father_reg_no = '$e_edit_fa_reg',
+        mo_regno = '$e_edit_mo_reg',
+        mother_reg_no = '$e_edit_mo_reg'
+        WHERE uid = $uid";
+    if (!$conn->query($upd_sql)) {
         throw new Exception("[Step 1 - req_update] " . $conn->error);
     }
     

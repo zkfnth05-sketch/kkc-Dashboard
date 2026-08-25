@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Award, ShieldCheck, FileText, Calendar, Trash2, Edit, RefreshCw, Printer, Download, Eye, Check, X, Image as ImageIcon, Info, Sparkles } from 'lucide-react';
 import { niceAdminFetchPedigrees, niceAdminPedigreeAction, niceAdminDeletePedigree, niceAdminFetchBreedColors } from '../services/portalService';
 import { fetchHairs, fetchDogClasses, checkRegNoExists, fetchLastRegNo } from '../services/pedigreeService';
+import { runSqlBatch } from '../services/memberService';
 import { SearchableColorSelect } from './SearchableColorSelect';
 
 interface NicePedigree {
@@ -170,12 +171,22 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
   const [isAssigningRegNo, setIsAssigningRegNo] = useState(false);
   const [isCheckingRegNo, setIsCheckingRegNo] = useState(false);
 
+  // 관리자 직접 지정/수정용 부모견 이름 State
+  const [editFaName, setEditFaName] = useState('');
+  const [editMoName, setEditMoName] = useState('');
+
   useEffect(() => {
     if (selectedPedigree) {
       setEditHair(selectedPedigree.hair || '');
       const bName = selectedPedigree.breed_name || '';
       setEditBreed(bName);
       setEditRegNo(selectedPedigree.reg_no || '');
+
+      const rawFa = (selectedPedigree.fa_name || selectedPedigree.father_name || selectedPedigree.Father_name || selectedPedigree.sire_name || '').trim();
+      setEditFaName(rawFa.toLowerCase() === 'null' || rawFa === '-' ? '' : rawFa);
+
+      const rawMo = (selectedPedigree.mo_name || selectedPedigree.mother_name || selectedPedigree.dam_name || '').trim();
+      setEditMoName(rawMo.toLowerCase() === 'null' || rawMo === '-' ? '' : rawMo);
 
       // 견종 그룹 자동 맞춤
       if (bName && dogClasses.length > 0) {
@@ -188,6 +199,8 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       setEditHair('');
       setEditBreed('');
       setEditRegNo('');
+      setEditFaName('');
+      setEditMoName('');
       setSelectedGroup('');
     }
   }, [selectedPedigree, dogClasses]);
@@ -376,8 +389,37 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       async () => {
         setIsSubmitting(true);
         try {
-          const res = await niceAdminPedigreeAction(selectedPedigree.uid, action, actionMemo, editHair, editBreed, editRegNo);
+          // 1. 사전 동기화: nice_pedigree_requests에 관리자가 수정한 부모견 영문명 저장
+          if (editFaName || editMoName) {
+            try {
+              const safeFa = editFaName.replace(/'/g, "\\'");
+              const safeMo = editMoName.replace(/'/g, "\\'");
+              await runSqlBatch([
+                `UPDATE nice_pedigree_requests SET fa_name = '${safeFa}', father_name = '${safeFa}', mo_name = '${safeMo}', mother_name = '${safeMo}' WHERE uid = ${selectedPedigree.uid}`
+              ]);
+            } catch (preErr) {
+              console.error('사전 부모견 영문명 동기화:', preErr);
+            }
+          }
+
+          // 2. 관리자 액션 (승인/반려) 및 나이스 통보 실행
+          const res = await niceAdminPedigreeAction(selectedPedigree.uid, action, actionMemo, editHair, editBreed, editRegNo, editFaName, editMoName);
+          
           if (res && res.success) {
+            // 3. 사후 동기화: nice_dogTab에 발급된 혈통서에도 부모견 영문명 확실히 저장
+            if (action === 'approve' && (editFaName || editMoName)) {
+              try {
+                const safeFa = editFaName.replace(/'/g, "\\'");
+                const safeMo = editMoName.replace(/'/g, "\\'");
+                const targetRegNo = editRegNo.replace(/'/g, "\\'");
+                await runSqlBatch([
+                  `UPDATE nice_dogTab SET fa_name = '${safeFa}', mo_name = '${safeMo}' WHERE reg_no = '${targetRegNo}'`
+                ]);
+              } catch (postErr) {
+                console.error('사후 nice_dogTab 부모견 동기화:', postErr);
+              }
+            }
+
             const isWarning = res.is_nice_success === false || (typeof res.message === 'string' && res.message.includes('⚠'));
             const popupTitle = isWarning
               ? (action === 'approve' ? '⚠️ 발급 완료 (나이스 통보 확인 필요)' : '⚠️ 반려 완료 (나이스 통보 확인 필요)')
@@ -806,16 +848,62 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 
                 <div>
                   <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">부모견 정보</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <DetailItem label="부견 이름 (Sire/Father)" value={selectedPedigree.fa_name || selectedPedigree.father_name || selectedPedigree.Father_name || selectedPedigree.sire_name || '-'} />
-                    <DetailItem label="부견 등록번호" value={selectedPedigree.fa_regno || selectedPedigree.father_reg_no || selectedPedigree.sire_reg_no || '-'} />
-                    <div className="col-span-2">
-                      <DetailItem label="부견 견사호 (Father Saho)" value={selectedPedigree.fa_saho || selectedPedigree.father_saho || '-'} fullWidth />
+                  
+                  {/* 부견 영역 안내 문구 */}
+                  <p className="text-xs font-black text-orange-600 mb-2 leading-relaxed">
+                    신청자가 부견 또는 모견 이름을 한글(예: 백구, 초코 등)로 신청한 경우, 유선 심사 시 견주와 확인 후 정식 영문 이름(견사호 포함)으로 수정하여 발급 승인해 주세요.
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    {/* 부견 이름 (수정 가능 input) */}
+                    <div className="flex flex-col">
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                        부견 이름 (SIRE/FATHER)
+                      </div>
+                      <input
+                        type="text"
+                        value={editFaName}
+                        onChange={(e) => setEditFaName(e.target.value)}
+                        placeholder="부견 영문/한글 이름 입력..."
+                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-sans"
+                      />
                     </div>
-                    <DetailItem label="모견 이름 (Dam/Mother)" value={selectedPedigree.mo_name || selectedPedigree.mother_name || selectedPedigree.dam_name || '-'} />
-                    <DetailItem label="모견 등록번호" value={selectedPedigree.mo_regno || selectedPedigree.mother_reg_no || selectedPedigree.dam_reg_no || '-'} />
+                    
+                    {/* 부견 등록번호 (읽기 전용) */}
+                    <DetailItem label="부견 등록번호" value={selectedPedigree.fa_regno || selectedPedigree.father_reg_no || selectedPedigree.sire_reg_no || '-'} />
+                    
+                    {/* 부견 견사호 (읽기 전용) */}
                     <div className="col-span-2">
-                      <DetailItem label="모견 견사호 (Mother Saho)" value={selectedPedigree.mo_saho || selectedPedigree.mother_saho || '-'} fullWidth />
+                      <DetailItem label="부견 견사호 (FATHER SAHO)" value={selectedPedigree.fa_saho || selectedPedigree.father_saho || '-'} fullWidth />
+                    </div>
+                  </div>
+
+                  {/* 모견 영역 안내 문구 */}
+                  <p className="text-xs font-black text-orange-600 mb-2 leading-relaxed">
+                    신청자가 부견 또는 모견 이름을 한글(예: 백구, 초코 등)로 신청한 경우, 유선 심사 시 견주와 확인 후 정식 영문 이름(견사호 포함)으로 수정하여 발급 승인해 주세요.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* 모견 이름 (수정 가능 input) */}
+                    <div className="flex flex-col">
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                        모견 이름 (DAM/MOTHER)
+                      </div>
+                      <input
+                        type="text"
+                        value={editMoName}
+                        onChange={(e) => setEditMoName(e.target.value)}
+                        placeholder="모견 영문/한글 이름 입력..."
+                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-sans"
+                      />
+                    </div>
+
+                    {/* 모견 등록번호 (읽기 전용) */}
+                    <DetailItem label="모견 등록번호" value={selectedPedigree.mo_regno || selectedPedigree.mother_reg_no || selectedPedigree.dam_reg_no || '-'} />
+
+                    {/* 모견 견사호 (읽기 전용) */}
+                    <div className="col-span-2">
+                      <DetailItem label="모견 견사호 (MOTHER SAHO)" value={selectedPedigree.mo_saho || selectedPedigree.mother_saho || '-'} fullWidth />
                     </div>
                   </div>
                 </div>
