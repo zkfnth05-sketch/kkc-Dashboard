@@ -219,35 +219,33 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
                 <div className="flex items-center gap-2"><Smartphone size={16} /><span className="font-bold text-sm">{profile.hp || '연락처 없음'}</span></div>
               </div>
 
-              {/* 🛡️ NICE 본인인증 상태 및 인증하기 영역 */}
+              {/* 🛡️ NICE 본인인증 상태 및 인증하기 영역 (왼쪽 정렬 디자인) */}
               {Boolean(profile.nice_ci || profile.nice_verified_at || (profile.mid && localStorage.getItem(`kkf_nice_verified_${profile.mid}`) === 'Y')) ? (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-emerald-50 border border-emerald-200/80 p-4 rounded-2xl shadow-sm text-left">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-emerald-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 shrink-0">
-                      <CheckCircle size={20} />
+                <div className="inline-flex flex-wrap items-center gap-4 bg-emerald-50 border border-emerald-200/80 p-3.5 sm:px-5 rounded-2xl shadow-sm text-left">
+                  <div className="w-9 h-9 bg-emerald-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 shrink-0">
+                    <CheckCircle size={20} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-black text-emerald-950">NICE 본인인증 완료</span>
+                      <span className="bg-emerald-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Verified</span>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-black text-emerald-950">NICE 본인인증 완료</span>
-                        <span className="bg-emerald-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Verified</span>
-                      </div>
-                      <p className="text-[11px] font-bold text-emerald-700/90 mt-0.5">모바일 혈통서(NICE 펫핀) 발급 및 정상 연동 상태입니다.</p>
-                    </div>
+                    <p className="text-[11px] font-bold text-emerald-700/90 mt-0.5">모바일 혈통서(NICE 펫핀) 발급 및 정상 연동 상태입니다.</p>
                   </div>
                   <a
                     href="https://www.niceipin.co.kr/event20260002.ni?utm_source=KKC"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-4 py-2.5 rounded-xl text-xs font-black tracking-tight shadow-md shadow-emerald-200 transition-all shrink-0 cursor-pointer text-center"
+                    className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-4 py-2 rounded-xl text-xs font-black tracking-tight shadow-md shadow-emerald-200 transition-all shrink-0 cursor-pointer text-center"
                   >
                     모바일 혈통서 상세보기
                     <ExternalLink size={13} />
                   </a>
                 </div>
               ) : (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-slate-50 border border-blue-100 rounded-2xl p-4 shadow-sm text-left">
-                  <div className="flex items-start sm:items-center gap-3">
-                    <div className="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-blue-200 shrink-0 mt-0.5 sm:mt-0">
+                <div className="flex flex-col gap-3 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-slate-50 border border-blue-100 rounded-2xl p-4 sm:p-5 shadow-sm text-left max-w-[620px]">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-blue-200 shrink-0 mt-0.5">
                       <ShieldCheck size={20} />
                     </div>
                     <div>
@@ -258,24 +256,24 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
                       <p className="text-[12px] font-bold text-slate-600 mt-0.5">모바일 혈통서 발급을 위해서는 NICE 본인인증을 완료해 주세요.</p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 shrink-0">
-                    <a
-                      href="https://www.niceipin.co.kr/event20260002.ni?utm_source=KKC"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 active:scale-95 text-slate-700 border border-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
-                    >
-                      상세보기
-                      <ExternalLink size={12} />
-                    </a>
+                  <div className="flex flex-wrap items-center gap-2 sm:ml-12 pt-1">
                     <button
                       onClick={handleNiceAuth}
                       disabled={isNiceLoading}
-                      className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-4 py-2.5 rounded-xl text-xs font-black tracking-tight shadow-md shadow-blue-200 transition-all shrink-0 cursor-pointer"
+                      className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-5 py-2.5 rounded-xl text-xs font-black tracking-tight shadow-md shadow-blue-200 transition-all shrink-0 cursor-pointer"
                     >
                       {isNiceLoading ? <Loader2 size={14} className="animate-spin" /> : 'NICE 인증하기'}
                       <ChevronRight size={14} />
                     </button>
+                    <a
+                      href="https://www.niceipin.co.kr/event20260002.ni?utm_source=KKC"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 active:scale-95 text-slate-700 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                    >
+                      모바일 혈통서 상세보기
+                      <ExternalLink size={12} />
+                    </a>
                   </div>
                 </div>
               )}
