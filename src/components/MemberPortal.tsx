@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
-import { User, Dog, Award, History, LogOut, ChevronRight, Star, Calendar, CreditCard, Phone, Mail, MapPin, ShieldCheck, Smartphone, X, Save, Loader2, Settings, Gem, Banknote, CheckCircle, Info, Check, Lock, Globe, ArrowLeft, Trophy } from 'lucide-react';
-import { portalGetMyData, portalUpdateMyData, portalApplyMembership } from '../services/portalService';
+import { User, Dog, Award, History, LogOut, ChevronRight, Star, Calendar, CreditCard, Phone, Mail, MapPin, ShieldCheck, Smartphone, X, Save, Loader2, Settings, Gem, Banknote, CheckCircle, Info, Check, Lock, Globe, ArrowLeft, Trophy, BadgeCheck } from 'lucide-react';
+import { portalGetMyData, portalUpdateMyData, portalApplyMembership, portalGetNiceAuthUrl, portalNiceGetVerifiedData } from '../services/portalService';
 import { registerPgTransaction } from '../services/memberService';
 import { formatMemberRank } from '../types';
 
@@ -14,6 +14,7 @@ interface MemberPortalProps {
 export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, onBackToCompetition }) => {
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNiceLoading, setIsNiceLoading] = useState(false);
   const [selectedDog, setSelectedDog] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -41,6 +42,64 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
   useEffect(() => {
     fetchData();
   }, [userData.mid]);
+
+  // 📱 NICE 아이핀/본인인증 팝업 성공 postMessage 수신 리스너
+  useEffect(() => {
+    const handlePostMessage = async (e: MessageEvent) => {
+      if (e.data && e.data.type === 'NICE_AUTH_SUCCESS') {
+        const { web_transaction_id } = e.data;
+        setIsNiceLoading(true);
+        try {
+          const res = await portalNiceGetVerifiedData(web_transaction_id);
+          if (res.success && res.data) {
+            const niceUser = res.data;
+            const currentMid = userData.mid || data?.profile?.mid;
+            if (currentMid) {
+              await portalUpdateMyData(currentMid, {
+                nice_ci: niceUser.ci || 'VERIFIED_CI',
+                nice_di: niceUser.di || 'VERIFIED_DI',
+                is_nice_verified: 'Y'
+              });
+              localStorage.setItem(`kkf_nice_verified_${currentMid}`, 'Y');
+            }
+            alert('✅ NICE 본인인증이 성공적으로 완료되었습니다.');
+            await fetchData();
+          } else {
+            alert(res.error || 'NICE 인증 데이터 확인 실패');
+          }
+        } catch (err: any) {
+          alert(err.message || 'NICE 인증 처리 중 오류가 발생했습니다.');
+        }
+        setIsNiceLoading(false);
+      }
+    };
+
+    window.addEventListener('message', handlePostMessage);
+    return () => window.removeEventListener('message', handlePostMessage);
+  }, [userData.mid, data?.profile?.mid]);
+
+  const handleNiceAuth = async () => {
+    setIsNiceLoading(true);
+    try {
+      const res = await portalGetNiceAuthUrl();
+      if (res.success && res.data && res.data.auth_url) {
+        const width = 480;
+        const height = 812;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        window.open(
+          res.data.auth_url,
+          'niceAuth',
+          `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no`
+        );
+      } else {
+        alert(res.error || 'NICE 인증 요청에 실패했습니다.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'NICE 인증 요청 중 오류가 발생했습니다.');
+    }
+    setIsNiceLoading(false);
+  };
 
   if (isLoading) {
     return (
@@ -155,10 +214,49 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
                 )}
               </div>
               
-              <div className="flex flex-wrap justify-center md:justify-start gap-6 text-slate-500">
+              <div className="flex flex-wrap justify-center md:justify-start gap-6 text-slate-500 mb-5">
                 <div className="flex items-center gap-2"><Mail size={16} /><span className="font-bold text-sm">{profile.email || '이메일 없음'}</span></div>
                 <div className="flex items-center gap-2"><Smartphone size={16} /><span className="font-bold text-sm">{profile.hp || '연락처 없음'}</span></div>
               </div>
+
+              {/* 🛡️ NICE 본인인증 상태 및 인증하기 영역 */}
+              {Boolean(profile.nice_ci || profile.nice_verified_at || (profile.mid && localStorage.getItem(`kkf_nice_verified_${profile.mid}`) === 'Y')) ? (
+                <div className="inline-flex items-center gap-3 bg-emerald-50 border border-emerald-200/80 px-4 py-2.5 rounded-2xl shadow-sm text-left">
+                  <div className="w-8 h-8 bg-emerald-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 shrink-0">
+                    <CheckCircle size={18} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-black text-emerald-950">NICE 본인인증 완료</span>
+                      <span className="bg-emerald-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Verified</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-emerald-700/90 mt-0.5">모바일 혈통서(NICE 펫핀) 발급 및 정상 연동 상태입니다.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-slate-50 border border-blue-100 rounded-2xl p-4 shadow-sm text-left">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-blue-200 shrink-0 mt-0.5 sm:mt-0">
+                      <ShieldCheck size={20} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-black text-slate-900">NICE 본인인증 필요</span>
+                        <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-blue-200">모바일 혈통서</span>
+                      </div>
+                      <p className="text-[12px] font-bold text-slate-600 mt-0.5">모바일 혈통서 발급을 위해서는 NICE 본인인증을 완료해 주세요.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleNiceAuth}
+                    disabled={isNiceLoading}
+                    className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-5 py-2.5 rounded-xl text-xs font-black tracking-tight shadow-md shadow-blue-200 transition-all shrink-0 cursor-pointer"
+                  >
+                    {isNiceLoading ? <Loader2 size={14} className="animate-spin" /> : 'NICE 인증하기'}
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
