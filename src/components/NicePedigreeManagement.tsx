@@ -444,9 +444,10 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'R':
       case 'P':
         return <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-black">심사대기</span>;
+      case 'R':
+        return <span className="px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full text-xs font-black">환불요청</span>;
       case 'Y':
       case 'S':
         return <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-black">발급완료</span>;
@@ -559,6 +560,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
           >
             <option value="all">모든 상태</option>
             <option value="P">심사대기 (신규 신청)</option>
+            <option value="R">환불요청 (취소/환불)</option>
             <option value="Y">발급완료 (Approved)</option>
             <option value="N">반려됨 (Rejected)</option>
           </select>
@@ -1014,37 +1016,63 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                   </div>
                 </div>
 
-                {/* 심사 액션 폼 */}
+                {/* 심사 / 환불 액션 폼 */}
                 {(selectedPedigree.status === 'P' || selectedPedigree.status === 'R') ? (
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
                     <h5 className="text-sm font-black text-slate-800 flex items-center gap-1.5">
-                      <Edit size={16} className="text-indigo-600" />
-                      심사 의견 기술
+                      <Edit size={16} className={selectedPedigree.status === 'R' ? "text-purple-600" : "text-indigo-600"} />
+                      {selectedPedigree.status === 'R' ? '환불 처리 의견 기술' : '심사 의견 기술'}
                     </h5>
                     <textarea
                       value={actionMemo}
                       onChange={(e) => setActionMemo(e.target.value)}
-                      placeholder="승인 또는 반려 사유를 입력하세요... (반려 시 필수)"
+                      placeholder={selectedPedigree.status === 'R' ? "환불 승인(반려) 또는 환불 거절(정상발급) 사유를 입력하세요..." : "승인 또는 반려 사유를 입력하세요... (반려 시 필수)"}
                       className="w-full h-24 p-3 bg-white border border-slate-200 focus:border-indigo-500 rounded-lg text-sm font-bold outline-none resize-none transition-all"
                     />
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleAction('approve')}
-                        disabled={isSubmitting}
-                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-100 flex items-center justify-center gap-1.5 transition-all"
-                      >
-                        <Check size={18} />
-                        발급 승인
-                      </button>
-                      <button
-                        onClick={() => handleAction('reject')}
-                        disabled={isSubmitting}
-                        className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-rose-100 flex items-center justify-center gap-1.5 transition-all"
-                      >
-                        <X size={18} />
-                        심사 반려
-                      </button>
-                    </div>
+                    
+                    {selectedPedigree.status === 'R' ? (
+                      /* 🟣 환불 요청 모드 전용 버튼 */
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleAction('reject')}
+                          disabled={isSubmitting}
+                          className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-rose-100 flex items-center justify-center gap-1.5 transition-all"
+                          title="나이스에 반려(F)를 전송하여 환불 처리를 완료합니다"
+                        >
+                          <X size={18} />
+                          환불 승인 (반려 확정)
+                        </button>
+                        <button
+                          onClick={() => handleAction('approve')}
+                          disabled={isSubmitting}
+                          className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-100 flex items-center justify-center gap-1.5 transition-all"
+                          title="환불을 거절하고 혈통서 번호(-NP)를 부여하여 정상 발급합니다"
+                        >
+                          <Check size={18} />
+                          환불 거절 (정상 발급)
+                        </button>
+                      </div>
+                    ) : (
+                      /* 🟡 일반 심사 대기 모드 전용 버튼 */
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleAction('approve')}
+                          disabled={isSubmitting}
+                          className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-100 flex items-center justify-center gap-1.5 transition-all"
+                        >
+                          <Check size={18} />
+                          발급 승인
+                        </button>
+                        <button
+                          onClick={() => handleAction('reject')}
+                          disabled={isSubmitting}
+                          className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-rose-100 flex items-center justify-center gap-1.5 transition-all"
+                        >
+                          <X size={18} />
+                          심사 반려
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="bg-slate-50 border border-slate-100 rounded-xl p-5">
