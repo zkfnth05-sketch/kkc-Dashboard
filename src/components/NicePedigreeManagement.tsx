@@ -444,16 +444,17 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'R':
       case 'P':
         return <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-black">심사대기</span>;
       case 'Y':
+      case 'S':
         return <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-black">발급완료</span>;
       case 'N':
+      case 'F':
         return <span className="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-full text-xs font-black">반려</span>;
-      case 'R':
-        return <span className="px-2.5 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-full text-xs font-black">환불처리</span>;
       default:
-        return <span className="px-2.5 py-1 bg-slate-50 text-slate-400 border border-slate-100 rounded-full text-xs font-black">알 수 없음</span>;
+        return <span className="px-2.5 py-1 bg-slate-50 text-slate-400 border border-slate-100 rounded-full text-xs font-black">{status || '심사대기'}</span>;
     }
   };
 
@@ -557,10 +558,9 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
             className="bg-slate-50 border-2 border-slate-100 text-slate-700 font-bold px-4 py-2.5 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-sm transition-all"
           >
             <option value="all">모든 상태</option>
-            <option value="P">심사대기 (Pending)</option>
+            <option value="P">심사대기 (신규 신청)</option>
             <option value="Y">발급완료 (Approved)</option>
             <option value="N">반려됨 (Rejected)</option>
-            <option value="R">환불됨 (Refunded)</option>
           </select>
 
           <select
@@ -1015,7 +1015,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                 </div>
 
                 {/* 심사 액션 폼 */}
-                {selectedPedigree.status === 'P' ? (
+                {(selectedPedigree.status === 'P' || selectedPedigree.status === 'R') ? (
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
                     <h5 className="text-sm font-black text-slate-800 flex items-center gap-1.5">
                       <Edit size={16} className="text-indigo-600" />
