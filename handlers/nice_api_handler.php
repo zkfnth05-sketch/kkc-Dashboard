@@ -80,11 +80,12 @@ if (!function_exists('nice_format_datetime_ymdhis')) {
  */
 if (!function_exists('nice_format_sex')) {
     function nice_format_sex($s) {
-        $s = trim((string)$s);
-        if ($s === 'M' || $s === 'F') return $s;
-        if ($s === '수' || $s === '1' || $s === '남' || strcasecmp($s, 'male') === 0) return 'M';
-        if ($s === '암' || $s === '2' || $s === '여' || strcasecmp($s, 'female') === 0) return 'F';
-        return !empty($s) ? substr($s, 0, 2) : 'M';
+        if ($s === null || $s === '') return 'M';
+        $utf8_s = trim((string)kkc_convert($s, 'EUC-KR', true));
+        if ($utf8_s === 'M' || $utf8_s === 'F') return $utf8_s;
+        if (strpos($utf8_s, '수') !== false || $utf8_s === '1' || $utf8_s === '남' || strcasecmp($utf8_s, 'male') === 0) return 'M';
+        if (strpos($utf8_s, '암') !== false || $utf8_s === '2' || $utf8_s === '여' || strcasecmp($utf8_s, 'female') === 0) return 'F';
+        return (strtoupper(substr($utf8_s, 0, 1)) === 'F') ? 'F' : 'M';
     }
 }
 
