@@ -103,6 +103,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
   const [searchField, setSearchField] = useState<'all' | 'reg_no' | 'dog_name' | 'owner_name' | 'micro'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'P' | 'Y' | 'N' | 'R'>('all');
   const [isLoading, setIsLoading] = useState(false);
+  const [currentAction, setCurrentAction] = useState<'approve' | 'reject' | ''>('');
 
   const [masterHairs, setMasterHairs] = useState<{ uid?: string; name: string }[]>([]);
   const [dogClasses, setDogClasses] = useState<{ uid?: string; keyy: string; breed: string; group?: string }[]>([]);
@@ -382,11 +383,16 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       return;
     }
     
-    const actionText = action === 'approve' ? '승인' : '반려';
+    const isRefundReq = selectedPedigree.status === 'R';
+    const actionText = isRefundReq 
+      ? (action === 'reject' ? '환불 승인(반려 확정)' : '환불 거절(정상 발급)')
+      : (action === 'approve' ? '발급 승인' : '심사 반려');
+      
     showConfirm(
-      `심사 ${actionText} 처리`,
-      `[${selectedPedigree.dog_name}] 개체의 혈통서 신청을 ${actionText} 하시겠습니까?`,
+      `${actionText} 처리`,
+      `[${selectedPedigree.dog_name}] 개체의 ${actionText} 처리를 진행하시겠습니까?`,
       async () => {
+        setCurrentAction(action);
         setIsSubmitting(true);
         try {
           // 1. 사전 동기화: nice_pedigree_requests에 관리자가 수정한 부모견 영문명 저장
@@ -705,9 +711,9 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in-50 zoom-in-95 duration-200 relative">
             
-            {/* 🚀 실시간 나이스 서버 통신 중 밝고 투명한 로딩 오버레이 */}
+            {/* 🚀 실시간 나이스 서버 통신 중 밝고 투명한 맞춤형 로딩 오버레이 */}
             {isSubmitting && (
-              <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6 animate-in fade-in duration-150">
+              <div className="absolute inset-0 bg-white/75 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6 animate-in fade-in duration-150">
                 <div className="bg-white/95 border-2 border-indigo-100 p-7 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm text-center space-y-3.5">
                   <div className="relative flex items-center justify-center">
                     <div className="w-14 h-14 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin" />
@@ -715,17 +721,23 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                   </div>
                   <div>
                     <h4 className="text-base font-black text-slate-800">
-                      {selectedPedigree.status === 'R' ? 'NICE 환불 통보 처리 중...' : 'NICE 서버와 통신 중...'}
+                      {selectedPedigree.status === 'R'
+                        ? (currentAction === 'reject' ? 'NICE 환불 승인(반려) 처리 중...' : 'NICE 환불 거절(정상발급) 처리 중...')
+                        : (currentAction === 'approve' ? 'NICE 발급 승인 통보 중...' : 'NICE 심사 반려 통보 중...')}
                     </h4>
                     <p className="text-xs text-slate-500 font-bold mt-1 leading-relaxed">
                       {selectedPedigree.status === 'R'
-                        ? '나이스 전산망에 반려 및 환불 통보를 전송하고 있습니다.'
-                        : '혈통서 번호(-NP)를 부여하고 승인 데이터를 전송 중입니다.'}
+                        ? (currentAction === 'reject'
+                            ? '나이스 금융 전산망에 반려 및 자동 결제 취소(환불) 데이터를 전송하고 있습니다.'
+                            : '환불을 거절하고 고유 혈통서 번호(-NP)를 부여하여 정상 발급 승인 중입니다.')
+                        : (currentAction === 'approve'
+                            ? '고유 혈통서 번호(-NP)를 부여하고 나이스 전산망에 발급 승인 데이터를 전송 중입니다.'
+                            : '심사 반려 사유와 함께 나이스 전산망에 반려 통보 데이터를 전송하고 있습니다.')}
                     </p>
                   </div>
                   <div className="px-3.5 py-1.5 bg-indigo-50/80 rounded-lg border border-indigo-100 text-[11px] text-indigo-700 font-black flex items-center gap-1.5">
                     <RefreshCw size={12} className="animate-spin text-indigo-500" />
-                    잠시만 기다려 주세요
+                    네트워크 통신 중 (잠시만 기다려 주세요)
                   </div>
                 </div>
               </div>
