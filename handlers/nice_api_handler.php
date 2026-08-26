@@ -90,6 +90,38 @@ if (!function_exists('nice_format_sex')) {
 
 
 /**
+ * 🐕 견종명 표준 포맷터 (NICE API 규격: dog_classTab의 name 컬럼 - 외국계 영문, 한국계 한글)
+ */
+if (!function_exists('nice_resolve_standard_breed_name')) {
+    function nice_resolve_standard_breed_name($conn, $breed_code_or_name) {
+        if (empty($breed_code_or_name)) return '';
+        $conn->query("SET NAMES 'utf8mb4'");
+        $e_val = $conn->real_escape_string($breed_code_or_name);
+        $res = $conn->query("SELECT name, kor_name FROM dog_classTab WHERE keyy = '$e_val' OR kor_name = '$e_val' OR name = '$e_val' LIMIT 1");
+        if ($res && $row = $res->fetch_assoc()) {
+            return !empty($row['name']) ? $row['name'] : $row['kor_name'];
+        }
+        return $breed_code_or_name;
+    }
+}
+
+/**
+ * 🐕 견종 한글명 포맷터 (관리자 대시보드 전용: kor_name)
+ */
+if (!function_exists('nice_resolve_korean_breed_name')) {
+    function nice_resolve_korean_breed_name($conn, $breed_code_or_name) {
+        if (empty($breed_code_or_name)) return '';
+        $conn->query("SET NAMES 'utf8mb4'");
+        $e_val = $conn->real_escape_string($breed_code_or_name);
+        $res = $conn->query("SELECT kor_name, name FROM dog_classTab WHERE keyy = '$e_val' OR kor_name = '$e_val' OR name = '$e_val' LIMIT 1");
+        if ($res && $row = $res->fetch_assoc()) {
+            return !empty($row['kor_name']) ? $row['kor_name'] : $row['name'];
+        }
+        return $breed_code_or_name;
+    }
+}
+
+/**
  * 🔒 포털 DB 연결 객체 반환 함수
  */
 if (!function_exists('get_kkc_portal_db')) {
@@ -257,10 +289,10 @@ function nice_handle_list($data) {
     if ($dog_res && $dog_res->num_rows > 0) {
         $breed_map = [];
         $conn->query("SET NAMES 'utf8mb4'");
-        $class_res = $conn->query("SELECT keyy, kor_name FROM dog_classTab");
+        $class_res = $conn->query("SELECT keyy, name, kor_name FROM dog_classTab");
         if ($class_res) {
             while ($c_row = $class_res->fetch_assoc()) {
-                $breed_map[$c_row['keyy']] = $c_row['kor_name'];
+                $breed_map[$c_row['keyy']] = !empty($c_row['name']) ? $c_row['name'] : $c_row['kor_name'];
             }
         }
         
@@ -341,9 +373,9 @@ function nice_handle_detail($data) {
     $breed_code = $dog['dog_class'];
     $conn->query("SET NAMES 'utf8mb4'");
     $breed_name = $breed_code;
-    $class_res = $conn->query("SELECT kor_name FROM dog_classTab WHERE keyy = '" . $conn->real_escape_string($breed_code) . "' OR kor_name = '" . $conn->real_escape_string($breed_code) . "' LIMIT 1");
+    $class_res = $conn->query("SELECT name, kor_name FROM dog_classTab WHERE keyy = '" . $conn->real_escape_string($breed_code) . "' OR kor_name = '" . $conn->real_escape_string($breed_code) . "' OR name = '" . $conn->real_escape_string($breed_code) . "' LIMIT 1");
     if ($class_res && $c_row = $class_res->fetch_assoc()) {
-        $breed_name = $c_row['kor_name'];
+        $breed_name = !empty($c_row['name']) ? $c_row['name'] : $c_row['kor_name'];
     }
     $conn->query("SET NAMES 'binary'");
     
@@ -940,9 +972,9 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
         $breed_name = $breed_code;
         if ($conn) {
             $conn->query("SET NAMES 'utf8mb4'");
-            $class_res = $conn->query("SELECT kor_name FROM dog_classTab WHERE keyy = '" . $conn->real_escape_string($breed_code) . "' OR kor_name = '" . $conn->real_escape_string($breed_code) . "' LIMIT 1");
+            $class_res = $conn->query("SELECT name, kor_name FROM dog_classTab WHERE keyy = '" . $conn->real_escape_string($breed_code) . "' OR kor_name = '" . $conn->real_escape_string($breed_code) . "' OR name = '" . $conn->real_escape_string($breed_code) . "' LIMIT 1");
             if ($class_res && $c_row = $class_res->fetch_assoc()) {
-                $breed_name = $c_row['kor_name'];
+                $breed_name = !empty($c_row['name']) ? $c_row['name'] : $c_row['kor_name'];
             }
             $conn->query("SET NAMES 'binary'");
         }
@@ -996,7 +1028,8 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
             $plain['name']              = kkc_convert($req['name'] ?? '', 'EUC-KR', true);
             $plain['saho']              = kkc_convert($req['saho'] ?? '', 'EUC-KR', true);
             $req_dog_class              = $req['dog_classTab_name'] ?? '';
-            $plain['dog_classTab_name'] = (is_string($req_dog_class) && mb_check_encoding($req_dog_class, 'UTF-8')) ? $req_dog_class : kkc_convert($req_dog_class, 'EUC-KR', true);
+            $std_breed                  = nice_resolve_standard_breed_name($conn, $req_dog_class);
+            $plain['dog_classTab_name'] = (is_string($std_breed) && mb_check_encoding($std_breed, 'UTF-8')) ? $std_breed : kkc_convert($std_breed, 'EUC-KR', true);
             $plain['micro']             = kkc_convert($req['micro'] ?? '', 'EUC-KR', true);
             $plain['sex']               = nice_format_sex($req['sex'] ?? '');
             $plain['hair']              = kkc_convert($req['hair'] ?? '', 'EUC-KR', true);
@@ -1196,17 +1229,32 @@ function nice_admin_pedigree_list($input) {
     }
     
     $conn->query("SET NAMES 'utf8mb4'");
+    $kor_breed_map = [];
+    $class_res = $conn->query("SELECT keyy, kor_name, name FROM dog_classTab");
+    if ($class_res) {
+        while ($c_row = $class_res->fetch_assoc()) {
+            $k_name = !empty($c_row['kor_name']) ? $c_row['kor_name'] : $c_row['name'];
+            if (!empty($c_row['keyy'])) $kor_breed_map[$c_row['keyy']] = $k_name;
+            if (!empty($c_row['name'])) $kor_breed_map[$c_row['name']] = $k_name;
+            if (!empty($c_row['kor_name'])) $kor_breed_map[$c_row['kor_name']] = $k_name;
+        }
+    }
+    
     $sql = "SELECT * FROM nice_pedigree_requests WHERE $where ORDER BY uid DESC LIMIT $limit OFFSET $offset";
     $res = $conn->query($sql);
     
     $list = [];
     if ($res) {
         while ($row = $res->fetch_assoc()) {
+            $raw_breed = $row['dog_classTab_name'];
+            $display_breed = isset($kor_breed_map[$raw_breed]) ? $kor_breed_map[$raw_breed] : $raw_breed;
+            
             $list[] = [
                 'uid' => intval($row['uid']),
                 'reg_no' => $row['reg_no'],
                 'dog_name' => $row['name'],
-                'breed_name' => $row['dog_classTab_name'],
+                'breed_name' => $display_breed,
+                'dog_classTab_name' => $raw_breed,
                 'gender' => $row['sex'],
                 'micro' => $row['micro'],
                 'owner_name' => $row['req_name'],
