@@ -705,26 +705,27 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in-50 zoom-in-95 duration-200 relative">
             
-            {/* 🚀 실시간 나이스 서버 통신 중 로딩 오버레이 */}
+            {/* 🚀 실시간 나이스 서버 통신 중 밝고 투명한 로딩 오버레이 */}
             {isSubmitting && (
-              <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex flex-col items-center justify-center text-white p-6 animate-in fade-in duration-150">
-                <div className="bg-slate-900/95 border-2 border-indigo-500/50 p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-md text-center space-y-4">
+              <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6 animate-in fade-in duration-150">
+                <div className="bg-white/95 border-2 border-indigo-100 p-7 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm text-center space-y-3.5">
                   <div className="relative flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full border-4 border-indigo-500/20 border-t-indigo-400 animate-spin" />
-                    <Loader2 className="w-8 h-8 text-indigo-400 animate-spin absolute" />
+                    <div className="w-14 h-14 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin" />
+                    <Loader2 className="w-7 h-7 text-indigo-600 animate-spin absolute" />
                   </div>
                   <div>
-                    <h4 className="text-lg font-black text-white">
-                      {selectedPedigree.status === 'R' ? 'NICE 환불 통보 처리 중...' : 'NICE 서버와 실시간 통신 중...'}
+                    <h4 className="text-base font-black text-slate-800">
+                      {selectedPedigree.status === 'R' ? 'NICE 환불 통보 처리 중...' : 'NICE 서버와 통신 중...'}
                     </h4>
-                    <p className="text-xs text-indigo-200/90 font-bold mt-1.5 leading-relaxed">
+                    <p className="text-xs text-slate-500 font-bold mt-1 leading-relaxed">
                       {selectedPedigree.status === 'R'
-                        ? '나이스 금융 전산망에 반려 및 환불 통보 패킷(API 004)을 안전하게 암호화 전송하고 있습니다.'
-                        : '모바일 혈통서 번호(-NP)를 채번하고 나이스 전산망에 발급 승인 데이터를 전송하고 있습니다.'}
+                        ? '나이스 전산망에 반려 및 환불 통보를 전송하고 있습니다.'
+                        : '혈통서 번호(-NP)를 부여하고 승인 데이터를 전송 중입니다.'}
                     </p>
                   </div>
-                  <div className="px-4 py-2 bg-indigo-950/80 rounded-lg border border-indigo-800/60 text-[11px] text-indigo-300 font-bold">
-                    ⏱️ 네트워크 응답 대기 중 (잠시만 기다려 주세요)
+                  <div className="px-3.5 py-1.5 bg-indigo-50/80 rounded-lg border border-indigo-100 text-[11px] text-indigo-700 font-black flex items-center gap-1.5">
+                    <RefreshCw size={12} className="animate-spin text-indigo-500" />
+                    잠시만 기다려 주세요
                   </div>
                 </div>
               </div>
