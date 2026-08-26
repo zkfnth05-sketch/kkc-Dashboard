@@ -764,7 +764,14 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                       </span>
                     )}
                   </h3>
-                  <p className="text-xs text-indigo-200 font-medium">모바일 혈통서 심사 신청서 상세 (UID: {selectedPedigree.uid})</p>
+                  <p className="text-xs text-indigo-200 font-medium flex items-center gap-2">
+                    <span>모바일 혈통서 심사 신청서 상세 (UID: {selectedPedigree.uid})</span>
+                    {selectedPedigree.registered_at && (
+                      <span className="text-indigo-300 bg-indigo-950/60 px-1.5 py-0.5 rounded text-[11px]">
+                        신청일시: {selectedPedigree.registered_at}
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
               <button
@@ -794,24 +801,39 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                     </button>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    {/* 결제주문번호 (order_no) 상단 표시 카드 */}
-                    <div className="col-span-2 flex items-center justify-between bg-indigo-50/90 border border-indigo-200 p-3 rounded-xl">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-indigo-950 uppercase tracking-wider">NICE 결제주문번호 (Order No)</span>
-                        <span className="text-xs font-mono font-black text-indigo-700 select-all">{selectedPedigree.order_no || '미발급 / 없음'}</span>
+                    {/* 신청일시 & 결제주문번호 통합 상단 카드 */}
+                    <div className="col-span-2 grid grid-cols-2 gap-3 bg-indigo-50/90 border border-indigo-200 p-3.5 rounded-xl">
+                      <div className="flex flex-col justify-center">
+                        <span className="text-[10px] font-black text-indigo-950 uppercase tracking-wider flex items-center gap-1">
+                          <Calendar size={12} className="text-indigo-600" />
+                          신청 일시 (Application Date)
+                        </span>
+                        <span className="text-xs font-bold text-slate-800 mt-0.5">
+                          {selectedPedigree.registered_at || '-'}
+                        </span>
                       </div>
-                      {selectedPedigree.order_no && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(selectedPedigree.order_no || '');
-                            alert('결제주문번호가 복사되었습니다:\n' + selectedPedigree.order_no);
-                          }}
-                          className="px-2.5 py-1 bg-white hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg border border-indigo-200 shadow-2xs transition-all active:scale-95 cursor-pointer shrink-0"
-                        >
-                          주문번호 복사
-                        </button>
-                      )}
+                      <div className="flex flex-col justify-center border-l border-indigo-200 pl-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-indigo-950 uppercase tracking-wider">
+                            NICE 결제주문번호
+                          </span>
+                          {selectedPedigree.order_no && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(selectedPedigree.order_no || '');
+                                alert('결제주문번호가 복사되었습니다:\n' + selectedPedigree.order_no);
+                              }}
+                              className="px-2 py-0.5 bg-white hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded border border-indigo-200 shadow-2xs transition-all active:scale-95 cursor-pointer"
+                            >
+                              복사
+                            </button>
+                          )}
+                        </div>
+                        <span className="text-xs font-mono font-black text-indigo-700 select-all truncate mt-0.5" title={selectedPedigree.order_no || ''}>
+                          {selectedPedigree.order_no || '미발급 / 없음'}
+                        </span>
+                      </div>
                     </div>
 
                     {/* 등록번호 (수정 & 중복 조회) */}
