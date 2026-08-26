@@ -1420,7 +1420,7 @@ function nice_admin_pedigree_action($input) {
         return ['success' => false, 'error' => '신청 내역을 찾을 수 없습니다.'];
     }
     
-    if ($req['status'] !== 'P') {
+    if ($req['status'] !== 'P' && $req['status'] !== 'R') {
         $conn->close();
         return ['success' => false, 'error' => '이미 심사가 완료된 건입니다.'];
     }
