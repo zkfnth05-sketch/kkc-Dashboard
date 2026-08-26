@@ -7,6 +7,7 @@ import { SearchableColorSelect } from './SearchableColorSelect';
 
 interface NicePedigree {
   uid: number;
+  order_no?: string;
   reg_no: string;
   dog_name?: string;
   name?: string;
@@ -641,7 +642,14 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                     onClick={() => { setSelectedPedigree(p); setActionMemo(p.admin_memo || ''); }}
                     className={`hover:bg-slate-50/50 cursor-pointer transition-colors ${selectedPedigree?.uid === p.uid ? 'bg-indigo-50/30' : ''}`}
                   >
-                    <td className="py-4 px-6 text-slate-400 font-medium text-xs">{p.registered_at}</td>
+                    <td className="py-4 px-6">
+                      <div className="text-slate-400 font-medium text-xs">{p.registered_at}</div>
+                      {p.order_no && (
+                        <div className="text-[10px] font-mono text-indigo-500 font-bold tracking-tight truncate max-w-[140px]" title={`결제주문번호: ${p.order_no}`}>
+                          주문: {p.order_no}
+                        </div>
+                      )}
+                    </td>
                     <td className="py-4 px-6 text-slate-900 font-extrabold">{p.reg_no}</td>
                     <td className="py-4 px-6 text-indigo-600 font-black tracking-tight">{p.dog_name}</td>
                     <td className="py-4 px-6 text-slate-800">
@@ -746,9 +754,16 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
             {/* 헤더 */}
             <div className="bg-indigo-900 text-white px-8 py-5 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <ShieldCheck size={24} className="text-indigo-300" />
+                <ShieldCheck size={24} className="text-indigo-300 shrink-0" />
                 <div>
-                  <h3 className="text-lg font-black tracking-tight">{selectedPedigree.dog_name}</h3>
+                  <h3 className="text-lg font-black tracking-tight flex items-center gap-2">
+                    <span>{selectedPedigree.dog_name}</span>
+                    {selectedPedigree.order_no && (
+                      <span className="text-[11px] bg-indigo-800 text-indigo-200 px-2 py-0.5 rounded font-mono font-normal">
+                        주문: {selectedPedigree.order_no}
+                      </span>
+                    )}
+                  </h3>
                   <p className="text-xs text-indigo-200 font-medium">모바일 혈통서 심사 신청서 상세 (UID: {selectedPedigree.uid})</p>
                 </div>
               </div>
@@ -779,6 +794,26 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                     </button>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
+                    {/* 결제주문번호 (order_no) 상단 표시 카드 */}
+                    <div className="col-span-2 flex items-center justify-between bg-indigo-50/90 border border-indigo-200 p-3 rounded-xl">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-indigo-950 uppercase tracking-wider">NICE 결제주문번호 (Order No)</span>
+                        <span className="text-xs font-mono font-black text-indigo-700 select-all">{selectedPedigree.order_no || '미발급 / 없음'}</span>
+                      </div>
+                      {selectedPedigree.order_no && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedPedigree.order_no || '');
+                            alert('결제주문번호가 복사되었습니다:\n' + selectedPedigree.order_no);
+                          }}
+                          className="px-2.5 py-1 bg-white hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg border border-indigo-200 shadow-2xs transition-all active:scale-95 cursor-pointer shrink-0"
+                        >
+                          주문번호 복사
+                        </button>
+                      )}
+                    </div>
+
                     {/* 등록번호 (수정 & 중복 조회) */}
                     <div className="col-span-2 flex flex-col bg-slate-50/70 p-3 rounded-xl border border-slate-200">
                       <span className="text-xs font-black text-slate-500 mb-1 flex items-center justify-between">

@@ -27,8 +27,8 @@ if (!function_exists('kkc_convert')) {
         if (strtoupper($enc) === 'UTF-8') return $data;
         
         if ($to_utf8) {
-            // 🛡️ 이미 정상적인 UTF-8 한글/문자열인 경우 다시 변환하여 깨지는 것(이중 인코딩/모지바케) 원천 차단
-            if (mb_check_encoding($data, 'UTF-8') && preg_match('/[\x{ac00}-\x{d7a3}]/u', $data)) {
+            // 🛡️ 이미 정상적인 UTF-8 한글(완성형 + 단독 자모음) 또는 문자열인 경우 다시 변환하여 깨지는 것(이중 인코딩/모지바케) 원천 차단
+            if (mb_check_encoding($data, 'UTF-8') && preg_match('/[\x{ac00}-\x{d7a3}\x{3130}-\x{318f}\x{1100}-\x{11ff}]/u', $data)) {
                 return $data;
             }
             return @mb_convert_encoding($data, 'UTF-8', 'CP949, EUC-KR');
@@ -1252,6 +1252,7 @@ function nice_admin_pedigree_list($input) {
             
             $list[] = [
                 'uid' => intval($row['uid']),
+                'order_no' => $row['order_no'] ?? '',
                 'reg_no' => $row['reg_no'],
                 'dog_name' => $row['name'],
                 'breed_name' => $display_breed,
