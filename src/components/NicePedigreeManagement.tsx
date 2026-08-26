@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Award, ShieldCheck, FileText, Calendar, Trash2, Edit, RefreshCw, Printer, Download, Eye, Check, X, Image as ImageIcon, Info, Sparkles } from 'lucide-react';
+import { Search, Award, ShieldCheck, FileText, Calendar, Trash2, Edit, RefreshCw, Printer, Download, Eye, Check, X, Image as ImageIcon, Info, Sparkles, Loader2 } from 'lucide-react';
 import { niceAdminFetchPedigrees, niceAdminPedigreeAction, niceAdminDeletePedigree, niceAdminFetchBreedColors } from '../services/portalService';
 import { fetchHairs, fetchDogClasses, checkRegNoExists, fetchLastRegNo } from '../services/pedigreeService';
 import { runSqlBatch } from '../services/memberService';
@@ -703,7 +703,33 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       {/* 5. 상세 심사 모달 다이얼로그 */}
       {selectedPedigree && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in-50 zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in-50 zoom-in-95 duration-200 relative">
+            
+            {/* 🚀 실시간 나이스 서버 통신 중 로딩 오버레이 */}
+            {isSubmitting && (
+              <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex flex-col items-center justify-center text-white p-6 animate-in fade-in duration-150">
+                <div className="bg-slate-900/95 border-2 border-indigo-500/50 p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-md text-center space-y-4">
+                  <div className="relative flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full border-4 border-indigo-500/20 border-t-indigo-400 animate-spin" />
+                    <Loader2 className="w-8 h-8 text-indigo-400 animate-spin absolute" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-black text-white">
+                      {selectedPedigree.status === 'R' ? 'NICE 환불 통보 처리 중...' : 'NICE 서버와 실시간 통신 중...'}
+                    </h4>
+                    <p className="text-xs text-indigo-200/90 font-bold mt-1.5 leading-relaxed">
+                      {selectedPedigree.status === 'R'
+                        ? '나이스 금융 전산망에 반려 및 환불 통보 패킷(API 004)을 안전하게 암호화 전송하고 있습니다.'
+                        : '모바일 혈통서 번호(-NP)를 채번하고 나이스 전산망에 발급 승인 데이터를 전송하고 있습니다.'}
+                    </p>
+                  </div>
+                  <div className="px-4 py-2 bg-indigo-950/80 rounded-lg border border-indigo-800/60 text-[11px] text-indigo-300 font-bold">
+                    ⏱️ 네트워크 응답 대기 중 (잠시만 기다려 주세요)
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 헤더 */}
             <div className="bg-indigo-900 text-white px-8 py-5 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -1039,8 +1065,8 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                           className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-rose-100 flex items-center justify-center gap-1.5 transition-all"
                           title="나이스에 반려(F)를 전송하여 환불 처리를 완료합니다"
                         >
-                          <X size={18} />
-                          환불 승인 (반려 확정)
+                          {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <X size={18} />}
+                          {isSubmitting ? '환불 통보 중...' : '환불 승인 (반려 확정)'}
                         </button>
                         <button
                           onClick={() => handleAction('approve')}
@@ -1048,8 +1074,8 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                           className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-100 flex items-center justify-center gap-1.5 transition-all"
                           title="환불을 거절하고 혈통서 번호(-NP)를 부여하여 정상 발급합니다"
                         >
-                          <Check size={18} />
-                          환불 거절 (정상 발급)
+                          {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                          {isSubmitting ? '발급 처리 중...' : '환불 거절 (정상 발급)'}
                         </button>
                       </div>
                     ) : (
@@ -1060,16 +1086,16 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                           disabled={isSubmitting}
                           className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-100 flex items-center justify-center gap-1.5 transition-all"
                         >
-                          <Check size={18} />
-                          발급 승인
+                          {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                          {isSubmitting ? '나이스 통보 중...' : '발급 승인'}
                         </button>
                         <button
                           onClick={() => handleAction('reject')}
                           disabled={isSubmitting}
                           className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-rose-100 flex items-center justify-center gap-1.5 transition-all"
                         >
-                          <X size={18} />
-                          심사 반려
+                          {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <X size={18} />}
+                          {isSubmitting ? '반려 통보 중...' : '심사 반려'}
                         </button>
                       </div>
                     )}
