@@ -1597,10 +1597,10 @@ function nice_admin_pedigree_action($input) {
         $np_reg_no = (strpos($base_reg_no, '-NP') !== false) ? $base_reg_no : ($base_reg_no . '-NP');
     } else {
         // 신규이거나 소유주가 다른 경우: 겹치지 않는 NICE 전용 5000번대 등록번호 자동 생성 후 -NP 추가
-        $breed_name_utf8 = $req['dog_classTab_name'];
+        $breed_name_utf8 = trim($req['dog_classTab_name']);
         $conn->query("SET NAMES 'utf8mb4'");
         $e_b_utf8 = $conn->real_escape_string($breed_name_utf8);
-        $breed_chk = $conn->query("SELECT keyy FROM dog_classTab WHERE kor_name = '$e_b_utf8' LIMIT 1");
+        $breed_chk = $conn->query("SELECT keyy FROM dog_classTab WHERE TRIM(kor_name) = '$e_b_utf8' OR TRIM(name) = '$e_b_utf8' OR keyy = '$e_b_utf8' LIMIT 1");
         
         $keyy = '';
         if ($breed_chk && $breed_chk->num_rows > 0) {
@@ -1611,7 +1611,7 @@ function nice_admin_pedigree_action($input) {
             // EUC-KR 인코딩 테이블 대비 2차 검색
             $conn->query("SET NAMES 'binary'");
             $e_b_euc = $conn->real_escape_string(kkc_convert($breed_name_utf8, 'EUC-KR', false));
-            $breed_chk2 = $conn->query("SELECT keyy FROM dog_classTab WHERE kor_name = '$e_b_euc' LIMIT 1");
+            $breed_chk2 = $conn->query("SELECT keyy FROM dog_classTab WHERE TRIM(kor_name) = '$e_b_euc' OR TRIM(name) = '$e_b_euc' OR keyy = '$e_b_euc' LIMIT 1");
             if ($breed_chk2 && $breed_chk2->num_rows > 0) {
                 $keyy = kkc_convert(trim($breed_chk2->fetch_assoc()['keyy'] ?? ''), 'EUC-KR', true);
             }
