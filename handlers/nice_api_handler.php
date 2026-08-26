@@ -530,7 +530,7 @@ function nice_handle_request($data) {
     $saho = $conn->real_escape_string($data['saho'] ?? '');
     $dog_classTab_name = $conn->real_escape_string($data['dog_classTab_name'] ?? '');
     $micro = $conn->real_escape_string($data['micro'] ?? '');
-    $sex = $conn->real_escape_string($data['sex'] ?? '');
+    $sex = $conn->real_escape_string(nice_format_sex($data['sex'] ?? ''));
     $breed_name = $conn->real_escape_string($data['breed_name'] ?? '');
     $hair_raw = $data['hair'] ?? ($data['color_name'] ?? ($data['COLOR_NAME'] ?? ($data['COLOR_CD'] ?? '')));
     $hair = $conn->real_escape_string(nice_resolve_color_name($conn, $dog_classTab_name ?: $breed_name, $hair_raw));
@@ -1701,7 +1701,7 @@ function nice_admin_pedigree_action($input) {
                 '" . $conn->real_escape_string(kkc_convert($req['name'], 'EUC-KR', false)) . "',
                 '" . $conn->real_escape_string(kkc_convert($req['name'], 'EUC-KR', false)) . "',
                 '" . $conn->real_escape_string(kkc_convert($breed_code, 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['sex'], 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(nice_format_sex($req['sex'] ?? '')) . "',
                 '" . $conn->real_escape_string(kkc_convert($req['hair'], 'EUC-KR', false)) . "',
                 '" . $conn->real_escape_string(kkc_convert(!empty($req['birth']) ? $req['birth'] : '0000-00-00', 'EUC-KR', false)) . "',
                 '" . $conn->real_escape_string($poss_id) . "',
