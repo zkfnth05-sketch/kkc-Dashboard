@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, UserCheck, ShieldAlert, Calendar, MapPin, Download, RefreshCw, Trash2, Edit, CheckCircle } from 'lucide-react';
+import { Search, UserCheck, ShieldAlert, Calendar, MapPin, Download, RefreshCw, Trash2, Edit, CheckCircle, Dog } from 'lucide-react';
 import { niceAdminFetchMembers, niceAdminDeleteMember } from '../services/portalService';
 
 interface NiceMember {
@@ -8,7 +8,6 @@ interface NiceMember {
   name: string;
   birth: string;
   hp: string;
-  gender: '수컷' | '암컷' | '남성' | '여성';
   ci: string;
   di: string;
   addr: string;
@@ -32,11 +31,9 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
   onSearchHandled
 }) => {
   const [members, setMembers] = useState<NiceMember[]>([]);
-  const [filteredMembers, setFilteredMembers] = useState<NiceMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<NiceMember | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchField, setSearchField] = useState<'all' | 'name' | 'id' | 'hp' | 'ci'>('all');
-  const [genderFilter, setGenderFilter] = useState<'all' | 'M' | 'F'>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -77,33 +74,18 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
     }
   }, [initialSearch]);
 
-  // 검색 트리거 (엔터 또는 입력 변경에 따른 지연 실행 대신 간편 동기화 활용)
+  // 검색 트리거
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (currentPage === 1) {
         loadData();
       } else {
-        setCurrentPage(1); // 페이지를 1로 돌리면 loadData가 호출됩니다.
+        setCurrentPage(1);
       }
     }, 400);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery, searchField]);
-
-  // 성별 필터는 클라이언트 측에서 처리 (성별 통계 및 일치)
-  useEffect(() => {
-    let result = members;
-    if (genderFilter !== 'all') {
-      const targetGender = genderFilter === 'M' ? '남성' : '여성';
-      result = result.filter(m => m.gender === targetGender);
-    }
-    setFilteredMembers(result);
-    if (result.length > 0) {
-      setSelectedMember(result[0]);
-    } else {
-      setSelectedMember(null);
-    }
-  }, [genderFilter, members]);
 
   const handleDelete = (member: NiceMember) => {
     showConfirm(
@@ -129,7 +111,6 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
     );
   };
 
-
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-slate-50 font-sans">
       {/* 1. 상단 상태 바 및 요약 통계 */}
@@ -141,7 +122,7 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
             </span>
             NICE 실명인증 회원관리
             <span className="text-xs font-bold bg-green-100 text-green-700 px-2.5 py-1 rounded-full border border-green-200">
-              NICE i-PIN 전용 독립 DB
+              NICE 본인확인 연동
             </span>
           </h2>
           <p className="text-slate-400 text-xs mt-1 font-medium">나이스 본인 확인 서비스를 거쳐 정상적으로 가입 및 전환된 회원 정보 데이터베이스입니다.</p>
@@ -149,20 +130,14 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
 
         {/* 통계 카드 */}
         <div className="flex gap-4">
-          <div className="bg-slate-50 border border-slate-100 rounded-xl px-5 py-2.5 text-center min-w-[90px]">
-            <div className="text-xs font-bold text-slate-400">인증 회원</div>
-            <div className="text-xl font-black text-slate-800 mt-0.5">{filteredMembers.length}명</div>
+          <div className="bg-slate-50 border border-slate-100 rounded-xl px-5 py-2.5 text-center min-w-[100px]">
+            <div className="text-xs font-bold text-slate-400">총 인증 회원</div>
+            <div className="text-xl font-black text-slate-800 mt-0.5">{totalCount}명</div>
           </div>
-          <div className="bg-blue-50/50 border border-blue-100 rounded-xl px-5 py-2.5 text-center min-w-[90px]">
-            <div className="text-xs font-bold text-blue-400">남성</div>
+          <div className="bg-blue-50/50 border border-blue-100 rounded-xl px-5 py-2.5 text-center min-w-[110px]">
+            <div className="text-xs font-bold text-blue-500">소유견 보유 회원</div>
             <div className="text-xl font-black text-blue-600 mt-0.5">
-              {filteredMembers.filter(m => m.gender === '남성').length}명
-            </div>
-          </div>
-          <div className="bg-rose-50/50 border border-rose-100 rounded-xl px-5 py-2.5 text-center min-w-[90px]">
-            <div className="text-xs font-bold text-rose-400">여성</div>
-            <div className="text-xl font-black text-rose-600 mt-0.5">
-              {filteredMembers.filter(m => m.gender === '여성').length}명
+              {members.filter(m => m.owned_dogs && m.owned_dogs.length > 0).length}명
             </div>
           </div>
         </div>
@@ -196,16 +171,6 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
         </div>
 
         <div className="flex gap-3 items-center">
-          <select
-            value={genderFilter}
-            onChange={(e) => setGenderFilter(e.target.value as any)}
-            className="bg-slate-50 border-2 border-slate-100 text-slate-700 font-bold px-4 py-2.5 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-sm transition-all"
-          >
-            <option value="all">모든 성별</option>
-            <option value="M">남성</option>
-            <option value="F">여성</option>
-          </select>
-
           <button
             onClick={loadData}
             className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold text-sm transition-all"
@@ -234,11 +199,11 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
               <RefreshCw className="animate-spin text-blue-500" size={32} />
               <div className="font-bold">데이터베이스 동기화 중...</div>
             </div>
-          ) : filteredMembers.length === 0 ? (
+          ) : members.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400">
               <ShieldAlert size={48} className="text-slate-300" />
               <div className="font-bold text-lg">조건에 맞는 회원이 없습니다.</div>
-              <p className="text-xs">검색어 및 성별 필터를 조정해 주세요.</p>
+              <p className="text-xs">검색어를 확인해 주세요.</p>
             </div>
           ) : (
             <table className="w-full border-collapse text-left bg-white">
@@ -248,7 +213,6 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
                   <th className="py-4 px-6">실명</th>
                   <th className="py-4 px-6">생년월일</th>
                   <th className="py-4 px-6">휴대폰 번호</th>
-                  <th className="py-4 px-6">성별</th>
                   <th className="py-4 px-6">소유견 등록번호</th>
                   <th className="py-4 px-6">NICE 고유인증키 (CI)</th>
                   <th className="py-4 px-6">인증/가입일시</th>
@@ -256,7 +220,7 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm font-bold text-slate-700">
-                {filteredMembers.map((m) => (
+                {members.map((m) => (
                   <tr
                     key={m.mid}
                     onClick={() => setSelectedMember(m)}
@@ -267,15 +231,10 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
                       <div className="text-slate-400 text-xs">MID-{m.mid}</div>
                     </td>
                     <td className="py-4 px-6 text-slate-900 font-black">{m.name}</td>
-                    <td className="py-4 px-6 text-slate-500">{m.birth}</td>
-                    <td className="py-4 px-6 text-slate-600">{m.hp}</td>
-                    <td className="py-4 px-6">
-                      <span className={`px-2 py-1 rounded text-xs font-black ${m.gender === '남성' ? 'bg-blue-50 text-blue-600' : 'bg-rose-50 text-rose-600'}`}>
-                        {m.gender}
-                      </span>
-                    </td>
+                    <td className="py-4 px-6 text-slate-500">{m.birth || '-'}</td>
+                    <td className="py-4 px-6 text-slate-600">{m.hp || '-'}</td>
                     <td className="py-4 px-6" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                      <div className="flex flex-wrap gap-1 max-w-[220px]">
                         {m.owned_dogs && m.owned_dogs.length > 0 ? (
                           m.owned_dogs.map((regNo, idx) => (
                             <button
@@ -296,9 +255,9 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <code className="text-xs bg-slate-50 px-2 py-1 rounded text-slate-500 font-mono border border-slate-100">{m.ci.substring(0, 16)}...</code>
+                      <code className="text-xs bg-slate-50 px-2 py-1 rounded text-slate-500 font-mono border border-slate-100">{m.ci ? m.ci.substring(0, 16) + '...' : '-'}</code>
                     </td>
-                    <td className="py-4 px-6 text-slate-400 font-medium text-xs">{m.verified_at}</td>
+                    <td className="py-4 px-6 text-slate-400 font-medium text-xs">{m.verified_at || '-'}</td>
                     <td className="py-4 px-6 text-center" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleDelete(m)}
@@ -338,9 +297,8 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
                   <DetailRow label="아이디" value={selectedMember.id} />
                   <DetailRow label="회원번호" value={`MID-${selectedMember.mid}`} />
                   <DetailRow label="실명" value={selectedMember.name} />
-                  <DetailRow label="생년월일" value={selectedMember.birth} />
-                  <DetailRow label="성별" value={selectedMember.gender} />
-                  <DetailRow label="휴대폰" value={selectedMember.hp} />
+                  <DetailRow label="생년월일" value={selectedMember.birth || '-'} />
+                  <DetailRow label="휴대폰" value={selectedMember.hp || '-'} />
                 </div>
               </div>
 
@@ -386,11 +344,11 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
                   </div>
                   <div>
                     <div className="text-xs font-black text-slate-400 mb-1">NICE 고유 연결값 (CI)</div>
-                    <div className="text-[10px] font-mono bg-white p-2 rounded border border-slate-200 text-slate-600 break-all select-all">{selectedMember.ci}</div>
+                    <div className="text-[10px] font-mono bg-white p-2 rounded border border-slate-200 text-slate-600 break-all select-all">{selectedMember.ci || '-'}</div>
                   </div>
                   <div>
                     <div className="text-xs font-black text-slate-400 mb-1">NICE 중복 가입 확인값 (DI)</div>
-                    <div className="text-[10px] font-mono bg-white p-2 rounded border border-slate-200 text-slate-600 break-all select-all">{selectedMember.di}</div>
+                    <div className="text-[10px] font-mono bg-white p-2 rounded border border-slate-200 text-slate-600 break-all select-all">{selectedMember.di || '-'}</div>
                   </div>
                 </div>
               </div>

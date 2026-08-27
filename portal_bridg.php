@@ -90,6 +90,72 @@ try {
         } else {
             $output = ['success' => false, 'error' => '아이핀 검증 핸들러 함수를 찾을 수 없습니다.'];
         }
+    } else if ($mode === 'admin_nice_member_list') {
+        $conn = get_kkc_portal_db();
+        $page = max(1, intval($input['page'] ?? 1));
+        $limit = intval($input['limit'] ?? 50);
+        $offset = ($page - 1) * $limit;
+        $where = "nice_ci IS NOT NULL AND nice_ci != ''";
+        $search = trim($input['search'] ?? '');
+        if ($search !== '') {
+            $e_search = $conn->real_escape_string(kkc_convert($search, 'EUC-KR', false));
+            $field = $input['field'] ?? 'all';
+            if ($field === 'name') $where .= " AND name LIKE '%$e_search%'";
+            else if ($field === 'id') $where .= " AND id LIKE '%$e_search%'";
+            else if ($field === 'hp') $where .= " AND REPLACE(hp, '-', '') LIKE '%$e_search%'";
+            else if ($field === 'ci') $where .= " AND nice_ci LIKE '%$e_search%'";
+            else $where .= " AND (name LIKE '%$e_search%' OR id LIKE '%$e_search%' OR REPLACE(hp, '-', '') LIKE '%$e_search%' OR nice_ci LIKE '%$e_search%')";
+        }
+        
+        $sql = "SELECT mid, id, name, birth, hp, nice_ci, nice_di, addr, nice_verified_at 
+                FROM (
+                    SELECT mid, id, name, birth, hp, nice_ci, nice_di, addr, nice_verified_at FROM memTab WHERE $where
+                    UNION
+                    SELECT mid, id, name, birth, hp, nice_ci, nice_di, addr, nice_verified_at FROM nice_memTab WHERE $where
+                ) AS combined 
+                ORDER BY mid DESC LIMIT $limit OFFSET $offset";
+        $res = $conn->query($sql);
+        $list = [];
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $birth = kkc_convert($row['birth'], 'EUC-KR', true);
+                
+                // 🐕 소유견의 등록번호 조회
+                $m_id = $conn->real_escape_string($row['id']);
+                $m_mid = $conn->real_escape_string($row['mid']);
+                $dog_reg_nos = [];
+                if (!empty($m_id) || !empty($m_mid)) {
+                    $dog_sql = "SELECT reg_no FROM nice_dogTab WHERE poss_id = '$m_id' OR poss_id = '$m_mid' ORDER BY uid DESC";
+                    $dog_res = $conn->query($dog_sql);
+                    if ($dog_res) {
+                        while ($d_row = $dog_res->fetch_assoc()) {
+                            $dog_reg_nos[] = kkc_convert($d_row['reg_no'], 'EUC-KR', true);
+                        }
+                    }
+                }
+                
+                $list[] = [
+                    'mid' => intval($row['mid']),
+                    'id' => kkc_convert($row['id'], 'EUC-KR', true),
+                    'name' => kkc_convert($row['name'], 'EUC-KR', true),
+                    'birth' => $birth,
+                    'hp' => kkc_convert($row['hp'], 'EUC-KR', true),
+                    'ci' => $row['nice_ci'],
+                    'di' => $row['nice_di'],
+                    'addr' => kkc_convert($row['addr'], 'EUC-KR', true),
+                    'verified_at' => $row['nice_verified_at'] ?? date('Y-m-d H:i:s'),
+                    'owned_dogs' => $dog_reg_nos
+                ];
+            }
+        }
+        $total_res = $conn->query("SELECT COUNT(*) as cnt FROM (
+            SELECT mid FROM memTab WHERE $where
+            UNION
+            SELECT mid FROM nice_memTab WHERE $where
+        ) AS combined");
+        $total = ($total_res) ? intval($total_res->fetch_assoc()['cnt']) : 0;
+        $conn->close();
+        $output = ['success' => true, 'data' => $list, 'total' => $total];
     } else {
         $output['error'] = '모드 없음: ' . $mode;
     }

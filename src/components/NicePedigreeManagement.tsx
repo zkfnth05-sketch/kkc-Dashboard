@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Award, ShieldCheck, FileText, Calendar, Trash2, Edit, RefreshCw, Printer, Download, Eye, Check, X, Image as ImageIcon, Info, Sparkles, Loader2 } from 'lucide-react';
-import { niceAdminFetchPedigrees, niceAdminPedigreeAction, niceAdminDeletePedigree, niceAdminFetchBreedColors } from '../services/portalService';
+import { niceAdminFetchPedigrees, niceAdminPedigreeAction, niceAdminDeletePedigree, niceAdminFetchBreedColors, niceAdminGenerateRegNo } from '../services/portalService';
 import { fetchHairs, fetchDogClasses, checkRegNoExists, fetchLastRegNo } from '../services/pedigreeService';
 import { runSqlBatch } from '../services/memberService';
 import { SearchableColorSelect } from './SearchableColorSelect';
@@ -28,7 +28,7 @@ interface NicePedigree {
   image3_path?: string;
   image4_path?: string;
   poss_ci?: string;
-  
+
   // NICE Petpin 데이터베이스 명세 기준 상세 필드
   saho_eng?: string;
   saho?: string;
@@ -161,7 +161,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       setBreedColors([]);
     }
   }, [selectedPedigree]);
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [activeSubTab, setActiveSubTab] = useState<'requests' | 'dogtab'>('requests');
@@ -296,29 +296,17 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
     try {
       const breedInfo = dogClasses.find(d => d.breed === editBreed);
       const keyy = breedInfo?.keyy ? breedInfo.keyy.trim() : '';
-      const currentYear = new Date().getFullYear();
-      const decadeCode = 'C'; // 2020년대
-      const yearDigit = currentYear % 10; // 6
-      const prefix = `${keyy ? keyy + '-' : ''}${decadeCode}${yearDigit}5`;
-      
-      const lastRegNo = await fetchLastRegNo(prefix);
-      let nextNum = 5001;
-      if (lastRegNo) {
-        const match = lastRegNo.match(/\d{4}/);
-        if (match) {
-          const lastSeq = parseInt(match[0], 10);
-          if (lastSeq >= 5000) {
-            nextNum = lastSeq + 1;
-          }
-        }
+
+      const res = await niceAdminGenerateRegNo(editBreed, keyy);
+      if (res && res.success && res.reg_no) {
+        setEditRegNo(res.reg_no);
+        showAlert(
+          '등록번호 자동 부여 완료',
+          `✔ [${editBreed}] 견종의 5000번대 모바일 전용 등록번호가 자동 채번되었습니다:\n\n👉 ${res.reg_no}`
+        );
+      } else {
+        showAlert('채번 오류', res?.error || '등록번호를 생성할 수 없습니다.');
       }
-      const paddedNum = nextNum.toString().padStart(4, '0');
-      const generatedRegNo = `${keyy ? keyy + '-' : ''}${decadeCode}${yearDigit}${paddedNum}-NP`;
-      setEditRegNo(generatedRegNo);
-      showAlert(
-        '등록번호 자동 부여 완료',
-        `✔ [${editBreed}] 견종의 5000번대 모바일 전용 등록번호가 자동 채번되었습니다:\n\n👉 ${generatedRegNo}`
-      );
     } catch (e) {
       console.error(e);
       showAlert('오류', '등록번호 자동 채번 중 통신 오류가 발생했습니다.');
@@ -383,12 +371,12 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       showAlert('반려 사유 누락', '반려 사유(의견)를 작성한 후에 반려 처리를 진행해 주세요.');
       return;
     }
-    
+
     const isRefundReq = selectedPedigree.status === 'R';
-    const actionText = isRefundReq 
+    const actionText = isRefundReq
       ? (action === 'reject' ? '환불 승인(반려 확정)' : '환불 거절(정상 발급)')
       : (action === 'approve' ? '발급 승인' : '심사 반려');
-      
+
     showConfirm(
       `${actionText} 처리`,
       `[${selectedPedigree.dog_name}] 개체의 ${actionText} 처리를 진행하시겠습니까?`,
@@ -411,7 +399,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 
           // 2. 관리자 액션 (승인/반려) 및 나이스 통보 실행
           const res = await niceAdminPedigreeAction(selectedPedigree.uid, action, actionMemo, editHair, editBreed, editRegNo, editFaName, editMoName);
-          
+
           if (res && res.success) {
             // 3. 사후 동기화: nice_dogTab에 발급된 혈통서에도 부모견 영문명 확실히 저장
             if (action === 'approve' && (editFaName || editMoName)) {
@@ -431,7 +419,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
             const popupTitle = isWarning
               ? (action === 'approve' ? '⚠️ 발급 완료 (나이스 통보 확인 필요)' : '⚠️ 반려 완료 (나이스 통보 확인 필요)')
               : (action === 'approve' ? '🎉 발급 승인 완료' : '❌ 반려 처리 완료');
-            
+
             showAlert(popupTitle, res.message || `${actionText} 처리가 완료되었습니다.`);
             setActionMemo('');
             setSelectedPedigree(null); // 상세 보기 모달 창을 닫아 데이터 갱신을 즉시 체감할 수 있도록 함
@@ -475,11 +463,10 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
             setActiveSubTab('requests');
             setStatusFilter('all');
           }}
-          className={`px-5 py-2 text-sm font-black rounded-xl transition-all ${
-            activeSubTab === 'requests'
+          className={`px-5 py-2 text-sm font-black rounded-xl transition-all ${activeSubTab === 'requests'
               ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
               : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-          }`}
+            }`}
         >
           📄 모바일 발급 심사 신청 목록
         </button>
@@ -488,11 +475,10 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
             setActiveSubTab('dogtab');
             setStatusFilter('Y');
           }}
-          className={`px-5 py-2 text-sm font-black rounded-xl transition-all ${
-            activeSubTab === 'dogtab'
+          className={`px-5 py-2 text-sm font-black rounded-xl transition-all ${activeSubTab === 'dogtab'
               ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
               : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-          }`}
+            }`}
         >
           🐕 발급 완료 혈통서 관리 (nice_dogTab)
         </button>
@@ -533,8 +519,8 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 
       {/* 안내 및 도움말 카드 */}
       <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mx-8 mt-4 rounded-r-xl shadow-sm">
-        <button 
-          onClick={() => setIsHelpOpen(!isHelpOpen)} 
+        <button
+          onClick={() => setIsHelpOpen(!isHelpOpen)}
           className="flex items-center justify-between w-full text-left font-bold text-blue-800 text-xs hover:text-blue-900 outline-none cursor-pointer"
         >
           <div className="flex items-center gap-2">
@@ -545,7 +531,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
             {isHelpOpen ? '닫기' : '열기'}
           </span>
         </button>
-        
+
         {isHelpOpen && (
           <p className="text-xs text-blue-700 font-bold mt-2 leading-relaxed border-t border-blue-200/60 pt-2 transition-all">
             • <strong>심사 승인 (발급 완료)</strong>:<br />
@@ -718,7 +704,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       {selectedPedigree && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in-50 zoom-in-95 duration-200 relative">
-            
+
             {/* 🚀 실시간 나이스 서버 통신 중 밝고 투명한 맞춤형 로딩 오버레이 */}
             {isSubmitting && (
               <div className="absolute inset-0 bg-white/75 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6 animate-in fade-in duration-150">
@@ -736,11 +722,11 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                     <p className="text-xs text-slate-500 font-bold mt-1 leading-relaxed">
                       {selectedPedigree.status === 'R'
                         ? (currentAction === 'reject'
-                            ? '나이스 금융 전산망에 반려 및 자동 결제 취소(환불) 데이터를 전송하고 있습니다.'
-                            : '환불을 거절하고 고유 혈통서 번호(-NP)를 부여하여 정상 발급 승인 중입니다.')
+                          ? '나이스 금융 전산망에 반려 및 자동 결제 취소(환불) 데이터를 전송하고 있습니다.'
+                          : '환불을 거절하고 고유 혈통서 번호(-NP)를 부여하여 정상 발급 승인 중입니다.')
                         : (currentAction === 'approve'
-                            ? '고유 혈통서 번호(-NP)를 부여하고 나이스 전산망에 발급 승인 데이터를 전송 중입니다.'
-                            : '심사 반려 사유와 함께 나이스 전산망에 반려 통보 데이터를 전송하고 있습니다.')}
+                          ? '고유 혈통서 번호(-NP)를 부여하고 나이스 전산망에 발급 승인 데이터를 전송 중입니다.'
+                          : '심사 반려 사유와 함께 나이스 전산망에 반려 통보 데이터를 전송하고 있습니다.')}
                     </p>
                   </div>
                   <div className="px-3.5 py-1.5 bg-indigo-50/80 rounded-lg border border-indigo-100 text-[11px] text-indigo-700 font-black flex items-center gap-1.5">
@@ -864,7 +850,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 
                     <DetailItem label="견명" value={selectedPedigree.dog_name || selectedPedigree.name || '-'} />
                     <DetailItem label="성별" value={selectedPedigree.gender === 'M' || selectedPedigree.sex === 'M' ? '수컷 (Male)' : '암컷 (Female)'} />
-                    
+
                     <div className="col-span-2">
                       <DetailItem label="마이크로칩 번호" value={selectedPedigree.micro || '-'} fullWidth />
                     </div>
@@ -901,7 +887,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                         ))}
                       </select>
                     </div>
-                    
+
                     <div className="col-span-2 bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-200">
                       <div className="flex flex-col mb-2">
                         <span className="text-xs font-black text-indigo-950 mb-1">모색 (hairTab 모색 DB 및 검색/선택 - 발급 및 NICE 통보 시 반영)</span>
@@ -912,7 +898,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                           placeholder="모색 검색 또는 드롭다운 선택 (예: 백색, 황색, Black & Tan)..."
                         />
                       </div>
-                      
+
                       {breedColors.length > 0 ? (
                         <div className="pt-2 border-t border-indigo-200/80">
                           <span className="font-black text-indigo-900 text-xs block mb-1.5">
@@ -946,12 +932,12 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 
                 <div>
                   <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">부모견 정보</h4>
-                  
+
                   {/* 부견 영역 안내 문구 */}
                   <p className="text-xs font-black text-orange-600 mb-2 leading-relaxed">
                     신청자가 부견 또는 모견 이름을 한글(예: 백구, 초코 등)로 신청한 경우, 유선 심사 시 견주와 확인 후 정식 영문 이름(견사호 포함)으로 수정하여 발급 승인해 주세요.
                   </p>
-                  
+
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     {/* 부견 이름 (수정 가능 input) */}
                     <div className="flex flex-col">
@@ -966,10 +952,10 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                         className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-sans"
                       />
                     </div>
-                    
+
                     {/* 부견 등록번호 (읽기 전용) */}
                     <DetailItem label="부견 등록번호" value={selectedPedigree.fa_regno || selectedPedigree.father_reg_no || selectedPedigree.sire_reg_no || '-'} />
-                    
+
                     {/* 부견 견사호 (읽기 전용) */}
                     <div className="col-span-2">
                       <DetailItem label="부견 견사호 (FATHER SAHO)" value={selectedPedigree.fa_saho || selectedPedigree.father_saho || '-'} fullWidth />
@@ -1047,28 +1033,30 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                     <div className="flex flex-col">
                       <span className="text-xs font-black text-slate-400">신청인 실명</span>
                       <button
+                        type="button"
                         onClick={() => {
                           if (onGoToMember && selectedPedigree.owner_name) {
                             onGoToMember(selectedPedigree.owner_name);
                             setSelectedPedigree(null);
                           }
                         }}
-                        className="text-sm font-extrabold text-blue-600 hover:text-blue-800 hover:underline text-left mt-1 self-start"
+                        className="text-sm font-extrabold text-blue-600 hover:text-blue-800 hover:underline text-left mt-1 self-start cursor-pointer"
                       >
-                        {selectedPedigree.owner_name} ➔
+                        {selectedPedigree.owner_name || selectedPedigree.poss_name || '-'} ➔
                       </button>
                     </div>
 
                     <div className="flex flex-col">
                       <span className="text-xs font-black text-slate-400">NICE ID / 핀</span>
                       <button
+                        type="button"
                         onClick={() => {
                           if (onGoToMember && selectedPedigree.owner_id) {
                             onGoToMember(selectedPedigree.owner_id);
                             setSelectedPedigree(null);
                           }
                         }}
-                        className="text-sm font-extrabold text-blue-600 hover:text-blue-800 hover:underline text-left mt-1 self-start"
+                        className="text-sm font-extrabold text-blue-600 hover:text-blue-800 hover:underline text-left mt-1 self-start cursor-pointer"
                       >
                         {selectedPedigree.owner_id || '-'} ➔
                       </button>
@@ -1077,13 +1065,14 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                     <div className="flex flex-col">
                       <span className="text-xs font-black text-slate-400">소유자 이름</span>
                       <button
+                        type="button"
                         onClick={() => {
                           if (onGoToMember && selectedPedigree.poss_name) {
                             onGoToMember(selectedPedigree.poss_name);
                             setSelectedPedigree(null);
                           }
                         }}
-                        className="text-sm font-extrabold text-blue-600 hover:text-blue-800 hover:underline text-left mt-1 self-start"
+                        className="text-sm font-extrabold text-blue-600 hover:text-blue-800 hover:underline text-left mt-1 self-start cursor-pointer"
                       >
                         {selectedPedigree.poss_name || '-'} ➔
                       </button>
@@ -1098,13 +1087,14 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                     <div className="col-span-2 flex flex-col">
                       <span className="text-xs font-black text-slate-400">소유자 CI</span>
                       <button
+                        type="button"
                         onClick={() => {
                           if (onGoToMember && selectedPedigree.poss_ci) {
                             onGoToMember(selectedPedigree.poss_ci);
                             setSelectedPedigree(null);
                           }
                         }}
-                        className="text-xs font-mono font-bold text-indigo-600 hover:text-indigo-800 hover:underline text-left mt-1 bg-indigo-50/50 p-2 rounded border border-indigo-100 break-all w-full"
+                        className="text-xs font-mono font-bold text-indigo-600 hover:text-indigo-800 hover:underline text-left mt-1 bg-indigo-50/50 p-2 rounded border border-indigo-100 break-all w-full cursor-pointer"
                       >
                         {selectedPedigree.poss_ci || '-'} ➔
                       </button>
@@ -1112,101 +1102,101 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                   </div>
                 </div>
 
-                {/* 심사 / 환불 액션 폼 */}
-                {(selectedPedigree.status === 'P' || selectedPedigree.status === 'R') ? (
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
-                    <h5 className="text-sm font-black text-slate-800 flex items-center gap-1.5">
-                      <Edit size={16} className={selectedPedigree.status === 'R' ? "text-purple-600" : "text-indigo-600"} />
-                      {selectedPedigree.status === 'R' ? '환불 처리 의견 기술' : '심사 의견 기술'}
-                    </h5>
-                    <textarea
-                      value={actionMemo}
-                      onChange={(e) => setActionMemo(e.target.value)}
-                      placeholder={selectedPedigree.status === 'R' ? "환불 승인(반려) 또는 환불 거절(정상발급) 사유를 입력하세요..." : "승인 또는 반려 사유를 입력하세요... (반려 시 필수)"}
-                      className="w-full h-24 p-3 bg-white border border-slate-200 focus:border-indigo-500 rounded-lg text-sm font-bold outline-none resize-none transition-all"
-                    />
-                    
-                    {selectedPedigree.status === 'R' ? (
-                      /* 🟣 환불 요청 모드 전용 버튼 */
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => handleAction('reject')}
-                          disabled={isSubmitting}
-                          className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-rose-100 flex items-center justify-center gap-1.5 transition-all"
-                          title="나이스에 반려(F)를 전송하여 환불 처리를 완료합니다"
-                        >
-                          {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <X size={18} />}
-                          {isSubmitting ? '환불 통보 중...' : '환불 승인 (반려 확정)'}
-                        </button>
-                        <button
-                          onClick={() => handleAction('approve')}
-                          disabled={isSubmitting}
-                          className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-100 flex items-center justify-center gap-1.5 transition-all"
-                          title="환불을 거절하고 혈통서 번호(-NP)를 부여하여 정상 발급합니다"
-                        >
-                          {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-                          {isSubmitting ? '발급 처리 중...' : '환불 거절 (정상 발급)'}
-                        </button>
-                      </div>
-                    ) : (
-                      /* 🟡 일반 심사 대기 모드 전용 버튼 */
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => handleAction('approve')}
-                          disabled={isSubmitting}
-                          className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-100 flex items-center justify-center gap-1.5 transition-all"
-                        >
-                          {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-                          {isSubmitting ? '나이스 통보 중...' : '발급 승인'}
-                        </button>
-                        <button
-                          onClick={() => handleAction('reject')}
-                          disabled={isSubmitting}
-                          className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-rose-100 flex items-center justify-center gap-1.5 transition-all"
-                        >
-                          {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <X size={18} />}
-                          {isSubmitting ? '반려 통보 중...' : '심사 반려'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-5">
-                    <h5 className="text-sm font-black text-slate-400">심사 이력</h5>
-                    <div className="mt-3 space-y-2.5">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-400 font-bold">처리 결과</span>
-                        <span>{getStatusBadge(selectedPedigree.status)}</span>
-                      </div>
-                      <div className="text-xs">
-                        <div className="text-slate-400 font-bold mb-1">관리자 메모</div>
-                        <div className="bg-white p-3 rounded-lg border border-slate-200 font-bold text-slate-700">
-                          {selectedPedigree.admin_memo || '남겨진 메모가 없습니다.'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+          {/* 심사 / 환불 액션 폼 */}
+          {(selectedPedigree.status === 'P' || selectedPedigree.status === 'R') ? (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+              <h5 className="text-sm font-black text-slate-800 flex items-center gap-1.5">
+                <Edit size={16} className={selectedPedigree.status === 'R' ? "text-purple-600" : "text-indigo-600"} />
+                {selectedPedigree.status === 'R' ? '환불 처리 의견 기술' : '심사 의견 기술'}
+              </h5>
+              <textarea
+                value={actionMemo}
+                onChange={(e) => setActionMemo(e.target.value)}
+                placeholder={selectedPedigree.status === 'R' ? "환불 승인(반려) 또는 환불 거절(정상발급) 사유를 입력하세요..." : "승인 또는 반려 사유를 입력하세요... (반려 시 필수)"}
+                className="w-full h-24 p-3 bg-white border border-slate-200 focus:border-indigo-500 rounded-lg text-sm font-bold outline-none resize-none transition-all"
+              />
 
-              {/* 오른쪽: 제출된 이미지/문서 문서고 */}
-              <div className="flex flex-col">
-                <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">
-                  제출된 증빙 문서 / 사진
-                </h4>
-                
-                <div className="flex-1 grid grid-cols-2 gap-4 max-h-[500px] overflow-y-auto">
-                  <ImageDocCard label="문서 1 (혈통서 원본)" path={selectedPedigree.image1_path} />
-                  <ImageDocCard label="문서 2 (개체 전면)" path={selectedPedigree.image2_path} />
-                  <ImageDocCard label="문서 3 (개체 측면)" path={selectedPedigree.image3_path} />
-                  <ImageDocCard label="문서 4 (기타 증명)" path={selectedPedigree.image4_path} />
+              {selectedPedigree.status === 'R' ? (
+                /* 🟣 환불 요청 모드 전용 버튼 */
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleAction('reject')}
+                    disabled={isSubmitting}
+                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-rose-100 flex items-center justify-center gap-1.5 transition-all"
+                    title="나이스에 반려(F)를 전송하여 환불 처리를 완료합니다"
+                  >
+                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <X size={18} />}
+                    {isSubmitting ? '환불 통보 중...' : '환불 승인 (반려 확정)'}
+                  </button>
+                  <button
+                    onClick={() => handleAction('approve')}
+                    disabled={isSubmitting}
+                    className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-100 flex items-center justify-center gap-1.5 transition-all"
+                    title="환불을 거절하고 혈통서 번호(-NP)를 부여하여 정상 발급합니다"
+                  >
+                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                    {isSubmitting ? '발급 처리 중...' : '환불 거절 (정상 발급)'}
+                  </button>
+                </div>
+              ) : (
+                /* 🟡 일반 심사 대기 모드 전용 버튼 */
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleAction('approve')}
+                    disabled={isSubmitting}
+                    className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-100 flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                    {isSubmitting ? '나이스 통보 중...' : '발급 승인'}
+                  </button>
+                  <button
+                    onClick={() => handleAction('reject')}
+                    disabled={isSubmitting}
+                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-rose-100 flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <X size={18} />}
+                    {isSubmitting ? '반려 통보 중...' : '심사 반려'}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-5">
+              <h5 className="text-sm font-black text-slate-400">심사 이력</h5>
+              <div className="mt-3 space-y-2.5">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400 font-bold">처리 결과</span>
+                  <span>{getStatusBadge(selectedPedigree.status)}</span>
+                </div>
+                <div className="text-xs">
+                  <div className="text-slate-400 font-bold mb-1">관리자 메모</div>
+                  <div className="bg-white p-3 rounded-lg border border-slate-200 font-bold text-slate-700">
+                    {selectedPedigree.admin_memo || '남겨진 메모가 없습니다.'}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+
+              {/* 오른쪽: 제출된 이미지/문서 문서고 */}
+      <div className="flex flex-col">
+        <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">
+          제출된 증빙 문서 / 사진
+        </h4>
+
+        <div className="flex-1 grid grid-cols-2 gap-4 max-h-[500px] overflow-y-auto">
+          <ImageDocCard label="문서 1 (혈통서 원본)" path={selectedPedigree.image1_path} />
+          <ImageDocCard label="문서 2 (개체 전면)" path={selectedPedigree.image2_path} />
+          <ImageDocCard label="문서 3 (개체 측면)" path={selectedPedigree.image3_path} />
+          <ImageDocCard label="문서 4 (기타 증명)" path={selectedPedigree.image4_path} />
+        </div>
+      </div>
     </div>
+          </div >
+        </div >
+      )}
+    </div >
   );
 };
 
@@ -1220,8 +1210,8 @@ const DetailItem: React.FC<{ label: string; value: string; fullWidth?: boolean }
 const ImageDocCard: React.FC<{ label: string; path?: string }> = ({ label, path }) => {
   const fullUrl = path
     ? (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')
-        ? path
-        : `https://kkc3349.mycafe24.com${path.startsWith('/') ? '' : '/'}${path}`)
+      ? path
+      : `https://kkc3349.mycafe24.com${path.startsWith('/') ? '' : '/'}${path}`)
     : undefined;
 
   return (

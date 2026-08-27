@@ -133,4 +133,7 @@ export const niceAdminDeletePedigree = (uid: number) =>
 export const niceAdminFetchBreedColors = (breedName: string, breedCd?: string) =>
   portalFetchNice('admin_nice_get_breed_colors', { breed_name: breedName, breed_cd: breedCd });
 
+export const niceAdminGenerateRegNo = (breed: string, keyy?: string) =>
+  portalFetchNice('admin_nice_generate_reg_no', { breed, keyy });
+
 

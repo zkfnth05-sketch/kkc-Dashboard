@@ -191,6 +191,7 @@ function nice_api_db_init($conn) {
     $conn->query("ALTER TABLE `nice_memTab` ADD COLUMN IF NOT EXISTS `nice_ci` VARCHAR(255) DEFAULT NULL COMMENT 'NICE 본인인증 고유키 CI'");
     $conn->query("ALTER TABLE `nice_memTab` ADD COLUMN IF NOT EXISTS `nice_di` VARCHAR(255) DEFAULT NULL COMMENT 'NICE 본인인증 고유키 DI'");
     $conn->query("ALTER TABLE `nice_memTab` ADD COLUMN IF NOT EXISTS `nice_verified_at` DATETIME DEFAULT NULL COMMENT '실명인증 일시'");
+    $conn->query("ALTER TABLE `nice_memTab` ADD COLUMN IF NOT EXISTS `gender` VARCHAR(10) DEFAULT NULL COMMENT '성별 (남성/여성)'");
 
     // 3. nice_dogTab 테이블 생성 (기존 dogTab 구조를 복제하여 nice_dogTab 생성)
     $conn->query("CREATE TABLE IF NOT EXISTS `nice_dogTab` LIKE `dogTab`");
@@ -1130,15 +1131,6 @@ function nice_admin_member_list($input) {
     if ($res) {
         while ($row = $res->fetch_assoc()) {
             $birth = kkc_convert($row['birth'], 'EUC-KR', true);
-            $gender = $row['gender'] ?? '';
-            if (empty($gender)) {
-                // 주민번호 뒷자리 기반 성별 추론 (900101-1xxxxxx/2xxxxxx 등)
-                if (strlen($birth) >= 7) {
-                    $g_char = substr($birth, 6, 1);
-                    if ($g_char === '1' || $g_char === '3') $gender = '남성';
-                    else if ($g_char === '2' || $g_char === '4') $gender = '여성';
-                }
-            }
             
             // 🐕 소유견의 등록번호 조회
             $m_id = $conn->real_escape_string($row['id']);
@@ -1167,7 +1159,6 @@ function nice_admin_member_list($input) {
                 'name' => kkc_convert($row['name'], 'EUC-KR', true),
                 'birth' => $birth,
                 'hp' => kkc_convert($row['hp'], 'EUC-KR', true),
-                'gender' => $gender ?: '남성',
                 'ci' => $row['nice_ci'],
                 'di' => $row['nice_di'],
                 'addr' => kkc_convert($row['addr'], 'EUC-KR', true),
@@ -1337,7 +1328,7 @@ function nice_generate_unique_reg_no($conn, $breed_code = '', $apply_year = null
     
     // 1. nice_dogTab (발급 완료 모바일 혈통서 - EUC-KR 테이블) 탐색
     $conn->query("SET NAMES 'binary'");
-    $sql1 = "SELECT reg_no FROM nice_dogTab WHERE reg_no LIKE '$prefix_esc%'";
+    $sql1 = "SELECT reg_no FROM nice_dogTab WHERE reg_no LIKE '%$prefix_esc%'";
     if (!empty($e_breed)) {
         $sql1 .= " AND (dog_class = '$e_breed' OR breed_name = '$e_breed')";
     }
@@ -1354,7 +1345,7 @@ function nice_generate_unique_reg_no($conn, $breed_code = '', $apply_year = null
 
     // 2. nice_pedigree_requests (모바일 심사 신청 내역 - utf8mb4 테이블) 탐색
     $conn->query("SET NAMES 'utf8mb4'");
-    $sql2 = "SELECT reg_no FROM nice_pedigree_requests WHERE reg_no LIKE '$prefix_esc%'";
+    $sql2 = "SELECT reg_no FROM nice_pedigree_requests WHERE reg_no LIKE '%$prefix_esc%'";
     if (!empty($breed_name)) {
         $e_b_utf8 = $conn->real_escape_string($breed_name);
         $sql2 .= " AND (dog_classTab_name = '$e_b_utf8' OR breed_name = '$e_b_utf8')";
@@ -1372,7 +1363,7 @@ function nice_generate_unique_reg_no($conn, $breed_code = '', $apply_year = null
     
     // 3. dogTab (레거시 DB - EUC-KR 테이블) 탐색
     $conn->query("SET NAMES 'binary'");
-    $sql3 = "SELECT reg_no FROM dogTab WHERE reg_no LIKE '$prefix_esc%'";
+    $sql3 = "SELECT reg_no FROM dogTab WHERE reg_no LIKE '%$prefix_esc%'";
     if (!empty($e_breed)) {
         $sql3 .= " AND dog_class = '$e_breed'";
     }
@@ -1395,6 +1386,45 @@ function nice_generate_unique_reg_no($conn, $breed_code = '', $apply_year = null
     
     // [견종코드]-[기간코드_십][기간코드_일][4자리 순번] (예: KSZ-C65001)
     return $breed_prefix . $decade_code . $single_year_code . $seq_str;
+}
+
+/**
+ * 🏷️ NICE 모바일 5000번대 등록번호 실시간 자동 채번 API (Admin)
+ */
+function nice_admin_generate_reg_no($input) {
+    $conn = get_kkc_portal_db();
+    nice_api_db_init($conn);
+    
+    $breed = trim($input['breed'] ?? '');
+    $keyy = trim($input['keyy'] ?? '');
+    
+    if (empty($keyy) && !empty($breed)) {
+        $conn->query("SET NAMES 'utf8mb4'");
+        $e_b_utf8 = $conn->real_escape_string($breed);
+        $breed_chk = $conn->query("SELECT keyy FROM dog_classTab WHERE TRIM(kor_name) = '$e_b_utf8' OR TRIM(name) = '$e_b_utf8' OR keyy = '$e_b_utf8' LIMIT 1");
+        if ($breed_chk && $breed_chk->num_rows > 0) {
+            $keyy = trim($breed_chk->fetch_assoc()['keyy'] ?? '');
+        }
+        if (empty($keyy)) {
+            $conn->query("SET NAMES 'binary'");
+            $e_b_euc = $conn->real_escape_string(kkc_convert($breed, 'EUC-KR', false));
+            $breed_chk2 = $conn->query("SELECT keyy FROM dog_classTab WHERE TRIM(kor_name) = '$e_b_euc' OR TRIM(name) = '$e_b_euc' OR keyy = '$e_b_euc' LIMIT 1");
+            if ($breed_chk2 && $breed_chk2->num_rows > 0) {
+                $keyy = kkc_convert(trim($breed_chk2->fetch_assoc()['keyy'] ?? ''), 'EUC-KR', true);
+            }
+        }
+    }
+    
+    $reg_no = nice_generate_unique_reg_no($conn, $keyy, null, $breed);
+    $np_reg_no = (strpos($reg_no, '-NP') !== false) ? $reg_no : ($reg_no . '-NP');
+    $conn->close();
+    
+    return [
+        'success' => true,
+        'reg_no' => $np_reg_no,
+        'keyy' => $keyy,
+        'breed' => $breed
+    ];
 }
 
 /**
@@ -1421,9 +1451,17 @@ function nice_admin_pedigree_action($input) {
         return ['success' => false, 'error' => '신청 내역을 찾을 수 없습니다.'];
     }
     
+    if ($req['status'] === 'Y') {
+        $conn->close();
+        return ['success' => false, 'error' => '이미 발급 승인이 완료된 혈통서입니다. (NICE 정책: 1회 발급 승인 후 재통보 불가 / 정보 수정은 협회 DB에서만 처리됩니다.)'];
+    }
+    if ($req['status'] === 'N') {
+        $conn->close();
+        return ['success' => false, 'error' => '이미 반려 처리된 건입니다. (NICE 정책: 회원이 모바일 앱에서 재심사 요청을 보내왔을 때만 재승인이 가능합니다.)'];
+    }
     if ($req['status'] !== 'P' && $req['status'] !== 'R') {
         $conn->close();
-        return ['success' => false, 'error' => '이미 심사가 완료된 건입니다.'];
+        return ['success' => false, 'error' => '심사 대기(P) 또는 재심사 요청(R) 상태가 아닙니다.'];
     }
 
     // 🎨 관리자 수정 모색, 견종, 등록번호 및 부모견 영문 이름 반영
@@ -1491,6 +1529,16 @@ function nice_admin_pedigree_action($input) {
             return ['success' => false, 'error' => "❌ [KKC 내부 DB 오류] 반려 상태 업데이트 실패: " . $err];
         }
         
+        // 🛡️ [핵심] 이미 모바일 앱에서 결제 취소(환불)가 완료된 건인 경우: NICE 추가 통보 불필요 (NICE F005 원천 차단)
+        if (!empty($req['refund_dttm'])) {
+            $conn->close();
+            return [
+                'success' => true,
+                'is_nice_success' => true,
+                'message' => "✔ [환불 완료건 정상 마감]\n\n━━━━━━━━━━━━━━━━━━━━━━━\n1️⃣ [1단계: KKC 내부 DB 처리]\n✔ [심사 신청 상태] 반려(N)로 정상 마감 완료\n\n2️⃣ [2단계: NICE 연동 안내]\n✔ 사용자가 모바일 앱에서 이미 결제 취소(환불)를 완료한 주문이므로, NICE 통보 없이 협회 내부 상태를 정상 종결하였습니다."
+            ];
+        }
+        
         // NICE 통보 (반려: F) - 안전한 통신 격리
         $nice_status_msg = "";
         $is_nice_success = false;
@@ -1507,6 +1555,8 @@ function nice_admin_pedigree_action($input) {
                         'F001' => '소유자 CI 확인실패(미등록CI)',
                         'F002' => '결제주문번호 확인 실패 (미심사요청 혈통서)',
                         'F003' => '소유자 CI와 결제주문번호 불일치',
+                        'F004' => '이미 심사가 완료된 혈통서 (NICE 정책: 완료건 재통보 불가)',
+                        'F005' => '결과 통보를 할 수 없는 혈통서 (NICE 정책: 심사요청 상태가 아님)',
                         'F999' => '기타 처리중 오류'
                     ];
                     $desc = $cd_desc[$rslt_cd] ?? '알 수 없는 오류';
@@ -1835,6 +1885,8 @@ function nice_admin_pedigree_action($input) {
                     'F001' => '소유자 CI 확인실패(미등록CI)',
                     'F002' => '결제주문번호 확인 실패 (미심사요청 혈통서)',
                     'F003' => '소유자 CI와 결제주문번호 불일치',
+                    'F004' => '이미 심사가 완료된 혈통서 (NICE 정책: 완료건 재통보 불가)',
+                    'F005' => '결과 통보를 할 수 없는 혈통서 (NICE 정책: 심사요청 상태가 아님)',
                     'F999' => '기타 처리중 오류'
                 ];
                 $desc = $cd_desc[$rslt_cd] ?? '알 수 없는 오류';

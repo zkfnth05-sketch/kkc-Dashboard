@@ -383,6 +383,16 @@ function kkf_portal_nice_find_pw_verify($input) {
     $conn->query("SET NAMES 'binary'");
     $res = $conn->query("SELECT * FROM memTab WHERE name = '$e_name' AND (birth = '$e_birth_6' OR birth = '$e_birth_full') LIMIT 1");
     $u_raw = $res ? $res->fetch_assoc() : null;
+    
+    if ($u_raw) {
+        // 🛡️ [핵심] 비밀번호 재설정 시 본인인증된 CI/DI를 memTab에 영구 저장 (관리자 페이지 및 포털 즉시 연동)
+        $e_ci = $conn->real_escape_string($data['ci'] ?? '');
+        $e_di = $conn->real_escape_string($data['di'] ?? '');
+        $u_mid = intval($u_raw['mid']);
+        if (!empty($e_ci) && $u_mid > 0) {
+            $conn->query("UPDATE memTab SET nice_ci = '$e_ci', nice_di = '$e_di', nice_verified_at = NOW() WHERE mid = $u_mid");
+        }
+    }
     $conn->close();
     
     if (!$u_raw) {

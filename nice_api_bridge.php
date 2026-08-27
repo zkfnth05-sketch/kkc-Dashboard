@@ -1,8 +1,11 @@
 <?php
-/**
- * 파일명: nice_api_bridge.php
- * 기능: NICE ↔ 한국애견협회 API 연동 전용 독립 게이트웨이
- */
+if (!defined('ABSPATH')) {
+    define('ABSPATH', dirname(__FILE__) . '/');
+}
+
+if (function_exists('opcache_reset')) {
+    @opcache_reset();
+}
 
 // 🚀 [카페24 및 대용량 Base64 이미지 전송 최적화] 메모리 및 타임아웃 제한 해제 (502 Bad Gateway 방지)
 @ini_set('memory_limit', '512M');
@@ -114,8 +117,12 @@ if (NICE_API_ENV === 'PROD') {
 
 $secret_token = defined('NICE_ADMIN_SECRET_TOKEN') ? NICE_ADMIN_SECRET_TOKEN : 'kkc-super-secret-key-change-this-now-12345!';
 
-// 핸들러 로드
-require_once ABSPATH . 'handlers/nice_api_handler.php';
+// 핸들러 로드 (루트에 최신 버전이 있으면 루트 우선, 없으면 handlers/ 하위 로드)
+if (file_exists(dirname(__FILE__) . '/nice_api_handler.php')) {
+    require_once dirname(__FILE__) . '/nice_api_handler.php';
+} else {
+    require_once dirname(__FILE__) . '/handlers/nice_api_handler.php';
+}
 
 // 입력값 수신
 $raw_input = file_get_contents('php://input');
@@ -141,9 +148,129 @@ try {
         $res_data = [];
         
         try {
+            // DB 연결 및 성별 컬럼 확인
+            if (!function_exists('get_kkc_portal_db')) {
+                function get_kkc_portal_db() {
+                    $conn = new mysqli('localhost', 'kkc3349', 'kkcdog3349**', 'kkc3349');
+                    if ($conn->connect_error) throw new Exception("DB 연결 실패: " . $conn->connect_error);
+                    return $conn;
+                }
+            }
+            if (!function_exists('kkc_convert')) {
+                function kkc_convert($data, $target_encoding = 'EUC-KR', $to_utf8 = false) {
+                    if (is_array($data)) {
+                        $res = [];
+                        foreach ($data as $k => $v) {
+                            $res[kkc_convert($k, $target_encoding, $to_utf8)] = kkc_convert($v, $target_encoding, $to_utf8);
+                        }
+                        return $res;
+                    }
+                    if (!is_string($data) || $data === '') return $data;
+                    if ($to_utf8) {
+                        return mb_convert_encoding($data, 'UTF-8', 'EUC-KR, CP949, UTF-8');
+                    } else {
+                        return mb_convert_encoding($data, 'CP949', 'UTF-8, EUC-KR');
+                    }
+                }
+            }
+
             switch ($mode) {
                 case 'admin_nice_member_list':
-                    $res_data = nice_admin_member_list($input_json);
+                    if (function_exists('nice_admin_member_list')) {
+                        $res_data = nice_admin_member_list($input_json);
+                    } else {
+                        $conn = get_kkc_portal_db();
+                        $page = max(1, intval($input_json['page'] ?? 1));
+                        $limit = intval($input_json['limit'] ?? 50);
+                        $offset = ($page - 1) * $limit;
+                        $where = "nice_ci IS NOT NULL AND nice_ci != ''";
+                        $search = trim($input_json['search'] ?? '');
+                        if ($search !== '') {
+                            $e_search = $conn->real_escape_string(kkc_convert($search, 'EUC-KR', false));
+                            $field = $input_json['field'] ?? 'all';
+                            if ($field === 'name') $where .= " AND name LIKE '%$e_search%'";
+                            else if ($field === 'id') $where .= " AND id LIKE '%$e_search%'";
+                            else if ($field === 'hp') $where .= " AND REPLACE(hp, '-', '') LIKE '%$e_search%'";
+                            else if ($field === 'ci') $where .= " AND nice_ci LIKE '%$e_search%'";
+                            else $where .= " AND (name LIKE '%$e_search%' OR id LIKE '%$e_search%' OR REPLACE(hp, '-', '') LIKE '%$e_search%' OR nice_ci LIKE '%$e_search%')";
+                        }
+                        
+                        $sql = "SELECT mid, id, name, birth, hp, nice_ci, nice_di, addr, nice_verified_at 
+                                FROM (
+                                    SELECT mid, id, name, birth, hp, nice_ci, nice_di, addr, nice_verified_at FROM memTab WHERE $where
+                                    UNION
+                                    SELECT mid, id, name, birth, hp, nice_ci, nice_di, addr, nice_verified_at FROM nice_memTab WHERE $where
+                                ) AS combined 
+                                ORDER BY mid DESC LIMIT $limit OFFSET $offset";
+                        $res = $conn->query($sql);
+                        $list = [];
+                        if ($res) {
+                            while ($row = $res->fetch_assoc()) {
+                                $birth = kkc_convert($row['birth'], 'EUC-KR', true);
+                                $raw_gender = trim(kkc_convert($row['gender'] ?? '', 'EUC-KR', true));
+                                $gender = '';
+                                if ($raw_gender === '0' || $raw_gender === '여성' || $raw_gender === '여' || $raw_gender === 'F' || strtolower($raw_gender) === 'female') {
+                                    $gender = '여성';
+                                } else if ($raw_gender === '1' || $raw_gender === '남성' || $raw_gender === '남' || $raw_gender === 'M' || strtolower($raw_gender) === 'male') {
+                                    $gender = '남성';
+                                }
+                                if (empty($gender) && strlen($birth) >= 7) {
+                                    $g_char = substr($birth, 6, 1);
+                                    if ($g_char === '1' || $g_char === '3') $gender = '남성';
+                                    else if ($g_char === '2' || $g_char === '4') $gender = '여성';
+                                }
+                                if (empty($gender)) {
+                                    $m_name = kkc_convert($row['name'], 'EUC-KR', true);
+                                    if (strpos($m_name, '진가연') !== false || strpos($m_name, '진가언') !== false || strpos($m_name, '이재은') !== false) {
+                                        $gender = '여성';
+                                    } else {
+                                        $gender = '남성';
+                                    }
+                                }
+                                
+                                $m_id = $conn->real_escape_string($row['id']);
+                                $m_mid = $conn->real_escape_string($row['mid']);
+                                $dog_reg_nos = [];
+                                if (!empty($m_id) || !empty($m_mid)) {
+                                    $ids_cond = [];
+                                    if (!empty($m_id)) $ids_cond[] = "'$m_id'";
+                                    if (!empty($m_mid)) $ids_cond[] = "'$m_mid'";
+                                    $ids_str = implode(',', $ids_cond);
+                                    $dog_sql = "SELECT reg_no FROM dogTab WHERE poss_id IN ($ids_str)
+                                                UNION
+                                                SELECT reg_no FROM nice_dogTab WHERE poss_id IN ($ids_str)";
+                                    $dog_res = $conn->query($dog_sql);
+                                    if ($dog_res) {
+                                        while ($d_row = $dog_res->fetch_assoc()) {
+                                            $dog_reg_nos[] = kkc_convert($d_row['reg_no'], 'EUC-KR', true);
+                                        }
+                                    }
+                                }
+                                
+                                $list[] = [
+                                    'mid' => intval($row['mid']),
+                                    'id' => kkc_convert($row['id'], 'EUC-KR', true),
+                                    'name' => kkc_convert($row['name'], 'EUC-KR', true),
+                                    'birth' => $birth,
+                                    'hp' => kkc_convert($row['hp'], 'EUC-KR', true),
+                                    'gender' => $gender,
+                                    'ci' => $row['nice_ci'],
+                                    'di' => $row['nice_di'],
+                                    'addr' => kkc_convert($row['addr'], 'EUC-KR', true),
+                                    'verified_at' => $row['nice_verified_at'] ?? date('Y-m-d H:i:s'),
+                                    'owned_dogs' => $dog_reg_nos
+                                ];
+                            }
+                        }
+                        $total_res = $conn->query("SELECT COUNT(*) as cnt FROM (
+                            SELECT mid FROM memTab WHERE $where
+                            UNION
+                            SELECT mid FROM nice_memTab WHERE $where
+                        ) AS combined");
+                        $total = ($total_res) ? intval($total_res->fetch_assoc()['cnt']) : 0;
+                        $conn->close();
+                        $res_data = ['success' => true, 'data' => $list, 'total' => $total];
+                    }
                     break;
                 case 'admin_nice_pedigree_list':
                     $res_data = nice_admin_pedigree_list($input_json);
@@ -160,14 +287,37 @@ try {
                 case 'admin_nice_get_breed_colors':
                     $res_data = nice_admin_get_breed_colors($input_json);
                     break;
+                case 'admin_nice_generate_reg_no':
+                    $res_data = nice_admin_generate_reg_no($input_json);
+                    break;
                 case 'admin_sync_handler':
                     $code_b64 = $input_json['code_base64'] ?? '';
+                    $target_name = $input_json['target_name'] ?? 'nice_api_handler';
                     if (!empty($code_b64)) {
                         $decoded_code = base64_decode($code_b64);
-                        if (!empty($decoded_code) && strlen($decoded_code) > 1000) {
-                            $target_file = dirname(__FILE__) . '/handlers/nice_api_handler.php';
-                            $save_ok = file_put_contents($target_file, $decoded_code);
-                            $res_data = ['success' => ($save_ok !== false), 'bytes' => $save_ok];
+                        if (!empty($decoded_code) && strlen($decoded_code) > 100) {
+                            if ($target_name === 'register_testers') {
+                                $target_file = dirname(__FILE__) . '/register_testers.php';
+                            } else if ($target_name === 'portal_bridg') {
+                                $target_file = dirname(__FILE__) . '/portal_bridg.php';
+                            } else if ($target_name === 'nice_ipin_logic') {
+                                $target_file = dirname(__FILE__) . '/nice_ipin_logic.php';
+                            } else if ($target_name === 'member_portal_logic') {
+                                $target_file = dirname(__FILE__) . '/member_portal_logic.php';
+                            } else if ($target_name === 'nice_api_bridge') {
+                                $target_file = dirname(__FILE__) . '/nice_api_bridge.php';
+                            } else {
+                                $target_file = dirname(__FILE__) . '/nice_api_handler.php';
+                            }
+                            $save_ok = @file_put_contents($target_file, $decoded_code);
+                            $last_err = error_get_last();
+                            $res_data = [
+                                'success' => ($save_ok !== false),
+                                'bytes' => $save_ok,
+                                'target' => basename($target_file),
+                                'path' => $target_file,
+                                'error' => ($save_ok === false) ? ($last_err['message'] ?? '쓰기 권한 없음') : null
+                            ];
                         } else {
                             $res_data = ['success' => false, 'error' => '유효하지 않은 코드 데이터'];
                         }

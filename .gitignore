@@ -42,4 +42,8 @@ deploy.bat
 # NICE API Config
 nice_api_config.php
 
+# Helper scripts
+opus.cjs
+
+
 
