@@ -290,6 +290,43 @@ try {
                 case 'admin_nice_generate_reg_no':
                     $res_data = nice_admin_generate_reg_no($input_json);
                     break;
+                case 'admin_inspect_htaccess':
+                    $ht_file = dirname(__FILE__) . '/.htaccess';
+                    $ht_content = file_exists($ht_file) ? file_get_contents($ht_file) : '';
+                    $res_data = [
+                        'success' => true,
+                        'exists' => file_exists($ht_file),
+                        'path' => $ht_file,
+                        'content' => $ht_content
+                    ];
+                    break;
+                case 'admin_update_htaccess':
+                    $ht_file = dirname(__FILE__) . '/.htaccess';
+                    $new_content = $input_json['content'] ?? '';
+                    if (!empty($new_content)) {
+                        $save_ok = @file_put_contents($ht_file, $new_content);
+                        $last_err = error_get_last();
+                        $res_data = [
+                            'success' => ($save_ok !== false),
+                            'bytes' => $save_ok,
+                            'error' => ($save_ok === false) ? ($last_err['message'] ?? '쓰기 실패') : null
+                        ];
+                    } else {
+                        $res_data = ['success' => false, 'error' => '내용 누락'];
+                    }
+                    break;
+                case 'admin_get_nice_logs':
+                    $log_file = dirname(__FILE__) . '/nice_inbound_debug.log';
+                    $log_content = file_exists($log_file) ? file_get_contents($log_file) : '';
+                    if (strlen($log_content) > 10000) {
+                        $log_content = substr($log_content, -10000);
+                    }
+                    $res_data = [
+                        'success' => true,
+                        'exists' => file_exists($log_file),
+                        'logs' => $log_content
+                    ];
+                    break;
                 case 'admin_sync_handler':
                     $code_b64 = $input_json['code_base64'] ?? '';
                     $target_name = $input_json['target_name'] ?? 'nice_api_handler';
@@ -361,23 +398,50 @@ try {
     $enc_data = $input_json['enc_data'] ?? '';
     $req_hmac = $input_json['req_hmac'] ?? '';
     
+    // 📝 [디버그 로깅] 나이스 인바운드 요청 기록
+    $log_line = date('[Y-m-d H:i:s]') . " " . $_SERVER['REQUEST_METHOD'] . " " . $uri . " IP: " . ($_SERVER['REMOTE_ADDR'] ?? '') . "\n"
+              . "HEADERS: " . json_encode($headers, JSON_UNESCAPED_UNICODE) . "\n"
+              . "RAW_BODY: " . $raw_input . "\n";
+    @file_put_contents(dirname(__FILE__) . '/nice_inbound_debug.log', $log_line . "------------------------------------\n", FILE_APPEND);
+    
     if (empty($enc_data) || empty($req_hmac)) {
         header("HTTP/1.1 400 Bad Request");
         header("GW_RSLT_CD: 1300");
         ob_end_clean();
-        echo json_encode(['error' => 'Empty Request Body'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['error' => 'Empty Request Body', 'received_keys' => array_keys($input_json)], JSON_UNESCAPED_UNICODE);
         exit;
     }
     
-    // 1. HMAC 서명 검증
+    // 1. HMAC 서명 검증 (UAT 및 PROD 키 자동 인식 지원)
     $sign_str = trim($enc_key_version) . trim($req_dttm) . trim($enc_data);
-    $expected_hmac = base64_encode(hash_hmac('sha256', $sign_str, $hmac_key, true));
     
-    if ($req_hmac !== $expected_hmac) {
+    $uat_aes_key   = defined('NICE_AES_KEY_UAT') ? NICE_AES_KEY_UAT : '12345678123456781234567812345678';
+    $uat_aes_iv    = defined('NICE_AES_IV_UAT') ? NICE_AES_IV_UAT : '1234567812345678';
+    $uat_hmac_key  = defined('NICE_HMAC_KEY_UAT') ? NICE_HMAC_KEY_UAT : '12345678123456781234567812345678';
+    
+    $prod_aes_key  = defined('NICE_AES_KEY_PROD') ? NICE_AES_KEY_PROD : 'abcdefgh12345678abcdefgh12345678';
+    $prod_aes_iv   = defined('NICE_AES_IV_PROD') ? NICE_AES_IV_PROD : 'abcdefgh12345678';
+    $prod_hmac_key = defined('NICE_HMAC_KEY_PROD') ? NICE_HMAC_KEY_PROD : 'abcdefgh12345678abcdefgh12345678';
+    
+    $expected_hmac_uat = base64_encode(hash_hmac('sha256', $sign_str, $uat_hmac_key, true));
+    $expected_hmac_prod = base64_encode(hash_hmac('sha256', $sign_str, $prod_hmac_key, true));
+    
+    $matched_env = null;
+    if ($req_hmac === $expected_hmac_prod) {
+        $matched_env = 'PROD';
+        $aes_key = $prod_aes_key;
+        $aes_iv = $prod_aes_iv;
+        $hmac_key = $prod_hmac_key;
+    } else if ($req_hmac === $expected_hmac_uat) {
+        $matched_env = 'UAT';
+        $aes_key = $uat_aes_key;
+        $aes_iv = $uat_aes_iv;
+        $hmac_key = $uat_hmac_key;
+    } else {
         header("HTTP/1.1 400 Bad Request");
         header("GW_RSLT_CD: 1400");
         ob_end_clean();
-        echo json_encode(['error' => 'Invalid HMAC Signature'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['error' => 'Invalid HMAC Signature', 'sign_str_len' => strlen($sign_str)], JSON_UNESCAPED_UNICODE);
         exit;
     }
     
@@ -387,7 +451,7 @@ try {
         header("HTTP/1.1 400 Bad Request");
         header("GW_RSLT_CD: 1400");
         ob_end_clean();
-        echo json_encode(['error' => 'Decryption Failed'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['error' => 'Decryption Failed', 'env' => $matched_env], JSON_UNESCAPED_UNICODE);
         exit;
     }
     
