@@ -183,30 +183,38 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
   const [treeAncestors, setTreeAncestors] = useState<Array<{ type: string; name: string; saho: string; reg_no?: string }>>([]);
   const [isLoadingTree, setIsLoadingTree] = useState(false);
 
-  // 실시간 3대 가계도 조회 헬퍼
-  const handleLookupTree = async (faRegParam?: string, moRegParam?: string, dogRegParam?: string) => {
+  // 실시간 3대 가계도 조회 헬퍼 (등록번호 + 이름 + UID 통합)
+  const handleLookupTree = async (
+    faRegParam?: string,
+    moRegParam?: string,
+    dogRegParam?: string,
+    faNameParam?: string,
+    moNameParam?: string
+  ) => {
     const fReg = (faRegParam !== undefined ? faRegParam : editFaReg).trim();
     const mReg = (moRegParam !== undefined ? moRegParam : editMoReg).trim();
     const dReg = (dogRegParam !== undefined ? dogRegParam : editRegNo).trim();
+    const fName = (faNameParam !== undefined ? faNameParam : editFaName).trim();
+    const mName = (moNameParam !== undefined ? moNameParam : editMoName).trim();
 
-    if (!fReg && !mReg && !dReg) {
-      showAlert('등록번호 확인', '조회할 부모견 등록번호 또는 신청견 등록번호를 입력해 주세요.');
+    if (!fReg && !mReg && !dReg && !fName && !mName) {
+      showAlert('조회 정보 필요', '부모견의 이름 또는 등록번호를 입력해 주세요.');
       return;
     }
 
     setIsLoadingTree(true);
     try {
-      const res = await niceAdminLookupPedigreeTree(fReg, mReg, dReg);
+      const res = await niceAdminLookupPedigreeTree(fReg, mReg, dReg, fName, mName);
       if (res && res.success) {
         if (res.father) {
-          if (res.father.name && !editFaName) setEditFaName(res.father.name);
+          if (res.father.name) setEditFaName(res.father.name);
           if (res.father.saho) setEditFaSaho(res.father.saho);
-          if (res.father.reg_no && !fReg) setEditFaReg(res.father.reg_no);
+          if (res.father.reg_no) setEditFaReg(res.father.reg_no);
         }
         if (res.mother) {
-          if (res.mother.name && !editMoName) setEditMoName(res.mother.name);
+          if (res.mother.name) setEditMoName(res.mother.name);
           if (res.mother.saho) setEditMoSaho(res.mother.saho);
-          if (res.mother.reg_no && !mReg) setEditMoReg(res.mother.reg_no);
+          if (res.mother.reg_no) setEditMoReg(res.mother.reg_no);
         }
         if (Array.isArray(res.ancestors)) {
           setTreeAncestors(res.ancestors);
@@ -251,9 +259,9 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
         setTreeAncestors([]);
       }
 
-      // 부모견 번호가 있으면 자동으로 3대 가계도 조회 트리거
-      if (initFaReg || initMoReg || selectedPedigree.reg_no) {
-        handleLookupTree(initFaReg, initMoReg, selectedPedigree.reg_no);
+      // 부모견 번호 또는 부모견 이름이 있으면 자동으로 3대 가계도 및 견사호 매칭 조회
+      if (initFaReg || initMoReg || selectedPedigree.reg_no || rawFa || rawMo) {
+        handleLookupTree(initFaReg, initMoReg, selectedPedigree.reg_no, rawFa, rawMo);
       }
 
       // 견종 그룹 자동 맞춤

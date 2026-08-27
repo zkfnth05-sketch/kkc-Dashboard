@@ -138,5 +138,17 @@ export const niceAdminGenerateRegNo = (breed: string, keyy?: string) =>
 
 
 
-export const niceAdminLookupPedigreeTree = (fa_regno: string, mo_regno: string, reg_no?: string) =>
-  portalFetchNice('admin_nice_lookup_pedigree_tree', { fa_regno, mo_regno, reg_no });
+export const niceAdminLookupPedigreeTree = (
+  fa_regno?: string,
+  mo_regno?: string,
+  reg_no?: string,
+  fa_name?: string,
+  mo_name?: string
+) =>
+  portalFetchNice('admin_nice_lookup_pedigree_tree', {
+    fa_regno,
+    mo_regno,
+    reg_no,
+    fa_name,
+    mo_name
+  });
