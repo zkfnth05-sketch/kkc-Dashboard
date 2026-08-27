@@ -88,7 +88,7 @@ if (file_exists(dirname(__FILE__) . '/nice_api_config.php')) {
 }
 
 if (!defined('NICE_API_ENV')) {
-    define('NICE_API_ENV', 'UAT'); // UAT or PROD
+    define('NICE_API_ENV', 'PROD'); // UAT or PROD
 }
 
 // 🚀 [워드프레스 비의존 순수 독립 고성능 모드] 대용량 3MB Base64 이미지 502 차단
@@ -343,6 +343,8 @@ try {
                                 $target_file = dirname(__FILE__) . '/member_portal_logic.php';
                             } else if ($target_name === 'nice_api_bridge') {
                                 $target_file = dirname(__FILE__) . '/nice_api_bridge.php';
+                            } else if ($target_name === 'nice_api_config') {
+                                $target_file = dirname(__FILE__) . '/nice_api_config.php';
                             } else {
                                 $target_file = dirname(__FILE__) . '/nice_api_handler.php';
                             }

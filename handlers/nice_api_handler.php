@@ -841,7 +841,10 @@ function nice_compress_and_save_image($binary_data, $filepath, $max_dim = 1280, 
  * 🔒 NICE Outbound API 전용 통신 헬퍼
  */
 function nice_outbound_call($uri, $product_id, $plain_data) {
-    $env = defined('NICE_API_ENV') ? NICE_API_ENV : 'UAT';
+    $env = defined('NICE_API_ENV') ? NICE_API_ENV : 'PROD';
+    if (!empty($plain_data['order_no']) && strpos($plain_data['order_no'], 'P') === 0) {
+        $env = 'PROD';
+    }
     if ($env === 'PROD') {
         $host = 'https://svc.niceapi.co.kr:32001';
         $aes_key = defined('NICE_AES_KEY_PROD') ? NICE_AES_KEY_PROD : 'abcdefgh12345678abcdefgh12345678';
@@ -1057,7 +1060,10 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
         $plain['ancestors'] = [];
     }
     
-    $env = defined('NICE_API_ENV') ? NICE_API_ENV : 'UAT';
+    $env = defined('NICE_API_ENV') ? NICE_API_ENV : 'PROD';
+    if (!empty($order_no) && strpos($order_no, 'P') === 0) {
+        $env = 'PROD';
+    }
     $product_id = ($env === 'PROD') 
         ? (defined('NICE_PRODUCT_ID_RESULT_PROD') ? NICE_PRODUCT_ID_RESULT_PROD : '2601941116')
         : (defined('NICE_PRODUCT_ID_RESULT_UAT') ? NICE_PRODUCT_ID_RESULT_UAT : '2601687173');
