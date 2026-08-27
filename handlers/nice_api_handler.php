@@ -1785,10 +1785,33 @@ function nice_admin_pedigree_action($input) {
         $birth_f = intval($req['birth_f'] ?? 0);
         $reg_count_m = intval($req['reg_count_m'] ?? 0);
         $reg_count_f = intval($req['reg_count_f'] ?? 0);
-        $fa_name = kkc_convert($req['father_name'] ?? '', 'EUC-KR', false);
-        $mo_name = kkc_convert($req['mother_name'] ?? '', 'EUC-KR', false);
-        $fa_regno = kkc_convert($req['father_reg_no'] ?? '', 'EUC-KR', false);
-        $mo_regno = kkc_convert($req['mother_reg_no'] ?? '', 'EUC-KR', false);
+        // 🎯 [부모견 UID 및 정식 족보 자동 매칭]
+        $input_fa_reg = trim($input['fa_regno'] ?? ($input['father_reg_no'] ?? ($req['father_reg_no'] ?? '')));
+        $input_fa_name = trim($input['fa_name'] ?? ($input['father_name'] ?? ($req['father_name'] ?? '')));
+        $input_fa_saho = trim($input['fa_saho'] ?? ($input['father_saho'] ?? ($req['father_saho'] ?? '')));
+
+        $input_mo_reg = trim($input['mo_regno'] ?? ($input['mother_reg_no'] ?? ($req['mother_reg_no'] ?? '')));
+        $input_mo_name = trim($input['mo_name'] ?? ($input['mother_name'] ?? ($req['mother_name'] ?? '')));
+        $input_mo_saho = trim($input['mo_saho'] ?? ($input['mother_saho'] ?? ($req['mother_saho'] ?? '')));
+
+        $fa_match = nice_fetch_dog_by_reg_no($conn, !empty($input_fa_reg) ? $input_fa_reg : $input_fa_name);
+        $mo_match = nice_fetch_dog_by_reg_no($conn, !empty($input_mo_reg) ? $input_mo_reg : $input_mo_name);
+
+        $final_fa_uid = $fa_match ? (!empty($fa_match['uid']) ? $fa_match['uid'] : $fa_match['reg_no']) : $input_fa_reg;
+        $final_fa_name = $fa_match ? kkc_convert($fa_match['fullname'] ?? ($fa_match['name'] ?? $input_fa_name), 'EUC-KR', true) : $input_fa_name;
+        $final_fa_saho = $fa_match ? kkc_convert(!empty($fa_match['saho']) ? $fa_match['saho'] : ($fa_match['saho_eng'] ?? $input_fa_saho), 'EUC-KR', true) : $input_fa_saho;
+
+        $final_mo_uid = $mo_match ? (!empty($mo_match['uid']) ? $mo_match['uid'] : $mo_match['reg_no']) : $input_mo_reg;
+        $final_mo_name = $mo_match ? kkc_convert($mo_match['fullname'] ?? ($mo_match['name'] ?? $input_mo_name), 'EUC-KR', true) : $input_mo_name;
+        $final_mo_saho = $mo_match ? kkc_convert(!empty($mo_match['saho']) ? $mo_match['saho'] : ($mo_match['saho_eng'] ?? $input_mo_saho), 'EUC-KR', true) : $input_mo_saho;
+
+        $fa_name = kkc_convert($final_fa_name, 'EUC-KR', false);
+        $mo_name = kkc_convert($final_mo_name, 'EUC-KR', false);
+        $fa_regno = kkc_convert($final_fa_uid, 'EUC-KR', false);
+        $mo_regno = kkc_convert($final_mo_uid, 'EUC-KR', false);
+        $fa_saho_val = kkc_convert($final_fa_saho, 'EUC-KR', false);
+        $mo_saho_val = kkc_convert($final_mo_saho, 'EUC-KR', false);
+
         $anc_name = kkc_convert($req['anc_name'] ?? '', 'EUC-KR', false);
         $anc_saho = kkc_convert($req['anc_saho'] ?? '', 'EUC-KR', false);
         $reg_date = kkc_convert($req['reg_date'] ?? date('Y-m-d'), 'EUC-KR', false);
@@ -1893,7 +1916,7 @@ function nice_admin_pedigree_action($input) {
             $res = $conn->query("INSERT INTO nice_dogTab (
                 reg_no, fullname, name, dog_class, sex, hair, birth,
                 poss_id, poss_name, poss_addr, breed_name, breed_addr,
-                fa_regno, mo_regno, fa_name, mo_name, reg_date, saho_eng, saho, anc_name, anc_saho
+                fa_regno, mo_regno, fa_name, mo_name, father_saho, mother_saho, reg_date, saho_eng, saho, anc_name, anc_saho
             ) VALUES (
                 '$e_np_reg',
                 '" . $conn->real_escape_string(kkc_convert($req['name'], 'EUC-KR', false)) . "',
@@ -1907,10 +1930,12 @@ function nice_admin_pedigree_action($input) {
                 '" . $conn->real_escape_string(kkc_convert($req['poss_addr'], 'EUC-KR', false)) . "',
                 '" . $conn->real_escape_string(kkc_convert($req['breed_name'], 'EUC-KR', false)) . "',
                 '" . $conn->real_escape_string(kkc_convert($req['breed_addr'], 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['father_reg_no'], 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['mother_reg_no'], 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['father_name'], 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['mother_name'], 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string($fa_regno) . "',
+                '" . $conn->real_escape_string($mo_regno) . "',
+                '" . $conn->real_escape_string($fa_name) . "',
+                '" . $conn->real_escape_string($mo_name) . "',
+                '" . $conn->real_escape_string($fa_saho_val) . "',
+                '" . $conn->real_escape_string($mo_saho_val) . "',
                 '" . date('Y-m-d') . "',
                 '" . $conn->real_escape_string(kkc_convert($req['saho_eng'] ?? '', 'EUC-KR', false)) . "',
                 '" . $conn->real_escape_string(kkc_convert($req['saho'] ?? '', 'EUC-KR', false)) . "',
