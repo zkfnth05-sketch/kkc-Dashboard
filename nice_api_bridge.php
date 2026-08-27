@@ -290,6 +290,9 @@ try {
                 case 'admin_nice_generate_reg_no':
                     $res_data = nice_admin_generate_reg_no($input_json);
                     break;
+                case 'admin_nice_lookup_pedigree_tree':
+                    $res_data = nice_admin_lookup_pedigree_tree($input_json);
+                    break;
                 case 'admin_inspect_htaccess':
                     $ht_file = dirname(__FILE__) . '/.htaccess';
                     $ht_content = file_exists($ht_file) ? file_get_contents($ht_file) : '';
@@ -348,7 +351,7 @@ try {
                             } else if ($target_name === 'nice_diag') {
                                 $target_file = dirname(__FILE__) . '/nice_diag.php';
                             } else {
-                                $target_file = dirname(__FILE__) . '/nice_api_handler.php';
+                                $target_file = dirname(__FILE__) . '/handlers/nice_api_handler.php';
                             }
                             $save_ok = @file_put_contents($target_file, $decoded_code);
                             $last_err = error_get_last();

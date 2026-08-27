@@ -173,9 +173,51 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
   const [isAssigningRegNo, setIsAssigningRegNo] = useState(false);
   const [isCheckingRegNo, setIsCheckingRegNo] = useState(false);
 
-  // 관리자 직접 지정/수정용 부모견 이름 State
+  // 관리자 직접 지정/수정용 부모견 및 족보 State
   const [editFaName, setEditFaName] = useState('');
+  const [editFaReg, setEditFaReg] = useState('');
+  const [editFaSaho, setEditFaSaho] = useState('');
   const [editMoName, setEditMoName] = useState('');
+  const [editMoReg, setEditMoReg] = useState('');
+  const [editMoSaho, setEditMoSaho] = useState('');
+  const [treeAncestors, setTreeAncestors] = useState<Array<{ type: string; name: string; saho: string; reg_no?: string }>>([]);
+  const [isLoadingTree, setIsLoadingTree] = useState(false);
+
+  // 실시간 3대 가계도 조회 헬퍼
+  const handleLookupTree = async (faRegParam?: string, moRegParam?: string, dogRegParam?: string) => {
+    const fReg = (faRegParam !== undefined ? faRegParam : editFaReg).trim();
+    const mReg = (moRegParam !== undefined ? moRegParam : editMoReg).trim();
+    const dReg = (dogRegParam !== undefined ? dogRegParam : editRegNo).trim();
+
+    if (!fReg && !mReg && !dReg) {
+      showAlert('등록번호 확인', '조회할 부모견 등록번호 또는 신청견 등록번호를 입력해 주세요.');
+      return;
+    }
+
+    setIsLoadingTree(true);
+    try {
+      const res = await niceAdminLookupPedigreeTree(fReg, mReg, dReg);
+      if (res && res.success) {
+        if (res.father) {
+          if (res.father.name && !editFaName) setEditFaName(res.father.name);
+          if (res.father.saho) setEditFaSaho(res.father.saho);
+          if (res.father.reg_no && !fReg) setEditFaReg(res.father.reg_no);
+        }
+        if (res.mother) {
+          if (res.mother.name && !editMoName) setEditMoName(res.mother.name);
+          if (res.mother.saho) setEditMoSaho(res.mother.saho);
+          if (res.mother.reg_no && !mReg) setEditMoReg(res.mother.reg_no);
+        }
+        if (Array.isArray(res.ancestors)) {
+          setTreeAncestors(res.ancestors);
+        }
+      }
+    } catch (err) {
+      console.error('가계도 조회 오류:', err);
+    } finally {
+      setIsLoadingTree(false);
+    }
+  };
 
   useEffect(() => {
     if (selectedPedigree) {
@@ -189,6 +231,30 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 
       const rawMo = (selectedPedigree.mo_name || selectedPedigree.mother_name || selectedPedigree.dam_name || '').trim();
       setEditMoName(rawMo.toLowerCase() === 'null' || rawMo === '-' ? '' : rawMo);
+
+      const initFaReg = (selectedPedigree.fa_regno || selectedPedigree.father_reg_no || selectedPedigree.sire_reg_no || '').trim();
+      setEditFaReg(initFaReg === '-' ? '' : initFaReg);
+
+      const initFaSaho = (selectedPedigree.fa_saho || selectedPedigree.father_saho || '').trim();
+      setEditFaSaho(initFaSaho === '-' ? '' : initFaSaho);
+
+      const initMoReg = (selectedPedigree.mo_regno || selectedPedigree.mother_reg_no || selectedPedigree.dam_reg_no || '').trim();
+      setEditMoReg(initMoReg === '-' ? '' : initMoReg);
+
+      const initMoSaho = (selectedPedigree.mo_saho || selectedPedigree.mother_saho || '').trim();
+      setEditMoSaho(initMoSaho === '-' ? '' : initMoSaho);
+
+      // 기존 조상견 목록이 있으면 우선 세팅
+      if (Array.isArray(selectedPedigree.ancient) && selectedPedigree.ancient.length > 0) {
+        setTreeAncestors(selectedPedigree.ancient);
+      } else {
+        setTreeAncestors([]);
+      }
+
+      // 부모견 번호가 있으면 자동으로 3대 가계도 조회 트리거
+      if (initFaReg || initMoReg || selectedPedigree.reg_no) {
+        handleLookupTree(initFaReg, initMoReg, selectedPedigree.reg_no);
+      }
 
       // 견종 그룹 자동 맞춤
       if (bName && dogClasses.length > 0) {
@@ -931,88 +997,191 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">부모견 정보</h4>
+                  <div className="flex items-center justify-between border-b pb-2 mb-3">
+                    <h4 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                      <span>👨‍👩‍👧 부모견 정보</span>
+                      <span className="text-[11px] font-bold text-slate-400">(-NP 자동제거 매칭)</span>
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => handleLookupTree()}
+                      disabled={isLoadingTree}
+                      className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black shadow flex items-center gap-1.5 transition active:scale-95 disabled:opacity-50"
+                    >
+                      {isLoadingTree ? (
+                        <>
+                          <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          <span>조회 중...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>🔍 3대 족보 불러오기</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
 
-                  {/* 부견 영역 안내 문구 */}
-                  <p className="text-xs font-black text-orange-600 mb-2 leading-relaxed">
-                    신청자가 부견 또는 모견 이름을 한글(예: 백구, 초코 등)로 신청한 경우, 유선 심사 시 견주와 확인 후 정식 영문 이름(견사호 포함)으로 수정하여 발급 승인해 주세요.
+                  {/* 안내 문구 */}
+                  <p className="text-xs font-black text-orange-600 mb-3 leading-relaxed">
+                    💡 부모견 등록번호 입력 후 <strong>[🔍 3대 족보 불러오기]</strong>를 누르면 협회 DB 및 나이스 원부에서 3대 가계도(14마리 계보)를 즉시 자동 완성합니다.
                   </p>
 
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    {/* 부견 이름 (수정 가능 input) */}
-                    <div className="flex flex-col">
-                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
-                        부견 이름 (SIRE/FATHER)
-                      </div>
-                      <input
-                        type="text"
-                        value={editFaName}
-                        onChange={(e) => setEditFaName(e.target.value)}
-                        placeholder="부견 영문/한글 이름 입력..."
-                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-sans"
-                      />
+                  {/* 부견 영역 */}
+                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 mb-4">
+                    <div className="text-xs font-black text-indigo-700 mb-2 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
+                      <span>부견 (SIRE / FATHER)</span>
                     </div>
-
-                    {/* 부견 등록번호 (읽기 전용) */}
-                    <DetailItem label="부견 등록번호" value={selectedPedigree.fa_regno || selectedPedigree.father_reg_no || selectedPedigree.sire_reg_no || '-'} />
-
-                    {/* 부견 견사호 (읽기 전용) */}
-                    <div className="col-span-2">
-                      <DetailItem label="부견 견사호 (FATHER SAHO)" value={selectedPedigree.fa_saho || selectedPedigree.father_saho || '-'} fullWidth />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col">
+                        <label className="text-[10px] font-black text-slate-500 mb-1">부견 등록번호</label>
+                        <input
+                          type="text"
+                          value={editFaReg}
+                          onChange={(e) => setEditFaReg(e.target.value)}
+                          placeholder="부견 등록번호 (예: BF-C64001 또는 BF-C64001-NP)..."
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-slate-800 focus:ring-2 focus:ring-indigo-500 font-mono"
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-[10px] font-black text-slate-500 mb-1">부견 영문/한글 이름</label>
+                        <input
+                          type="text"
+                          value={editFaName}
+                          onChange={(e) => setEditFaName(e.target.value)}
+                          placeholder="부견 정식 이름 입력..."
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-slate-800 focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div className="col-span-2 flex flex-col">
+                        <label className="text-[10px] font-black text-slate-500 mb-1">부견 견사호 (FATHER SAHO)</label>
+                        <input
+                          type="text"
+                          value={editFaSaho}
+                          onChange={(e) => setEditFaSaho(e.target.value)}
+                          placeholder="부견 견사호 입력..."
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-slate-800 focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  {/* 모견 영역 안내 문구 */}
-                  <p className="text-xs font-black text-orange-600 mb-2 leading-relaxed">
-                    신청자가 부견 또는 모견 이름을 한글(예: 백구, 초코 등)로 신청한 경우, 유선 심사 시 견주와 확인 후 정식 영문 이름(견사호 포함)으로 수정하여 발급 승인해 주세요.
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* 모견 이름 (수정 가능 input) */}
-                    <div className="flex flex-col">
-                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
-                        모견 이름 (DAM/MOTHER)
-                      </div>
-                      <input
-                        type="text"
-                        value={editMoName}
-                        onChange={(e) => setEditMoName(e.target.value)}
-                        placeholder="모견 영문/한글 이름 입력..."
-                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-sans"
-                      />
+                  {/* 모견 영역 */}
+                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                    <div className="text-xs font-black text-pink-700 mb-2 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-pink-600"></span>
+                      <span>모견 (DAM / MOTHER)</span>
                     </div>
-
-                    {/* 모견 등록번호 (읽기 전용) */}
-                    <DetailItem label="모견 등록번호" value={selectedPedigree.mo_regno || selectedPedigree.mother_reg_no || selectedPedigree.dam_reg_no || '-'} />
-
-                    {/* 모견 견사호 (읽기 전용) */}
-                    <div className="col-span-2">
-                      <DetailItem label="모견 견사호 (MOTHER SAHO)" value={selectedPedigree.mo_saho || selectedPedigree.mother_saho || '-'} fullWidth />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col">
+                        <label className="text-[10px] font-black text-slate-500 mb-1">모견 등록번호</label>
+                        <input
+                          type="text"
+                          value={editMoReg}
+                          onChange={(e) => setEditMoReg(e.target.value)}
+                          placeholder="모견 등록번호 (예: BF-C64002 또는 BF-C64002-NP)..."
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-slate-800 focus:ring-2 focus:ring-indigo-500 font-mono"
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-[10px] font-black text-slate-500 mb-1">모견 영문/한글 이름</label>
+                        <input
+                          type="text"
+                          value={editMoName}
+                          onChange={(e) => setEditMoName(e.target.value)}
+                          placeholder="모견 정식 이름 입력..."
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-slate-800 focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div className="col-span-2 flex flex-col">
+                        <label className="text-[10px] font-black text-slate-500 mb-1">모견 견사호 (MOTHER SAHO)</label>
+                        <input
+                          type="text"
+                          value={editMoSaho}
+                          onChange={(e) => setEditMoSaho(e.target.value)}
+                          placeholder="모견 견사호 입력..."
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-slate-800 focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">조상견 정보</h4>
-                  {Array.isArray(selectedPedigree.ancient) && selectedPedigree.ancient.length > 0 ? (
-                    <div className="space-y-2">
-                      {selectedPedigree.ancient.map((anc, idx) => (
-                        <div key={idx} className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs flex justify-between items-center">
-                          <div>
-                            <span className="font-bold text-indigo-600 mr-2">[{anc.type || '조상견'}]</span>
-                            <span className="font-black text-slate-800">{anc.name || '-'}</span>
+                  <div className="flex items-center justify-between border-b pb-2 mb-3">
+                    <h4 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                      <span>🌳 조상견 계보 (2·3대 가계도 {treeAncestors.length > 0 ? `총 ${treeAncestors.length}마리` : ''})</span>
+                    </h4>
+                    {treeAncestors.length > 0 && (
+                      <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        ✓ 가계도 매칭 완료
+                      </span>
+                    )}
+                  </div>
+
+                  {treeAncestors.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-60 overflow-y-auto pr-1">
+                      {treeAncestors.map((anc, idx) => {
+                        const typeLabels: Record<string, string> = {
+                          fatherFather: '친할아버지 (부의 부)',
+                          fatherMother: '친할머니 (부의 모)',
+                          motherFather: '외할아버지 (모의 부)',
+                          motherMother: '외할머니 (모의 모)',
+                          fatherFatherFather: '증조부 (부-부-부)',
+                          fatherFatherMother: '증조모 (부-부-모)',
+                          fatherMotherFather: '외증조부 (부-모-부)',
+                          fatherMotherMother: '외증조모 (부-모-모)',
+                          motherFatherFather: '외증조부 (모-부-부)',
+                          motherFatherMother: '외증조모 (모-부-모)',
+                          motherMotherFather: '외외증조부 (모-모-부)',
+                          motherMotherMother: '외외증조모 (모-모-모)',
+                        };
+                        const label = typeLabels[anc.type] || anc.type || '조상견';
+                        const isFatherLine = anc.type.startsWith('father');
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`p-2.5 rounded-xl border text-xs flex flex-col justify-between ${
+                              isFatherLine
+                                ? 'bg-indigo-50/60 border-indigo-200'
+                                : 'bg-pink-50/60 border-pink-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className={`font-black text-[11px] px-1.5 py-0.5 rounded ${
+                                isFatherLine ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'
+                              }`}>
+                                {label}
+                              </span>
+                              {anc.reg_no && (
+                                <span className="font-mono text-[10px] text-slate-500 font-bold">
+                                  {anc.reg_no}
+                                </span>
+                              )}
+                            </div>
+                            <div className="font-extrabold text-slate-800 text-xs truncate">
+                              {anc.name || '(이름 미등록)'}
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-bold truncate">
+                              견사호: {anc.saho || '-'}
+                            </div>
                           </div>
-                          <div className="text-slate-500 font-bold">견사호: {anc.saho || '-'}</div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-4">
-                      <DetailItem label="조상견 타입 (Type)" value={selectedPedigree.anc_type || '-'} />
-                      <DetailItem label="조상견 이름 (Name)" value={selectedPedigree.anc_name || '-'} />
-                      <div className="col-span-2">
-                        <DetailItem label="조상견 견사호 (Saho)" value={selectedPedigree.anc_saho || '-'} fullWidth />
-                      </div>
+                    <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 text-center">
+                      <div className="text-2xl mb-1.5">🌳</div>
+                      <p className="text-xs font-black text-slate-600 mb-1">
+                        조상견 가계도가 아직 로드되지 않았습니다.
+                      </p>
+                      <p className="text-[11px] font-bold text-slate-400">
+                        위 부모견 번호 확인 후 <strong>[🔍 3대 족보 불러오기]</strong> 버튼을 누르면 가계도가 자동으로 채워집니다.
+                      </p>
                     </div>
                   )}
                 </div>
