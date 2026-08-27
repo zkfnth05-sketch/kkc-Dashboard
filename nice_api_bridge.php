@@ -345,6 +345,8 @@ try {
                                 $target_file = dirname(__FILE__) . '/nice_api_bridge.php';
                             } else if ($target_name === 'nice_api_config') {
                                 $target_file = dirname(__FILE__) . '/nice_api_config.php';
+                            } else if ($target_name === 'nice_diag') {
+                                $target_file = dirname(__FILE__) . '/nice_diag.php';
                             } else {
                                 $target_file = dirname(__FILE__) . '/nice_api_handler.php';
                             }

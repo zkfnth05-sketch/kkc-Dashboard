@@ -167,12 +167,20 @@ if ($test === 'ping') {
     
     echo "<tr><td>서버 실제 아웃바운드 IP</td><td><strong style='color:#ffd700; font-size:16px;'>{$outbound_ip}</strong> (NICE에 이 IP가 등록되어야 합니다)</td></tr>";
     
-    echo "<tr><td>NICE UAT 연결</td><td>";
+    echo "<tr><td>NICE UAT 연결 (usvc)</td><td>";
     $ch = curl_init($HOST); curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10); curl_setopt($ch, CURLOPT_TIMEOUT, 10);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); curl_setopt($ch, CURLOPT_NOBODY, true);
     curl_exec($ch); $cerr = curl_error($ch); $hcd = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
     echo empty($cerr) ? "<span class='ok'>연결됨 (HTTP {$hcd})</span>" : "<span class='err'>연결 실패: {$cerr}</span>";
+    echo "</td></tr>";
+    
+    echo "<tr><td>NICE PROD 연결 (svc)</td><td>";
+    $ch2 = curl_init('https://svc.niceapi.co.kr:32001'); curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch2, CURLOPT_CONNECTTIMEOUT, 10); curl_setopt($ch2, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false); curl_setopt($ch2, CURLOPT_NOBODY, true);
+    curl_exec($ch2); $cerr2 = curl_error($ch2); $hcd2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE); curl_close($ch2);
+    echo empty($cerr2) ? "<span class='ok'>연결됨 (HTTP {$hcd2})</span>" : "<span class='err'>연결 실패: {$cerr2}</span>";
     echo "</td></tr></table>";
 }
 
