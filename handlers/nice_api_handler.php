@@ -609,23 +609,23 @@ function nice_build_ancestors_list($conn, $dog) {
 }
 
 /**
- * 🐕 등록번호 기반 개체 정보 보조 조회 함수 (-NP 유연 매칭 지원)
+ * 🐕 등록번호/UID/견명 기반 다중 유연 개체 정보 조회 함수 (-NP 유연 매칭 + 견명 검색)
  */
-function nice_fetch_dog_by_reg_no($conn, $reg_no) {
-    if (empty($reg_no) || $reg_no === '0' || $reg_no === '-') return null;
-    $clean_reg = nice_clean_reg_no($reg_no);
+function nice_fetch_dog_by_reg_no($conn, $query_str) {
+    if (empty($query_str) || $query_str === '0' || $query_str === '-') return null;
+    $clean_reg = nice_clean_reg_no($query_str);
     
     // EUC-KR 변환 검색어 준비
     $e_clean = $conn->real_escape_string(kkc_convert($clean_reg, 'EUC-KR', false));
     $e_np = $conn->real_escape_string(kkc_convert($clean_reg . '-NP', 'EUC-KR', false));
-    $e_orig = $conn->real_escape_string(kkc_convert($reg_no, 'EUC-KR', false));
+    $e_orig = $conn->real_escape_string(kkc_convert($query_str, 'EUC-KR', false));
     
-    // 1. nice_dogTab 먼저 확인 (NP 포함, 베이스 번호, uid)
     $conn->query("SET NAMES 'binary'");
-    $res = $conn->query("SELECT * FROM nice_dogTab WHERE reg_no IN ('$e_np', '$e_clean', '$e_orig') OR uid = '$e_clean' LIMIT 1");
+    // 1. nice_dogTab 먼저 확인 (등록번호, UID, fullname, name)
+    $res = $conn->query("SELECT * FROM nice_dogTab WHERE reg_no IN ('$e_np', '$e_clean', '$e_orig') OR uid = '$e_clean' OR fullname = '$e_orig' OR name = '$e_orig' LIMIT 1");
     if (!$res || $res->num_rows === 0) {
-        // 2. dogTab 확인 (협회 원본 DB - reg_no 및 uid 동시 지원)
-        $res = $conn->query("SELECT * FROM dogTab WHERE reg_no IN ('$e_clean', '$e_orig') OR uid = '$e_clean' LIMIT 1");
+        // 2. dogTab 확인 (협회 원본 DB - 등록번호, UID, fullname, name)
+        $res = $conn->query("SELECT * FROM dogTab WHERE reg_no IN ('$e_clean', '$e_orig') OR uid = '$e_clean' OR fullname = '$e_orig' OR name = '$e_orig' LIMIT 1");
     }
     return ($res && $res->num_rows > 0) ? $res->fetch_assoc() : null;
 }
@@ -1068,12 +1068,12 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
         $breed_code = $dog['dog_class'] ?? ($req['dog_classTab_name'] ?? '');
         $breed_name = $breed_code;
         if ($conn) {
-            $conn->query("SET NAMES 'utf8mb4'");
-            $class_res = $conn->query("SELECT name, kor_name FROM dog_classTab WHERE keyy = '" . $conn->real_escape_string($breed_code) . "' OR kor_name = '" . $conn->real_escape_string($breed_code) . "' OR name = '" . $conn->real_escape_string($breed_code) . "' LIMIT 1");
-            if ($class_res && $c_row = $class_res->fetch_assoc()) {
-                $breed_name = !empty($c_row['name']) ? $c_row['name'] : $c_row['kor_name'];
-            }
             $conn->query("SET NAMES 'binary'");
+            $e_b_code = $conn->real_escape_string(kkc_convert($breed_code, 'EUC-KR', false));
+            $class_res = $conn->query("SELECT name, kor_name FROM dog_classTab WHERE keyy = '$e_b_code' OR kor_name = '$e_b_code' OR name = '$e_b_code' LIMIT 1");
+            if ($class_res && $c_row = $class_res->fetch_assoc()) {
+                $breed_name = !empty($c_row['name']) ? kkc_convert($c_row['name'], 'EUC-KR', true) : kkc_convert($c_row['kor_name'], 'EUC-KR', true);
+            }
         }
         
         $father = $conn ? nice_get_parent_info($conn, $dog['fa_regno'] ?? ($req['father_reg_no'] ?? '')) : ['name'=>'', 'reg_no'=>'', 'saho'=>''];
@@ -2092,30 +2092,36 @@ function nice_admin_get_breed_colors($input) {
 }
 
 /**
- * 🔍 [API] 관리자용 부모견/조상견 3대 가계도 실시간 조회 함수
+ * 🔍 [API] 관리자용 부모견/조상견 3대 가계도 실시간 조회 함수 (등록번호 + 이름 + UID 통합 검색)
  */
 function nice_admin_lookup_pedigree_tree($input) {
     $conn = get_kkc_portal_db();
     nice_api_db_init($conn);
 
     $fa_reg = trim($input['fa_regno'] ?? ($input['father_reg_no'] ?? ''));
-    $mo_reg = trim($input['mo_regno'] ?? ($input['mother_reg_no'] ?? ''));
-    $dog_reg = trim($input['reg_no'] ?? '');
+    $fa_name = trim($input['fa_name'] ?? ($input['father_name'] ?? ''));
+    $fa_query = !empty($fa_reg) ? $fa_reg : $fa_name;
 
-    if (!empty($dog_reg) && empty($fa_reg) && empty($mo_reg)) {
+    $mo_reg = trim($input['mo_regno'] ?? ($input['mother_reg_no'] ?? ''));
+    $mo_name = trim($input['mo_name'] ?? ($input['mother_name'] ?? ''));
+    $mo_query = !empty($mo_reg) ? $mo_reg : $mo_name;
+
+    $dog_reg = trim($input['reg_no'] ?? ($input['name'] ?? ''));
+
+    if (!empty($dog_reg) && empty($fa_query) && empty($mo_query)) {
         $dog = nice_fetch_dog_by_reg_no($conn, $dog_reg);
         if ($dog) {
-            $fa_reg = kkc_convert($dog['fa_regno'] ?? '', 'EUC-KR', true);
-            $mo_reg = kkc_convert($dog['mo_regno'] ?? '', 'EUC-KR', true);
+            $fa_query = kkc_convert(!empty($dog['fa_regno']) ? $dog['fa_regno'] : ($dog['fa_name'] ?? ''), 'EUC-KR', true);
+            $mo_query = kkc_convert(!empty($dog['mo_regno']) ? $dog['mo_regno'] : ($dog['mo_name'] ?? ''), 'EUC-KR', true);
         }
     }
 
-    $father = nice_get_parent_info($conn, $fa_reg);
-    $mother = nice_get_parent_info($conn, $mo_reg);
+    $father = nice_get_parent_info($conn, $fa_query);
+    $mother = nice_get_parent_info($conn, $mo_query);
 
     $virtual_dog = [
-        'fa_regno' => $fa_reg,
-        'mo_regno' => $mo_reg
+        'fa_regno' => !empty($father['reg_no']) ? $father['reg_no'] : $fa_query,
+        'mo_regno' => !empty($mother['reg_no']) ? $mother['reg_no'] : $mo_query
     ];
     $ancestors = nice_build_ancestors_list($conn, $virtual_dog);
 

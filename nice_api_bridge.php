@@ -23,6 +23,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // 임시 데이터 초기화 (초코 및 테스트 심사 건 상태를 심사대기 P로 초기화)
+if (isset($_GET['reset_uid'])) {
+    include_once 'handlers/nice_api_handler.php';
+    $conn = get_kkc_portal_db();
+    $t_uid = intval($_GET['reset_uid']);
+    if ($t_uid > 0) {
+        $conn->query("UPDATE nice_pedigree_requests SET status = 'P', reg_no = '', admin_memo = NULL WHERE uid = $t_uid");
+        $conn->query("DELETE FROM nice_dogTab WHERE reg_no IN (SELECT reg_no FROM nice_pedigree_requests WHERE uid = $t_uid) OR order_no IN (SELECT order_no FROM nice_pedigree_requests WHERE uid = $t_uid)");
+        echo json_encode(['success' => true, 'reset_uid' => $t_uid]);
+    }
+    $conn->close();
+    exit;
+}
+
 if (isset($_GET['reset_test']) || isset($_GET['reset_choco'])) {
     include_once 'handlers/nice_api_handler.php';
     $conn = get_kkc_portal_db();
