@@ -61,17 +61,20 @@ if (!function_exists('nice_format_date_ymd')) {
 if (!function_exists('nice_format_datetime_ymdhis')) {
     function nice_format_datetime_ymdhis($dt) {
         if (empty($dt) || $dt === '0000-00-00' || $dt === '0000-00-00 00:00:00') {
-            return date('YmdHis');
+            return '';
         }
         $raw = preg_replace('/[^0-9]/', '', (string)$dt);
         if (strlen($raw) === 14) {
             return $raw;
         }
         if (strlen($raw) === 8) {
-            return $raw . date('His');
+            return $raw . '000000';
+        }
+        if (strlen($raw) > 8 && strlen($raw) < 14) {
+            return str_pad($raw, 14, '0', STR_PAD_RIGHT);
         }
         $ts = strtotime((string)$dt);
-        return $ts ? date('YmdHis', $ts) : date('YmdHis');
+        return $ts ? date('YmdHis', $ts) : '';
     }
 }
 
@@ -199,7 +202,9 @@ function nice_api_db_init($conn) {
     // 4. nice_pedigree_requests 테이블에 추가 필드 확보
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `reg_count_m` INT(11) DEFAULT NULL");
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `reg_count_f` INT(11) DEFAULT NULL");
-    $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `reg_date` VARCHAR(10) DEFAULT NULL");
+    $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `reg_date` VARCHAR(30) DEFAULT NULL");
+    $conn->query("ALTER TABLE `nice_pedigree_requests` MODIFY COLUMN `reg_date` VARCHAR(30) DEFAULT NULL");
+    $conn->query("ALTER TABLE `nice_dogTab` MODIFY COLUMN `reg_date` VARCHAR(30) DEFAULT NULL");
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `fa_name` VARCHAR(100) DEFAULT NULL");
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `fa_regno` VARCHAR(50) DEFAULT NULL");
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `mo_name` VARCHAR(100) DEFAULT NULL");
@@ -410,6 +415,7 @@ function nice_handle_detail($data) {
         'poss_addr' => kkc_convert($dog['poss_addr'], 'EUC-KR', true),
         'birth' => $formatted_birth,
         'reg_date' => $formatted_reg_date,
+        'regDate' => $formatted_reg_date,
         'birth_m' => isset($dog['birth_m']) ? intval($dog['birth_m']) : 0,
         'birth_M' => isset($dog['birth_m']) ? intval($dog['birth_m']) : 0,
         'birth_f' => isset($dog['birth_f']) ? intval($dog['birth_f']) : 0,
@@ -1091,6 +1097,7 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
         $plain['poss_addr'] = kkc_convert($dog['poss_addr'] ?? ($req['poss_addr'] ?? ''), 'EUC-KR', true);
         $plain['birth'] = nice_format_date_ymd($dog['birth'] ?? ($req['birth'] ?? ''));
         $plain['reg_date'] = nice_format_datetime_ymdhis($dog['reg_date'] ?? ($req['reg_date'] ?? ''));
+        $plain['regDate'] = $plain['reg_date'];
 
         $plain['birth_m'] = isset($dog['birth_m']) ? intval($dog['birth_m']) : (isset($req['birth_m']) ? intval($req['birth_m']) : 0);
         $plain['birth_M'] = $plain['birth_m'];
@@ -1136,6 +1143,7 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
             $plain['poss_addr']         = kkc_convert($req['poss_addr'] ?? '', 'EUC-KR', true);
             $plain['birth']             = nice_format_date_ymd($req['birth'] ?? '');
             $plain['reg_date']          = !empty($req['reg_date']) ? nice_format_datetime_ymdhis($req['reg_date']) : '';
+            $plain['regDate']           = $plain['reg_date'];
 
             $plain['birth_m']           = intval($req['birth_m'] ?? 0);
             $plain['birth_f']           = intval($req['birth_f'] ?? 0);
@@ -1814,7 +1822,18 @@ function nice_admin_pedigree_action($input) {
 
         $anc_name = kkc_convert($req['anc_name'] ?? '', 'EUC-KR', false);
         $anc_saho = kkc_convert($req['anc_saho'] ?? '', 'EUC-KR', false);
-        $reg_date = kkc_convert($req['reg_date'] ?? date('Y-m-d'), 'EUC-KR', false);
+        $raw_app_date = trim($req['reg_date'] ?? '');
+        if (empty($raw_app_date) || $raw_app_date === '0000-00-00') {
+            $raw_app_date = date('Y-m-d H:i:s');
+        } else {
+            $raw_app_date = str_replace('.', '-', $raw_app_date);
+            if (preg_match('/^\d{8}$/', $raw_app_date)) {
+                $raw_app_date = substr($raw_app_date, 0, 4) . '-' . substr($raw_app_date, 4, 2) . '-' . substr($raw_app_date, 6, 2) . ' ' . date('H:i:s');
+            } else if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw_app_date)) {
+                $raw_app_date = $raw_app_date . ' ' . date('H:i:s');
+            }
+        }
+        $reg_date = kkc_convert($raw_app_date, 'EUC-KR', false);
         $saho = kkc_convert($req['saho'] ?? '', 'EUC-KR', false);
         $saho_eng = kkc_convert($req['saho_eng'] ?? '', 'EUC-KR', false);
         $hair = kkc_convert($req['hair'] ?? '', 'EUC-KR', false);
@@ -1956,9 +1975,15 @@ function nice_admin_pedigree_action($input) {
 
     // 3.5. 신규 추가 필드들 (birth_m, birth_f, reg_count_m, reg_count_f, reg_date) 동기화 업데이트 실행
     $raw_reg_date = trim($req['reg_date'] ?? '');
-    $raw_reg_date = str_replace('.', '-', $raw_reg_date);
-    if (preg_match('/^\d{8}$/', $raw_reg_date)) {
-        $raw_reg_date = substr($raw_reg_date, 0, 4) . '-' . substr($raw_reg_date, 4, 2) . '-' . substr($raw_reg_date, 6, 2);
+    if (empty($raw_reg_date) || $raw_reg_date === '0000-00-00') {
+        $raw_reg_date = date('Y-m-d H:i:s');
+    } else {
+        $raw_reg_date = str_replace('.', '-', $raw_reg_date);
+        if (preg_match('/^\d{8}$/', $raw_reg_date)) {
+            $raw_reg_date = substr($raw_reg_date, 0, 4) . '-' . substr($raw_reg_date, 4, 2) . '-' . substr($raw_reg_date, 6, 2) . ' ' . date('H:i:s');
+        } else if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw_reg_date)) {
+            $raw_reg_date = $raw_reg_date . ' ' . date('H:i:s');
+        }
     }
     
     $reg_date_val = (!empty($raw_reg_date) && $raw_reg_date !== '0000-00-00') 
@@ -1983,7 +2008,7 @@ function nice_admin_pedigree_action($input) {
     
     // 4. 심사 요청 상태 갱신
     $conn->query("SET NAMES 'utf8mb4'");
-    $res_req = $conn->query("UPDATE nice_pedigree_requests SET status = 'Y', admin_memo = '$admin_memo' WHERE uid = $uid");
+    $res_req = $conn->query("UPDATE nice_pedigree_requests SET status = 'Y', admin_memo = '$admin_memo', reg_date = $reg_date_val WHERE uid = $uid");
     if ($res_req) {
         $log_messages[] = "✔ [심사 신청 상태] 승인(Y)으로 정상 업데이트 완료";
     } else {
