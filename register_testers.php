@@ -38,7 +38,7 @@ $testers = [
         'id' => 'tester_leeje',
         'name' => '이재은',
         'gender' => '여성',
-        'ci' => 'a2gkbWAqrZFgjy/ezO42TJY4Ugm2rjpukGMhGLRQhWKt1Qy50bf8TUVMwue1l4qeNP4fO/jdO6cB6QdfGpslwg==',
+        'ci' => 'a2gkbWAqrZFgjy/ezO42TJY4Ugm2rjpukGMhGLRQhWKt1Qy50bf8TUVMwue1l4qeNP4fO/jdO6cB6QdfGpsIwg==',
         'birth' => '19920515',
         'dogs' => [
             ['name' => '루이', 'breed' => '진돗개', 'breed_code' => 'KJ', 'sex' => '수', 'hair' => '백색', 'birth' => '2024-05-10'],

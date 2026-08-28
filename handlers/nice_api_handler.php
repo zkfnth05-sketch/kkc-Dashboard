@@ -276,27 +276,45 @@ function nice_handle_list($data) {
     $conn->query("SET NAMES 'binary'");
     $user_res = $conn->query("SELECT id, mid FROM memTab WHERE nice_ci = '$e_ci' UNION SELECT id, mid FROM nice_memTab WHERE nice_ci = '$e_ci'");
     
-    if (!$user_res || $user_res->num_rows === 0) {
+    $poss_ids = [];
+    if ($user_res) {
+        while ($u = $user_res->fetch_assoc()) {
+            if (!empty($u['id'])) $poss_ids[] = "'" . $conn->real_escape_string($u['id']) . "'";
+            if (!empty($u['mid'])) $poss_ids[] = "'" . $conn->real_escape_string($u['mid']) . "'";
+        }
+    }
+    
+    // 심사 승인된 신청건(nice_pedigree_requests) 중 해당 CI의 발급견 번호 수집 (회원 미연동 상태에서도 안전하게 조회)
+    $conn->query("SET NAMES 'utf8mb4'");
+    $req_dogs_res = $conn->query("SELECT reg_no FROM nice_pedigree_requests WHERE poss_ci = '$e_ci' AND status = 'Y' AND reg_no != ''");
+    $req_reg_nos = [];
+    if ($req_dogs_res) {
+        while ($r = $req_dogs_res->fetch_assoc()) {
+            if (!empty($r['reg_no'])) {
+                $req_reg_nos[] = "'" . $conn->real_escape_string(kkc_convert($r['reg_no'], 'EUC-KR', false)) . "'";
+            }
+        }
+    }
+    
+    if (empty($poss_ids) && empty($req_reg_nos)) {
         $conn->close();
         return ['result_cd' => 'F201', 'list_cnt' => 0, 'list' => []]; // F201: 미등록 회원 CI
     }
     
-    $poss_ids = [];
-    while ($u = $user_res->fetch_assoc()) {
-        if (!empty($u['id'])) $poss_ids[] = "'" . $conn->real_escape_string($u['id']) . "'";
-        if (!empty($u['mid'])) $poss_ids[] = "'" . $conn->real_escape_string($u['mid']) . "'";
+    $conn->query("SET NAMES 'binary'");
+    $where_clauses = [];
+    if (!empty($poss_ids)) {
+        $where_clauses[] = "poss_id IN (" . implode(',', $poss_ids) . ")";
     }
-    
-    if (empty($poss_ids)) {
-        $conn->close();
-        return ['result_cd' => 'S000', 'list_cnt' => 0, 'list' => []];
+    if (!empty($req_reg_nos)) {
+        $where_clauses[] = "reg_no IN (" . implode(',', $req_reg_nos) . ")";
     }
+    $where_sql = implode(' OR ', $where_clauses);
     
-    $poss_ids_str = implode(',', $poss_ids);
-    // 기존 dogTab과 신규 격리 nice_dogTab 병합 조회
-    $dog_sql = "SELECT reg_no, fullname, dog_class FROM dogTab WHERE poss_id IN ($poss_ids_str)
+    // 기존 dogTab 및 신규 격리 nice_dogTab 병합 조회
+    $dog_sql = "SELECT reg_no, fullname, dog_class FROM dogTab WHERE $where_sql
                 UNION
-                SELECT reg_no, fullname, dog_class FROM nice_dogTab WHERE poss_id IN ($poss_ids_str)";
+                SELECT reg_no, fullname, dog_class FROM nice_dogTab WHERE $where_sql";
     $dog_res = $conn->query($dog_sql);
     
     $list = [];
@@ -313,7 +331,7 @@ function nice_handle_list($data) {
         while ($d = $dog_res->fetch_assoc()) {
             $breed_code = $d['dog_class'];
             $breed_name = isset($breed_map[$breed_code]) ? $breed_map[$breed_code] : $breed_code;
-            // dog_classTab에서 utf8mb4로 읽어온 견종명은 이미 UTF-8이므로 이중 변환(Double UTF-8 mojibake) 방지
+            // dog_classTab에서 utf8mb4로 읽어온 견종명은 이미 UTF-8이므로 이중 변환 방지
             $dog_class_name = (is_string($breed_name) && mb_check_encoding($breed_name, 'UTF-8')) ? $breed_name : kkc_convert($breed_name, 'EUC-KR', true);
             
             $list[] = [
