@@ -1411,6 +1411,7 @@ function nice_admin_pedigree_list($input) {
                 'image3_path' => $row['image3_path'],
                 'image4_path' => $row['image4_path'],
                 'poss_ci' => $row['poss_ci'],
+                'req_mobile' => $row['req_mobile'] ?? '',
                 
                 // 추가 필드 매핑 (HeidiSQL 엑셀 정보 기반)
                 'saho_eng' => $row['saho_eng'],

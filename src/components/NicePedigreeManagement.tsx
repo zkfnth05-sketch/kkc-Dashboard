@@ -28,6 +28,7 @@ interface NicePedigree {
   image3_path?: string;
   image4_path?: string;
   poss_ci?: string;
+  req_mobile?: string;
 
   // NICE Petpin 데이터베이스 명세 기준 상세 필드
   saho_eng?: string;
@@ -1243,6 +1244,11 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                   <div className="grid grid-cols-2 gap-4">
                     <DetailItem label="신청인 (앱 닉네임)" value={selectedPedigree.owner_name || selectedPedigree.poss_name || '-'} />
                     <DetailItem label="소유자 실명" value={selectedPedigree.poss_name || '-'} />
+                    <DetailItem 
+                      label="신청자 연락처 (휴대폰)" 
+                      value={selectedPedigree.req_mobile ? (selectedPedigree.req_mobile.replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, '$1-$2-$3')) : '-'} 
+                    />
+                    <div>{/* 2열 격자 맞춤용 */}</div>
 
                     <div className="col-span-2">
                       <DetailItem label="소유자 주소" value={selectedPedigree.poss_addr || '-'} fullWidth />
