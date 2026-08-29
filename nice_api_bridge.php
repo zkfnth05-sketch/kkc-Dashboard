@@ -332,15 +332,18 @@ try {
                     }
                     break;
                 case 'admin_get_nice_logs':
-                    $log_file = dirname(__FILE__) . '/nice_inbound_debug.log';
-                    $log_content = file_exists($log_file) ? file_get_contents($log_file) : '';
-                    if (strlen($log_content) > 10000) {
-                        $log_content = substr($log_content, -10000);
-                    }
+                    $in_log_file = dirname(__FILE__) . '/nice_inbound_debug.log';
+                    $out_log_file = dirname(__FILE__) . '/nice_outbound_debug.log';
+                    $in_log = file_exists($in_log_file) ? file_get_contents($in_log_file) : '';
+                    $out_log = file_exists($out_log_file) ? file_get_contents($out_log_file) : '';
+                    if (strlen($in_log) > 5000) $in_log = substr($in_log, -5000);
+                    if (strlen($out_log) > 10000) $out_log = substr($out_log, -10000);
                     $res_data = [
                         'success' => true,
-                        'exists' => file_exists($log_file),
-                        'logs' => $log_content
+                        'exists' => file_exists($out_log_file) || file_exists($in_log_file),
+                        'outbound_logs' => $out_log,
+                        'inbound_logs' => $in_log,
+                        'logs' => "=== [NICE OUTBOUND LOGS] ===\n" . $out_log . "\n\n=== [NICE INBOUND LOGS] ===\n" . $in_log
                     ];
                     break;
                 case 'admin_sync_handler':

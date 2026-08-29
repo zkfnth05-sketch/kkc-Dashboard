@@ -987,6 +987,13 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
     }
     
     $json = json_encode($plain_data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    
+    // 📝 [디버그 로깅] 나이스 아웃바운드 발송 평문 데이터 완벽 기록
+    $out_log = date('[Y-m-d H:i:s]') . " [NICE OUTBOUND] " . $host . $uri . "\n"
+             . "PLAIN_DATA: " . $json . "\n";
+    @file_put_contents(dirname(__FILE__) . '/nice_outbound_debug.log', $out_log, FILE_APPEND);
+    @file_put_contents(dirname(__FILE__) . '/../nice_outbound_debug.log', $out_log, FILE_APPEND);
+
     $enc_data = base64_encode(openssl_encrypt($json, 'aes-256-cbc', $aes_key, OPENSSL_RAW_DATA, $aes_iv));
     
     $req_dttm = date('YmdHis');
@@ -1065,6 +1072,11 @@ function nice_outbound_call($uri, $product_id, $plain_data) {
     }
     
     $dec = openssl_decrypt(base64_decode($res_enc_data), 'aes-256-cbc', $aes_key, OPENSSL_RAW_DATA, $aes_iv);
+    
+    $out_resp_log = "NICE_RESPONSE: " . $dec . "\n------------------------------------\n";
+    @file_put_contents(dirname(__FILE__) . '/nice_outbound_debug.log', $out_resp_log, FILE_APPEND);
+    @file_put_contents(dirname(__FILE__) . '/../nice_outbound_debug.log', $out_resp_log, FILE_APPEND);
+
     return [
         'success' => true,
         'data' => json_decode($dec, true)
@@ -1141,12 +1153,9 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
             ? $father['saho'] 
             : kkc_convert(!empty($dog['father_saho']) ? $dog['father_saho'] : (!empty($dog['fa_saho']) ? $dog['fa_saho'] : ($req['father_saho'] ?? ($req['fa_saho'] ?? ''))), 'EUC-KR', true);
         
-        $plain['father_name'] = $father_name_val;
-        $plain['fa_name'] = $father_name_val;
+        $plain['father_name']   = $father_name_val;
         $plain['father_reg_no'] = $father_reg_val;
-        $plain['fa_regno'] = $father_reg_val;
-        $plain['father_saho'] = $father_saho_val;
-        $plain['fa_saho'] = $father_saho_val;
+        $plain['father_saho']   = $father_saho_val;
         
         $mother_name_val = !empty($mother['name']) ? $mother['name'] : kkc_convert(!empty($dog['mo_name']) ? $dog['mo_name'] : ($req['mother_name'] ?? ($req['mo_name'] ?? '')), 'EUC-KR', true);
         $mother_reg_val  = !empty($mother['reg_no']) ? $mother['reg_no'] : kkc_convert(!empty($dog['mo_regno']) ? $dog['mo_regno'] : ($req['mother_reg_no'] ?? ($req['mo_regno'] ?? '')), 'EUC-KR', true);
@@ -1154,12 +1163,9 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
             ? $mother['saho'] 
             : kkc_convert(!empty($dog['mother_saho']) ? $dog['mother_saho'] : (!empty($dog['mo_saho']) ? $dog['mo_saho'] : ($req['mother_saho'] ?? ($req['mo_saho'] ?? ''))), 'EUC-KR', true);
         
-        $plain['mother_name'] = $mother_name_val;
-        $plain['mo_name'] = $mother_name_val;
+        $plain['mother_name']   = $mother_name_val;
         $plain['mother_reg_no'] = $mother_reg_val;
-        $plain['mo_regno'] = $mother_reg_val;
-        $plain['mother_saho'] = $mother_saho_val;
-        $plain['mo_saho'] = $mother_saho_val;
+        $plain['mother_saho']   = $mother_saho_val;
         
         $anc_list = ($conn && $dog) ? nice_build_ancestors_list($conn, $dog) : [];
         $plain['ancestors'] = $anc_list;
@@ -1191,17 +1197,11 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
             $plain['reg_count_m']       = intval($req['reg_count_m'] ?? 0);
             $plain['reg_count_f']       = intval($req['reg_count_f'] ?? 0);
             $plain['father_name']       = kkc_convert($req['father_name'] ?? ($req['fa_name'] ?? ''), 'EUC-KR', true);
-            $plain['fa_name']           = $plain['father_name'];
             $plain['father_reg_no']     = kkc_convert($req['father_reg_no'] ?? ($req['fa_regno'] ?? ''), 'EUC-KR', true);
-            $plain['fa_regno']          = $plain['father_reg_no'];
             $plain['father_saho']       = kkc_convert($req['father_saho'] ?? ($req['fa_saho'] ?? ''), 'EUC-KR', true);
-            $plain['fa_saho']           = $plain['father_saho'];
             $plain['mother_name']       = kkc_convert($req['mother_name'] ?? ($req['mo_name'] ?? ''), 'EUC-KR', true);
-            $plain['mo_name']           = $plain['mother_name'];
             $plain['mother_reg_no']     = kkc_convert($req['mother_reg_no'] ?? ($req['mo_regno'] ?? ''), 'EUC-KR', true);
-            $plain['mo_regno']          = $plain['mother_reg_no'];
             $plain['mother_saho']       = kkc_convert($req['mother_saho'] ?? ($req['mo_saho'] ?? ''), 'EUC-KR', true);
-            $plain['mo_saho']           = $plain['mother_saho'];
         }
         // [이슈 A] 반려 시에도 ancestors 필수 필드(Y) 반드시 포함 (엑셀 Sheet 6 R33)
         $plain['ancestors'] = [];
