@@ -1135,17 +1135,31 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
         $plain['reg_count_f'] = isset($dog['reg_count_f']) ? intval($dog['reg_count_f']) : (isset($req['reg_count_f']) ? intval($req['reg_count_f']) : 0);
         $plain['reg_count_F'] = $plain['reg_count_f'];
         
-        $plain['father_name'] = $father['name'] ?: kkc_convert($req['father_name'] ?? '', 'EUC-KR', true);
-        $plain['father_reg_no'] = $father['reg_no'] ?: kkc_convert($req['father_reg_no'] ?? '', 'EUC-KR', true);
-        $plain['father_saho'] = $father['saho'] ?? kkc_convert($req['father_saho'] ?? '', 'EUC-KR', true);
-        $plain['fa_name'] = $plain['father_name'];
-        $plain['fa_regno'] = $plain['father_reg_no'];
+        $father_name_val = !empty($father['name']) ? $father['name'] : kkc_convert(!empty($dog['fa_name']) ? $dog['fa_name'] : ($req['father_name'] ?? ($req['fa_name'] ?? '')), 'EUC-KR', true);
+        $father_reg_val  = !empty($father['reg_no']) ? $father['reg_no'] : kkc_convert(!empty($dog['fa_regno']) ? $dog['fa_regno'] : ($req['father_reg_no'] ?? ($req['fa_regno'] ?? '')), 'EUC-KR', true);
+        $father_saho_val = !empty($father['saho']) 
+            ? $father['saho'] 
+            : kkc_convert(!empty($dog['father_saho']) ? $dog['father_saho'] : (!empty($dog['fa_saho']) ? $dog['fa_saho'] : ($req['father_saho'] ?? ($req['fa_saho'] ?? ''))), 'EUC-KR', true);
         
-        $plain['mother_name'] = $mother['name'] ?: kkc_convert($req['mother_name'] ?? '', 'EUC-KR', true);
-        $plain['mother_reg_no'] = $mother['reg_no'] ?: kkc_convert($req['mother_reg_no'] ?? '', 'EUC-KR', true);
-        $plain['mother_saho'] = $mother['saho'] ?? kkc_convert($req['mother_saho'] ?? '', 'EUC-KR', true);
-        $plain['mo_name'] = $plain['mother_name'];
-        $plain['mo_regno'] = $plain['mother_reg_no'];
+        $plain['father_name'] = $father_name_val;
+        $plain['fa_name'] = $father_name_val;
+        $plain['father_reg_no'] = $father_reg_val;
+        $plain['fa_regno'] = $father_reg_val;
+        $plain['father_saho'] = $father_saho_val;
+        $plain['fa_saho'] = $father_saho_val;
+        
+        $mother_name_val = !empty($mother['name']) ? $mother['name'] : kkc_convert(!empty($dog['mo_name']) ? $dog['mo_name'] : ($req['mother_name'] ?? ($req['mo_name'] ?? '')), 'EUC-KR', true);
+        $mother_reg_val  = !empty($mother['reg_no']) ? $mother['reg_no'] : kkc_convert(!empty($dog['mo_regno']) ? $dog['mo_regno'] : ($req['mother_reg_no'] ?? ($req['mo_regno'] ?? '')), 'EUC-KR', true);
+        $mother_saho_val = !empty($mother['saho']) 
+            ? $mother['saho'] 
+            : kkc_convert(!empty($dog['mother_saho']) ? $dog['mother_saho'] : (!empty($dog['mo_saho']) ? $dog['mo_saho'] : ($req['mother_saho'] ?? ($req['mo_saho'] ?? ''))), 'EUC-KR', true);
+        
+        $plain['mother_name'] = $mother_name_val;
+        $plain['mo_name'] = $mother_name_val;
+        $plain['mother_reg_no'] = $mother_reg_val;
+        $plain['mo_regno'] = $mother_reg_val;
+        $plain['mother_saho'] = $mother_saho_val;
+        $plain['mo_saho'] = $mother_saho_val;
         
         $anc_list = ($conn && $dog) ? nice_build_ancestors_list($conn, $dog) : [];
         $plain['ancestors'] = $anc_list;
@@ -1176,12 +1190,18 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
             $plain['birth_f']           = intval($req['birth_f'] ?? 0);
             $plain['reg_count_m']       = intval($req['reg_count_m'] ?? 0);
             $plain['reg_count_f']       = intval($req['reg_count_f'] ?? 0);
-            $plain['father_name']       = kkc_convert($req['father_name'] ?? '', 'EUC-KR', true);
-            $plain['father_reg_no']     = kkc_convert($req['father_reg_no'] ?? '', 'EUC-KR', true);
-            $plain['father_saho']       = kkc_convert($req['father_saho'] ?? '', 'EUC-KR', true);
-            $plain['mother_name']       = kkc_convert($req['mother_name'] ?? '', 'EUC-KR', true);
-            $plain['mother_reg_no']     = kkc_convert($req['mother_reg_no'] ?? '', 'EUC-KR', true);
-            $plain['mother_saho']       = kkc_convert($req['mother_saho'] ?? '', 'EUC-KR', true);
+            $plain['father_name']       = kkc_convert($req['father_name'] ?? ($req['fa_name'] ?? ''), 'EUC-KR', true);
+            $plain['fa_name']           = $plain['father_name'];
+            $plain['father_reg_no']     = kkc_convert($req['father_reg_no'] ?? ($req['fa_regno'] ?? ''), 'EUC-KR', true);
+            $plain['fa_regno']          = $plain['father_reg_no'];
+            $plain['father_saho']       = kkc_convert($req['father_saho'] ?? ($req['fa_saho'] ?? ''), 'EUC-KR', true);
+            $plain['fa_saho']           = $plain['father_saho'];
+            $plain['mother_name']       = kkc_convert($req['mother_name'] ?? ($req['mo_name'] ?? ''), 'EUC-KR', true);
+            $plain['mo_name']           = $plain['mother_name'];
+            $plain['mother_reg_no']     = kkc_convert($req['mother_reg_no'] ?? ($req['mo_regno'] ?? ''), 'EUC-KR', true);
+            $plain['mo_regno']          = $plain['mother_reg_no'];
+            $plain['mother_saho']       = kkc_convert($req['mother_saho'] ?? ($req['mo_saho'] ?? ''), 'EUC-KR', true);
+            $plain['mo_saho']           = $plain['mother_saho'];
         }
         // [이슈 A] 반려 시에도 ancestors 필수 필드(Y) 반드시 포함 (엑셀 Sheet 6 R33)
         $plain['ancestors'] = [];
