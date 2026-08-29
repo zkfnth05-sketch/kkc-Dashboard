@@ -197,14 +197,14 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
     const fName = (faNameParam !== undefined ? faNameParam : editFaName).trim();
     const mName = (moNameParam !== undefined ? moNameParam : editMoName).trim();
 
-    if (!fReg && !mReg && !dReg && !fName && !mName) {
-      showAlert('조회 정보 필요', '부모견의 이름 또는 등록번호를 입력해 주세요.');
+    if (!fReg && !mReg && !dReg) {
+      showAlert('조회 정보 필요', '부모견의 등록번호를 입력해 주세요.');
       return;
     }
 
     setIsLoadingTree(true);
     try {
-      const res = await niceAdminLookupPedigreeTree(fReg, mReg, dReg, fName, mName);
+      const res = await niceAdminLookupPedigreeTree(fReg, mReg, dReg);
       if (res && res.success) {
         if (res.father) {
           if (res.father.name) setEditFaName(res.father.name);
@@ -252,16 +252,11 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       const initMoSaho = (selectedPedigree.mo_saho || selectedPedigree.mother_saho || '').trim();
       setEditMoSaho(initMoSaho === '-' ? '' : initMoSaho);
 
-      // 기존 조상견 목록이 있으면 우선 세팅
+      // 기존 저장된 조상견 목록이 있으면 표시
       if (Array.isArray(selectedPedigree.ancient) && selectedPedigree.ancient.length > 0) {
         setTreeAncestors(selectedPedigree.ancient);
       } else {
         setTreeAncestors([]);
-      }
-
-      // 부모견 번호 또는 부모견 이름이 있으면 자동으로 3대 가계도 및 견사호 매칭 조회
-      if (initFaReg || initMoReg || selectedPedigree.reg_no || rawFa || rawMo) {
-        handleLookupTree(initFaReg, initMoReg, selectedPedigree.reg_no, rawFa, rawMo);
       }
 
       // 견종 그룹 자동 맞춤
