@@ -38,10 +38,21 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  const loadData = async () => {
+  const maskCi = (ci?: string) => {
+    if (!ci) return '-';
+    if (ci.length <= 16) return ci;
+    const start = ci.slice(0, 8);
+    const end = ci.slice(-6);
+    return `${start}****************************************${end}`;
+  };
+
+  const isFirstRender = React.useRef(true);
+  const isInitialSearchHandled = React.useRef(false);
+
+  const loadData = async (page = currentPage, query = searchQuery, field = searchField) => {
     setIsLoading(true);
     try {
-      const res = await niceAdminFetchMembers(currentPage, searchQuery, searchField);
+      const res = await niceAdminFetchMembers(page, query, field);
       if (res && res.success) {
         setMembers(res.data || []);
         setTotalCount(res.total || 0);
@@ -61,31 +72,52 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, [currentPage]);
-
-  // 외부 연동 검색 파라미터 유도
+  // 1. 외부 연동 검색 파라미터 (혈통서에서 회원 조회로 넘어올 때 즉시 1회 정확히 로딩)
   useEffect(() => {
     if (initialSearch) {
-      setSearchQuery(initialSearch.query);
-      setSearchField(initialSearch.field as any);
+      const q = initialSearch.query;
+      const f = (initialSearch.field || 'all') as 'all' | 'name' | 'id' | 'hp' | 'ci';
+      isInitialSearchHandled.current = true;
+      setSearchQuery(q);
+      setSearchField(f);
+      setCurrentPage(1);
+      loadData(1, q, f);
       if (onSearchHandled) onSearchHandled();
     }
   }, [initialSearch]);
 
-  // 검색 트리거
+  // 2. 검색창 수동 입력 시 디바운스(300ms) 검색
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      if (!initialSearch) {
+        loadData(1, '', 'all');
+      }
+      return;
+    }
+
+    if (isInitialSearchHandled.current) {
+      isInitialSearchHandled.current = false;
+      return;
+    }
+
     const delayDebounceFn = setTimeout(() => {
       if (currentPage === 1) {
-        loadData();
+        loadData(1, searchQuery, searchField);
       } else {
         setCurrentPage(1);
       }
-    }, 400);
+    }, 300);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery, searchField]);
+
+  // 3. 페이지 변경 시 로딩
+  useEffect(() => {
+    if (!isFirstRender.current && !isInitialSearchHandled.current) {
+      loadData(currentPage, searchQuery, searchField);
+    }
+  }, [currentPage]);
 
   const handleDelete = (member: NiceMember) => {
     showConfirm(
@@ -255,7 +287,7 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <code className="text-xs bg-slate-50 px-2 py-1 rounded text-slate-500 font-mono border border-slate-100">{m.ci ? m.ci.substring(0, 16) + '...' : '-'}</code>
+                      <code className="text-xs bg-slate-50 px-2 py-1 rounded text-slate-500 font-mono border border-slate-100">{maskCi(m.ci)}</code>
                     </td>
                     <td className="py-4 px-6 text-slate-400 font-medium text-xs">{m.verified_at || '-'}</td>
                     <td className="py-4 px-6 text-center" onClick={(e) => e.stopPropagation()}>
@@ -344,11 +376,11 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
                   </div>
                   <div>
                     <div className="text-xs font-black text-slate-400 mb-1">NICE 고유 연결값 (CI)</div>
-                    <div className="text-[10px] font-mono bg-white p-2 rounded border border-slate-200 text-slate-600 break-all select-all">{selectedMember.ci || '-'}</div>
+                    <div className="text-[10px] font-mono bg-white p-2 rounded border border-slate-200 text-slate-600 break-all select-all">{maskCi(selectedMember.ci)}</div>
                   </div>
                   <div>
                     <div className="text-xs font-black text-slate-400 mb-1">NICE 중복 가입 확인값 (DI)</div>
-                    <div className="text-[10px] font-mono bg-white p-2 rounded border border-slate-200 text-slate-600 break-all select-all">{selectedMember.di || '-'}</div>
+                    <div className="text-[10px] font-mono bg-white p-2 rounded border border-slate-200 text-slate-600 break-all select-all">{maskCi(selectedMember.di)}</div>
                   </div>
                 </div>
               </div>

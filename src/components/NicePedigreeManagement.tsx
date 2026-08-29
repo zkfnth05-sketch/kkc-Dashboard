@@ -125,6 +125,14 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
     }).catch((err) => console.error('dog_classTab fetch error:', err));
   }, []);
 
+  const maskCi = (ci?: string) => {
+    if (!ci) return '-';
+    if (ci.length <= 16) return ci;
+    const start = ci.slice(0, 8);
+    const end = ci.slice(-6);
+    return `${start}****************************************${end}`;
+  };
+
   const allColorOptions = React.useMemo(() => {
     const map = new Map<string, { uid?: string; name: string }>();
     masterHairs.forEach((h) => {
@@ -1229,9 +1237,11 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                         type="button"
                         onClick={() => {
                           if (onGoToMember) {
-                            const searchTarget = selectedPedigree.poss_ci || selectedPedigree.poss_name;
-                            onGoToMember(searchTarget);
-                            setSelectedPedigree(null);
+                            const searchTarget = selectedPedigree.poss_name || selectedPedigree.owner_name || selectedPedigree.poss_ci || '';
+                            if (searchTarget) {
+                              onGoToMember(searchTarget);
+                              setSelectedPedigree(null);
+                            }
                           }
                         }}
                         className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95"
@@ -1259,14 +1269,17 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          if (onGoToMember && selectedPedigree.poss_ci) {
-                            onGoToMember(selectedPedigree.poss_ci);
-                            setSelectedPedigree(null);
+                          if (onGoToMember) {
+                            const target = selectedPedigree.poss_name || selectedPedigree.poss_ci;
+                            if (target) {
+                              onGoToMember(target);
+                              setSelectedPedigree(null);
+                            }
                           }
                         }}
                         className="text-xs font-mono font-bold text-indigo-600 hover:text-indigo-800 hover:underline text-left mt-1 bg-indigo-50/50 p-2 rounded border border-indigo-100 break-all w-full cursor-pointer transition-colors"
                       >
-                        {selectedPedigree.poss_ci || '-'} ➔
+                        {maskCi(selectedPedigree.poss_ci)} ➔
                       </button>
                     </div>
                   </div>
