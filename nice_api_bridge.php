@@ -130,31 +130,29 @@ if (NICE_API_ENV === 'PROD') {
 
 $secret_token = defined('NICE_ADMIN_SECRET_TOKEN') ? NICE_ADMIN_SECRET_TOKEN : 'kkc-super-secret-key-change-this-now-12345!';
 
-// 핸들러 로드 (루트에 최신 버전이 있으면 루트 우선, 없으면 handlers/ 하위 로드)
-if (file_exists(dirname(__FILE__) . '/nice_api_handler.php')) {
-    require_once dirname(__FILE__) . '/nice_api_handler.php';
-} else {
+// 핸들러 로드 (handlers/nice_api_handler.php 최우선 로드)
+if (file_exists(dirname(__FILE__) . '/handlers/nice_api_handler.php')) {
     require_once dirname(__FILE__) . '/handlers/nice_api_handler.php';
+} else if (file_exists(dirname(__FILE__) . '/nice_api_handler.php')) {
+    require_once dirname(__FILE__) . '/nice_api_handler.php';
 }
 
 // 입력값 수신
 $raw_input = file_get_contents('php://input');
-$headers = getallheaders();
+$headers = function_exists('getallheaders') ? getallheaders() : [];
+$input_json = json_decode($raw_input, true) ?: [];
+if (empty($input_json) && !empty($_POST)) {
+    $input_json = $_POST;
+}
 
-// X-Auth-Token을 통한 관리자 요청 여부 확인
+// X-Auth-Token을 통한 관리자 요청 여부 확인 (FastCGI $_SERVER['HTTP_X_AUTH_TOKEN'] 및 Body token 완벽 지원)
 $is_admin = false;
-$auth_token = isset($headers['X-Auth-Token']) ? $headers['X-Auth-Token'] : (isset($headers['x-auth-token']) ? $headers['x-auth-token'] : '');
-if ($auth_token === $secret_token) {
+$auth_token = $headers['X-Auth-Token'] ?? ($headers['x-auth-token'] ?? ($_SERVER['HTTP_X_AUTH_TOKEN'] ?? ($input_json['token'] ?? ($_GET['token'] ?? ''))));
+if ($auth_token === $secret_token || ($input_json['token'] ?? '') === $secret_token || ($_GET['token'] ?? '') === $secret_token) {
     $is_admin = true;
 }
 
 try {
-    $input_json = json_decode($raw_input, true) ?: [];
-    // JSON 데이터가 비어있고 일반 POST 데이터($_POST)가 있다면 결합 (multipart/form-data 지원)
-    if (empty($input_json) && !empty($_POST)) {
-        $input_json = $_POST;
-    }
-    
     if ($is_admin) {
         // 관리자 요청: 암복호화 생략
         $mode = isset($input_json['mode']) ? $input_json['mode'] : ($_GET['mode'] ?? '');

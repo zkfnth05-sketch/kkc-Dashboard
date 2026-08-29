@@ -66,7 +66,7 @@ export const portalApproveMembershipApplication = (uid: number, action: 'approve
 // ==============================================================================
 // 🛡️ [NICE API ADMIN PORTAL SERVICE]
 // ==============================================================================
-const NICE_BRIDGE_URL = 'https://kkc3349.mycafe24.com/nice_api_bridge.php';
+const NICE_BRIDGE_URL = 'https://kkc3349.mycafe24.com/portal_bridg.php';
 
 export const portalFetchNice = async (mode: string, data: any = {}) => {
   try {
@@ -108,27 +108,40 @@ export const niceAdminPedigreeAction = (
   uid: number,
   action: 'approve' | 'reject',
   memo: string,
-  hair?: string,
-  breed_name?: string,
-  reg_no?: string,
-  fa_name?: string,
-  mo_name?: string,
-  fa_saho?: string,
-  mo_saho?: string
+  extraData?: {
+    hair?: string;
+    breed_name?: string;
+    dog_classTab_name?: string;
+    reg_no?: string;
+    dog_name?: string;
+    name?: string;
+    sex?: string;
+    micro?: string;
+    birth?: string;
+    saho?: string;
+    saho_eng?: string;
+    breeder_name?: string;
+    breeder_addr?: string;
+    poss_name?: string;
+    poss_addr?: string;
+    birth_m?: number;
+    birth_f?: number;
+    reg_count_m?: number;
+    reg_count_f?: number;
+    reg_date?: string;
+    fa_name?: string;
+    fa_regno?: string;
+    fa_saho?: string;
+    mo_name?: string;
+    mo_regno?: string;
+    mo_saho?: string;
+  }
 ) =>
   portalFetchNice('admin_nice_pedigree_action', {
     uid,
     action,
     memo,
-    hair,
-    breed_name,
-    reg_no,
-    fa_name,
-    mo_name,
-    father_name: fa_name,
-    mother_name: mo_name,
-    fa_saho,
-    mo_saho
+    ...(extraData || {})
   });
 
 export const niceAdminDeletePedigree = (uid: number) =>

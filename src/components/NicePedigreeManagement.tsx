@@ -182,6 +182,23 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
   const [isAssigningRegNo, setIsAssigningRegNo] = useState(false);
   const [isCheckingRegNo, setIsCheckingRegNo] = useState(false);
 
+  // 관리자 직접 지정/수정용 견명, 성별, 칩번호, 생년월일, 번식자/소유자 정보 State
+  const [editDogName, setEditDogName] = useState('');
+  const [editSex, setEditSex] = useState<'M' | 'F'>('M');
+  const [editMicro, setEditMicro] = useState('');
+  const [editBirth, setEditBirth] = useState('');
+  const [editRegDate, setEditRegDate] = useState('');
+  const [editBirthM, setEditBirthM] = useState<number | string>('');
+  const [editBirthF, setEditBirthF] = useState<number | string>('');
+  const [editRegCountM, setEditRegCountM] = useState<number | string>('');
+  const [editRegCountF, setEditRegCountF] = useState<number | string>('');
+  const [editSaho, setEditSaho] = useState('');
+  const [editSahoEng, setEditSahoEng] = useState('');
+  const [editBreederName, setEditBreederName] = useState('');
+  const [editBreederAddr, setEditBreederAddr] = useState('');
+  const [editPossName, setEditPossName] = useState('');
+  const [editPossAddr, setEditPossAddr] = useState('');
+
   // 관리자 직접 지정/수정용 부모견 및 족보 State
   const [editFaName, setEditFaName] = useState('');
   const [editFaReg, setEditFaReg] = useState('');
@@ -250,6 +267,48 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 
   useEffect(() => {
     if (selectedPedigree) {
+      setEditDogName(selectedPedigree.dog_name || selectedPedigree.name || '');
+      setEditSex(selectedPedigree.gender === 'F' || selectedPedigree.sex === 'F' ? 'F' : 'M');
+      setEditMicro(selectedPedigree.micro === '-' ? '' : (selectedPedigree.micro || ''));
+      
+      let birthVal = (selectedPedigree.birth || '').trim();
+      if (birthVal.includes('.')) birthVal = birthVal.replace(/\./g, '-');
+      setEditBirth(birthVal === '-' ? '' : birthVal);
+
+      let regDateVal = (selectedPedigree.reg_date || '').trim();
+      if (regDateVal.includes('.')) regDateVal = regDateVal.replace(/\./g, '-');
+      setEditRegDate(regDateVal === '-' ? '' : regDateVal);
+
+      const bM = selectedPedigree.birth_m ?? selectedPedigree.birth_M;
+      setEditBirthM(bM !== null && bM !== undefined && bM !== 0 ? bM : '');
+
+      const bF = selectedPedigree.birth_f ?? selectedPedigree.birth_F;
+      setEditBirthF(bF !== null && bF !== undefined && bF !== 0 ? bF : '');
+
+      const rM = selectedPedigree.reg_count_m ?? selectedPedigree.reg_count_M;
+      setEditRegCountM(rM !== null && rM !== undefined && rM !== 0 ? rM : '');
+
+      const rF = selectedPedigree.reg_count_f ?? selectedPedigree.reg_count_F;
+      setEditRegCountF(rF !== null && rF !== undefined && rF !== 0 ? rF : '');
+
+      const sEng = (selectedPedigree.saho_eng || '').trim();
+      setEditSahoEng(sEng === '-' ? '' : sEng);
+
+      const sKor = (selectedPedigree.saho || '').trim();
+      setEditSaho(sKor === '-' ? '' : sKor);
+
+      const bNamePerson = (selectedPedigree.breeder_name || selectedPedigree.breed_name_person || '').trim();
+      setEditBreederName(bNamePerson === '-' ? '' : bNamePerson);
+
+      const bAddr = (selectedPedigree.breeder_addr || selectedPedigree.breed_addr || '').trim();
+      setEditBreederAddr(bAddr === '-' ? '' : bAddr);
+
+      const pName = (selectedPedigree.poss_name || selectedPedigree.owner_name || '').trim();
+      setEditPossName(pName === '-' ? '' : pName);
+
+      const pAddr = (selectedPedigree.poss_addr || '').trim();
+      setEditPossAddr(pAddr === '-' ? '' : pAddr);
+
       setEditHair(selectedPedigree.hair || '');
       const bName = selectedPedigree.breed_name || '';
       setEditBreed(bName);
@@ -288,6 +347,21 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
         }
       }
     } else {
+      setEditDogName('');
+      setEditSex('M');
+      setEditMicro('');
+      setEditBirth('');
+      setEditRegDate('');
+      setEditBirthM('');
+      setEditBirthF('');
+      setEditRegCountM('');
+      setEditRegCountF('');
+      setEditSaho('');
+      setEditSahoEng('');
+      setEditBreederName('');
+      setEditBreederAddr('');
+      setEditPossName('');
+      setEditPossAddr('');
       setEditHair('');
       setEditBreed('');
       setEditRegNo('');
@@ -494,8 +568,35 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
             }
           }
 
-          // 2. 관리자 액션 (승인/반려) 및 나이스 통보 실행
-          const res = await niceAdminPedigreeAction(selectedPedigree.uid, action, actionMemo, editHair, editBreed, editRegNo, editFaName, editMoName, editFaSaho, editMoSaho);
+          // 2. 관리자 액션 (승인/반려) 및 나이스 통보 실행 (수정된 전체 데이터 전송)
+          const res = await niceAdminPedigreeAction(selectedPedigree.uid, action, actionMemo, {
+            hair: editHair,
+            breed_name: editBreed,
+            dog_classTab_name: editBreed,
+            reg_no: editRegNo,
+            dog_name: editDogName,
+            name: editDogName,
+            sex: editSex,
+            micro: editMicro,
+            birth: editBirth,
+            saho: editSaho,
+            saho_eng: editSahoEng,
+            breeder_name: editBreederName,
+            breeder_addr: editBreederAddr,
+            poss_name: editPossName,
+            poss_addr: editPossAddr,
+            birth_m: editBirthM === '' ? 0 : Number(editBirthM),
+            birth_f: editBirthF === '' ? 0 : Number(editBirthF),
+            reg_count_m: editRegCountM === '' ? 0 : Number(editRegCountM),
+            reg_count_f: editRegCountF === '' ? 0 : Number(editRegCountF),
+            reg_date: editRegDate,
+            fa_name: editFaName,
+            fa_regno: editFaReg,
+            fa_saho: editFaSaho,
+            mo_name: editMoName,
+            mo_regno: editMoReg,
+            mo_saho: editMoSaho
+          });
 
           if (res && res.success) {
             // 3. 사후 동기화: nice_dogTab에 발급된 혈통서에도 부모견 영문명 + 견사호 확실히 저장
@@ -947,11 +1048,38 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                       </div>
                     </div>
 
-                    <DetailItem label="견명" value={selectedPedigree.dog_name || selectedPedigree.name || '-'} />
-                    <DetailItem label="성별" value={selectedPedigree.gender === 'M' || selectedPedigree.sex === 'M' ? '수컷 (Male)' : '암컷 (Female)'} />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">견명 (Dog Name)</span>
+                      <input
+                        type="text"
+                        value={editDogName}
+                        onChange={(e) => setEditDogName(e.target.value)}
+                        placeholder="견명 입력..."
+                        className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
 
-                    <div className="col-span-2">
-                      <DetailItem label="마이크로칩 번호" value={selectedPedigree.micro || '-'} fullWidth />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">성별 (Sex)</span>
+                      <select
+                        value={editSex}
+                        onChange={(e) => setEditSex(e.target.value as 'M' | 'F')}
+                        className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                      >
+                        <option value="M">수컷 (Male - M)</option>
+                        <option value="F">암컷 (Female - F)</option>
+                      </select>
+                    </div>
+
+                    <div className="col-span-2 flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">마이크로칩 번호 (Microchip)</span>
+                      <input
+                        type="text"
+                        value={editMicro}
+                        onChange={(e) => setEditMicro(e.target.value)}
+                        placeholder="15자리 마이크로칩 번호 입력..."
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
                     </div>
 
                     {/* 견종 그룹 선택 */}
@@ -1020,12 +1148,96 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                         <p className="text-[11px] text-slate-500 mt-1 italic">• 위 드롭다운에서 hairTab DB의 모색을 검색/선택하거나 직접 작성 후 승인하시면 됩니다.</p>
                       )}
                     </div>
-                    <DetailItem label="생년월일" value={selectedPedigree.birth || '-'} />
-                    <DetailItem label="등록일 (발급일)" value={selectedPedigree.reg_date || '-'} />
-                    <DetailItem label="출산 수 (M : F)" value={`${selectedPedigree.birth_m ?? selectedPedigree.birth_M ?? 0} 남 : ${selectedPedigree.birth_f ?? selectedPedigree.birth_F ?? 0} 여`} />
-                    <DetailItem label="등록 수 (M : F)" value={`${selectedPedigree.reg_count_m ?? selectedPedigree.reg_count_M ?? 0} 남 : ${selectedPedigree.reg_count_f ?? selectedPedigree.reg_count_F ?? 0} 여`} />
-                    <DetailItem label="견사호 (영문)" value={selectedPedigree.saho_eng || '-'} />
-                    <DetailItem label="견사호 (국문)" value={selectedPedigree.saho || '-'} />
+
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">생년월일 (Birth Date)</span>
+                      <input
+                        type="text"
+                        value={editBirth}
+                        onChange={(e) => setEditBirth(e.target.value)}
+                        placeholder="YYYY-MM-DD"
+                        className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">등록일 (발급일)</span>
+                      <input
+                        type="text"
+                        value={editRegDate}
+                        onChange={(e) => setEditRegDate(e.target.value)}
+                        placeholder="YYYY-MM-DD"
+                        className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">출산 수 (남 M : 여 F)</span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={editBirthM}
+                          onChange={(e) => setEditBirthM(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          placeholder="0"
+                        />
+                        <span className="text-xs text-slate-400 font-bold">:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={editBirthF}
+                          onChange={(e) => setEditBirthF(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">등록 수 (남 M : 여 F)</span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={editRegCountM}
+                          onChange={(e) => setEditRegCountM(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          placeholder="0"
+                        />
+                        <span className="text-xs text-slate-400 font-bold">:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={editRegCountF}
+                          onChange={(e) => setEditRegCountF(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">견사호 (영문)</span>
+                      <input
+                        type="text"
+                        value={editSahoEng}
+                        onChange={(e) => setEditSahoEng(e.target.value)}
+                        placeholder="영문 견사호..."
+                        className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">견사호 (국문)</span>
+                      <input
+                        type="text"
+                        value={editSaho}
+                        onChange={(e) => setEditSaho(e.target.value)}
+                        placeholder="국문 견사호..."
+                        className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -1222,9 +1434,26 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                 <div>
                   <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">번식자 정보</h4>
                   <div className="grid grid-cols-2 gap-4">
-                    <DetailItem label="번식자 이름" value={selectedPedigree.breeder_name || selectedPedigree.breed_name_person || '-'} />
-                    <div className="col-span-2">
-                      <DetailItem label="번식자 주소" value={selectedPedigree.breeder_addr || selectedPedigree.breed_addr || '-'} fullWidth />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">번식자 이름</span>
+                      <input
+                        type="text"
+                        value={editBreederName}
+                        onChange={(e) => setEditBreederName(e.target.value)}
+                        placeholder="번식자 이름 입력..."
+                        className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div>{/* 2열 격자 맞춤용 */}</div>
+                    <div className="col-span-2 flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">번식자 주소</span>
+                      <input
+                        type="text"
+                        value={editBreederAddr}
+                        onChange={(e) => setEditBreederAddr(e.target.value)}
+                        placeholder="번식자 전체 주소 입력..."
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
                     </div>
                   </div>
                 </div>
@@ -1253,15 +1482,31 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <DetailItem label="신청인 (앱 닉네임)" value={selectedPedigree.owner_name || selectedPedigree.poss_name || '-'} />
-                    <DetailItem label="소유자 실명" value={selectedPedigree.poss_name || '-'} />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">소유자 실명 (수정 가능)</span>
+                      <input
+                        type="text"
+                        value={editPossName}
+                        onChange={(e) => setEditPossName(e.target.value)}
+                        placeholder="소유자 실명 입력..."
+                        className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
                     <DetailItem 
                       label="신청자 연락처 (휴대폰)" 
                       value={selectedPedigree.req_mobile ? (selectedPedigree.req_mobile.replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, '$1-$2-$3')) : '-'} 
                     />
                     <div>{/* 2열 격자 맞춤용 */}</div>
 
-                    <div className="col-span-2">
-                      <DetailItem label="소유자 주소" value={selectedPedigree.poss_addr || '-'} fullWidth />
+                    <div className="col-span-2 flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">소유자 주소</span>
+                      <input
+                        type="text"
+                        value={editPossAddr}
+                        onChange={(e) => setEditPossAddr(e.target.value)}
+                        placeholder="소유자 전체 주소 입력..."
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
                     </div>
 
                     <div className="col-span-2 flex flex-col">

@@ -1837,72 +1837,111 @@ function nice_admin_pedigree_action($input) {
     $e_np_reg = $conn->real_escape_string(kkc_convert($np_reg_no, 'EUC-KR', false));
     $log_messages = [];
 
-    if ($is_same_owner && $orig_dog) {
-        // 복제 및 업데이트를 격리된 nice_dogTab 테이블에 실행
-        $chk_np = $conn->query("SELECT uid FROM nice_dogTab WHERE reg_no = '$e_np_reg' LIMIT 1");
-        
-        $birth_m = intval($req['birth_m'] ?? 0);
-        $birth_f = intval($req['birth_f'] ?? 0);
-        $reg_count_m = intval($req['reg_count_m'] ?? 0);
-        $reg_count_f = intval($req['reg_count_f'] ?? 0);
-        // 🎯 [부모견 UID 및 정식 족보 자동 매칭]
-        $input_fa_reg = trim($input['fa_regno'] ?? ($input['father_reg_no'] ?? ($req['father_reg_no'] ?? '')));
-        $input_fa_name = trim($input['fa_name'] ?? ($input['father_name'] ?? ($req['father_name'] ?? '')));
-        $input_fa_saho = trim($input['fa_saho'] ?? ($input['father_saho'] ?? ($req['father_saho'] ?? '')));
-
-        $input_mo_reg = trim($input['mo_regno'] ?? ($input['mother_reg_no'] ?? ($req['mother_reg_no'] ?? '')));
-        $input_mo_name = trim($input['mo_name'] ?? ($input['mother_name'] ?? ($req['mother_name'] ?? '')));
-        $input_mo_saho = trim($input['mo_saho'] ?? ($input['mother_saho'] ?? ($req['mother_saho'] ?? '')));
-
-        $fa_match = !empty($input_fa_reg) ? nice_fetch_dog_by_reg_no($conn, $input_fa_reg) : null;
-        $mo_match = !empty($input_mo_reg) ? nice_fetch_dog_by_reg_no($conn, $input_mo_reg) : null;
-
-        $final_fa_uid = $fa_match ? (!empty($fa_match['uid']) ? $fa_match['uid'] : $fa_match['reg_no']) : $input_fa_reg;
-        $final_fa_name = $fa_match ? kkc_convert($fa_match['fullname'] ?? ($fa_match['name'] ?? $input_fa_name), 'EUC-KR', true) : $input_fa_name;
-        $final_fa_saho = $fa_match ? kkc_convert(!empty($fa_match['saho']) ? $fa_match['saho'] : ($fa_match['saho_eng'] ?? $input_fa_saho), 'EUC-KR', true) : $input_fa_saho;
-
-        $final_mo_uid = $mo_match ? (!empty($mo_match['uid']) ? $mo_match['uid'] : $mo_match['reg_no']) : $input_mo_reg;
-        $final_mo_name = $mo_match ? kkc_convert($mo_match['fullname'] ?? ($mo_match['name'] ?? $input_mo_name), 'EUC-KR', true) : $input_mo_name;
-        $final_mo_saho = $mo_match ? kkc_convert(!empty($mo_match['saho']) ? $mo_match['saho'] : ($mo_match['saho_eng'] ?? $input_mo_saho), 'EUC-KR', true) : $input_mo_saho;
-
-        $fa_name = kkc_convert($final_fa_name, 'EUC-KR', false);
-        $mo_name = kkc_convert($final_mo_name, 'EUC-KR', false);
-        $fa_regno = kkc_convert($final_fa_uid, 'EUC-KR', false);
-        $mo_regno = kkc_convert($final_mo_uid, 'EUC-KR', false);
-        $fa_saho_val = kkc_convert($final_fa_saho, 'EUC-KR', false);
-        $mo_saho_val = kkc_convert($final_mo_saho, 'EUC-KR', false);
-
-        $anc_name = kkc_convert($req['anc_name'] ?? '', 'EUC-KR', false);
-        $anc_saho = kkc_convert($req['anc_saho'] ?? '', 'EUC-KR', false);
-        $raw_app_date = trim($req['reg_date'] ?? '');
-        if (empty($raw_app_date) || $raw_app_date === '0000-00-00') {
-            $raw_app_date = date('Y-m-d H:i:s');
-        } else {
-            $raw_app_date = str_replace('.', '-', $raw_app_date);
-            if (preg_match('/^\d{8}$/', $raw_app_date)) {
-                $raw_app_date = substr($raw_app_date, 0, 4) . '-' . substr($raw_app_date, 4, 2) . '-' . substr($raw_app_date, 6, 2) . ' ' . date('H:i:s');
-            } else if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw_app_date)) {
-                $raw_app_date = $raw_app_date . ' ' . date('H:i:s');
-            }
+    // 🎯 [관리자가 수정한 모든 필드 파싱]
+    $in_dog_name     = trim($input['dog_name'] ?? ($input['name'] ?? ($req['name'] ?? '')));
+    $in_sex          = nice_format_sex($input['sex'] ?? ($req['sex'] ?? ''));
+    $in_micro        = trim($input['micro'] ?? ($req['micro'] ?? ''));
+    $in_birth        = trim($input['birth'] ?? ($req['birth'] ?? ''));
+    if (!empty($in_birth)) {
+        $in_birth = str_replace('.', '-', $in_birth);
+    }
+    $in_breed_name   = trim($input['breed_name'] ?? ($input['dog_classTab_name'] ?? ($req['dog_classTab_name'] ?? '')));
+    $in_hair         = trim($input['hair'] ?? ($req['hair'] ?? ''));
+    $in_saho         = trim($input['saho'] ?? ($req['saho'] ?? ''));
+    $in_saho_eng     = trim($input['saho_eng'] ?? ($req['saho_eng'] ?? ''));
+    $in_breeder_name = trim($input['breeder_name'] ?? ($input['breed_name_person'] ?? ($req['breed_name'] ?? '')));
+    $in_breeder_addr = trim($input['breeder_addr'] ?? ($req['breed_addr'] ?? ''));
+    $in_poss_name    = trim($input['poss_name'] ?? ($req['poss_name'] ?? ($req['req_name'] ?? '')));
+    $in_poss_addr    = trim($input['poss_addr'] ?? ($req['poss_addr'] ?? '')));
+    
+    $in_birth_m      = isset($input['birth_m']) ? intval($input['birth_m']) : intval($req['birth_m'] ?? 0);
+    $in_birth_f      = isset($input['birth_f']) ? intval($input['birth_f']) : intval($req['birth_f'] ?? 0);
+    $in_reg_count_m  = isset($input['reg_count_m']) ? intval($input['reg_count_m']) : intval($req['reg_count_m'] ?? 0);
+    $in_reg_count_f  = isset($input['reg_count_f']) ? intval($input['reg_count_f']) : intval($req['reg_count_f'] ?? 0);
+    
+    $in_reg_date     = trim($input['reg_date'] ?? ($req['reg_date'] ?? ''));
+    if (empty($in_reg_date) || $in_reg_date === '0000-00-00') {
+        $in_reg_date = date('Y-m-d H:i:s');
+    } else {
+        $in_reg_date = str_replace('.', '-', $in_reg_date);
+        if (preg_match('/^\d{8}$/', $in_reg_date)) {
+            $in_reg_date = substr($in_reg_date, 0, 4) . '-' . substr($in_reg_date, 4, 2) . '-' . substr($in_reg_date, 6, 2) . ' ' . date('H:i:s');
+        } else if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $in_reg_date)) {
+            $in_reg_date = $in_reg_date . ' ' . date('H:i:s');
         }
-        $reg_date = kkc_convert($raw_app_date, 'EUC-KR', false);
-        $saho = kkc_convert($req['saho'] ?? '', 'EUC-KR', false);
-        $saho_eng = kkc_convert($req['saho_eng'] ?? '', 'EUC-KR', false);
-        $hair = kkc_convert($req['hair'] ?? '', 'EUC-KR', false);
+    }
 
+    // 🎯 [부모견 UID 및 정식 족보 자동 매칭]
+    $input_fa_reg = trim($input['fa_regno'] ?? ($input['father_reg_no'] ?? ($req['father_reg_no'] ?? '')));
+    $input_fa_name = trim($input['fa_name'] ?? ($input['father_name'] ?? ($req['father_name'] ?? '')));
+    $input_fa_saho = trim($input['fa_saho'] ?? ($input['father_saho'] ?? ($req['father_saho'] ?? '')));
+
+    $input_mo_reg = trim($input['mo_regno'] ?? ($input['mother_reg_no'] ?? ($req['mother_reg_no'] ?? '')));
+    $input_mo_name = trim($input['mo_name'] ?? ($input['mother_name'] ?? ($req['mother_name'] ?? '')));
+    $input_mo_saho = trim($input['mo_saho'] ?? ($input['mother_saho'] ?? ($req['mother_saho'] ?? '')));
+
+    $fa_match = !empty($input_fa_reg) ? nice_fetch_dog_by_reg_no($conn, $input_fa_reg) : null;
+    $mo_match = !empty($input_mo_reg) ? nice_fetch_dog_by_reg_no($conn, $input_mo_reg) : null;
+
+    $final_fa_uid = $fa_match ? (!empty($fa_match['uid']) ? $fa_match['uid'] : $fa_match['reg_no']) : $input_fa_reg;
+    $final_fa_name = $fa_match ? kkc_convert($fa_match['fullname'] ?? ($fa_match['name'] ?? $input_fa_name), 'EUC-KR', true) : $input_fa_name;
+    $final_fa_saho = $fa_match ? kkc_convert(!empty($fa_match['saho']) ? $fa_match['saho'] : ($fa_match['saho_eng'] ?? $input_fa_saho), 'EUC-KR', true) : $input_fa_saho;
+
+    $final_mo_uid = $mo_match ? (!empty($mo_match['uid']) ? $mo_match['uid'] : $mo_match['reg_no']) : $input_mo_reg;
+    $final_mo_name = $mo_match ? kkc_convert($mo_match['fullname'] ?? ($mo_match['name'] ?? $input_mo_name), 'EUC-KR', true) : $input_mo_name;
+    $final_mo_saho = $mo_match ? kkc_convert(!empty($mo_match['saho']) ? $mo_match['saho'] : ($mo_match['saho_eng'] ?? $input_mo_saho), 'EUC-KR', true) : $input_mo_saho;
+
+    $fa_name = kkc_convert($final_fa_name, 'EUC-KR', false);
+    $mo_name = kkc_convert($final_mo_name, 'EUC-KR', false);
+    $fa_regno = kkc_convert($final_fa_uid, 'EUC-KR', false);
+    $mo_regno = kkc_convert($final_mo_uid, 'EUC-KR', false);
+    $fa_saho_val = kkc_convert($final_fa_saho, 'EUC-KR', false);
+    $mo_saho_val = kkc_convert($final_mo_saho, 'EUC-KR', false);
+
+    $anc_name = kkc_convert($req['anc_name'] ?? '', 'EUC-KR', false);
+    $anc_saho = kkc_convert($req['anc_saho'] ?? '', 'EUC-KR', false);
+    $reg_date = kkc_convert($in_reg_date, 'EUC-KR', false);
+    $saho = kkc_convert($in_saho, 'EUC-KR', false);
+    $saho_eng = kkc_convert($in_saho_eng, 'EUC-KR', false);
+    $hair = kkc_convert($in_hair, 'EUC-KR', false);
+
+    // 견종 코드 조회
+    $breed_name_utf8 = $in_breed_name;
+    $breed_code = $breed_name_utf8;
+    $conn->query("SET NAMES 'utf8mb4'");
+    $breed_chk = $conn->query("SELECT keyy FROM dog_classTab WHERE kor_name = '" . $conn->real_escape_string($breed_name_utf8) . "' OR name = '" . $conn->real_escape_string($breed_name_utf8) . "' OR keyy = '" . $conn->real_escape_string($breed_name_utf8) . "' LIMIT 1");
+    if ($breed_chk && $breed_chk->num_rows > 0) {
+        $breed_code = $breed_chk->fetch_assoc()['keyy'];
+    }
+
+    $conn->query("SET NAMES 'binary'");
+
+    if ($is_same_owner && $orig_dog) {
+        $chk_np = $conn->query("SELECT uid FROM nice_dogTab WHERE reg_no = '$e_np_reg' LIMIT 1");
         if ($chk_np && $chk_np->num_rows > 0) {
             $np_uid = $chk_np->fetch_assoc()['uid'];
             $res = $conn->query("UPDATE nice_dogTab SET
+                name = '" . $conn->real_escape_string(kkc_convert($in_dog_name, 'EUC-KR', false)) . "',
+                fullname = '" . $conn->real_escape_string(kkc_convert($in_dog_name, 'EUC-KR', false)) . "',
+                dog_class = '" . $conn->real_escape_string(kkc_convert($breed_code, 'EUC-KR', false)) . "',
+                sex = '" . $conn->real_escape_string($in_sex) . "',
+                micro = '" . $conn->real_escape_string(kkc_convert($in_micro, 'EUC-KR', false)) . "',
+                birth = '" . $conn->real_escape_string(kkc_convert(!empty($in_birth) ? $in_birth : '0000-00-00', 'EUC-KR', false)) . "',
                 poss_id = '" . $conn->real_escape_string($poss_id) . "',
-                poss_name = '" . $conn->real_escape_string($orig_dog['poss_name']) . "',
-                birth_m = $birth_m,
-                birth_f = $birth_f,
-                reg_count_m = $reg_count_m,
-                reg_count_f = $reg_count_f,
+                poss_name = '" . $conn->real_escape_string(kkc_convert($in_poss_name, 'EUC-KR', false)) . "',
+                poss_addr = '" . $conn->real_escape_string(kkc_convert($in_poss_addr, 'EUC-KR', false)) . "',
+                breed_name = '" . $conn->real_escape_string(kkc_convert($in_breeder_name, 'EUC-KR', false)) . "',
+                breed_addr = '" . $conn->real_escape_string(kkc_convert($in_breeder_addr, 'EUC-KR', false)) . "',
+                birth_m = $in_birth_m,
+                birth_f = $in_birth_f,
+                reg_count_m = $in_reg_count_m,
+                reg_count_f = $in_reg_count_f,
                 fa_name = '" . $conn->real_escape_string($fa_name) . "',
                 mo_name = '" . $conn->real_escape_string($mo_name) . "',
                 fa_regno = '" . $conn->real_escape_string($fa_regno) . "',
                 mo_regno = '" . $conn->real_escape_string($mo_regno) . "',
+                father_saho = '" . $conn->real_escape_string($fa_saho_val) . "',
+                mother_saho = '" . $conn->real_escape_string($mo_saho_val) . "',
                 anc_name = '" . $conn->real_escape_string($anc_name) . "',
                 anc_saho = '" . $conn->real_escape_string($anc_saho) . "',
                 reg_date = '" . $conn->real_escape_string($reg_date) . "',
@@ -1912,157 +1951,150 @@ function nice_admin_pedigree_action($input) {
                 WHERE uid = $np_uid");
             if ($res) {
                 $log_messages[] = "✔ [nice_dogTab] 기존 모바일 혈통서 정보 및 메타데이터 업데이트 성공";
-            } else {
-                $err = $conn->error;
-                $conn->close();
-                return ['success' => false, 'error' => "기존 모바일 혈통서 정보 업데이트 실패: " . $err];
             }
         } else {
-            $fields = [];
-            $vals = [];
-            
-            $req_override = [
-                'birth_m' => $birth_m,
-                'birth_f' => $birth_f,
-                'reg_count_m' => $reg_count_m,
-                'reg_count_f' => $reg_count_f,
-                'fa_name' => $fa_name,
-                'mo_name' => $mo_name,
-                'fa_regno' => $fa_regno,
-                'mo_regno' => $mo_regno,
-                'anc_name' => $anc_name,
-                'anc_saho' => $anc_saho,
-                'reg_date' => $reg_date,
-                'saho' => $saho,
-                'saho_eng' => $saho_eng,
-                'hair' => $hair
-            ];
-            
-            foreach ($orig_dog as $k => $v) {
-                if ($k === 'uid') continue;
-                $fields[] = "`$k`";
-                if ($k === 'reg_no') {
-                    $vals[] = "'$e_np_reg'";
-                } else if ($k === 'poss_id') {
-                    $vals[] = "'" . $conn->real_escape_string($poss_id) . "'";
-                } else if (array_key_exists($k, $req_override)) {
-                    $val = $req_override[$k];
-                    $vals[] = ($val === null) ? "NULL" : "'" . $conn->real_escape_string($val) . "'";
-                    unset($req_override[$k]);
-                } else if (($k === 'reg_date' || $k === 'birth' || strpos($k, 'date') !== false) && trim($v) === '') {
-                    $vals[] = "NULL";
-                } else {
-                    $vals[] = ($v === null) ? "NULL" : "'" . $conn->real_escape_string($v) . "'";
-                }
-            }
-            
-            foreach ($req_override as $k => $val) {
-                $fields[] = "`$k`";
-                $vals[] = ($val === null) ? "NULL" : "'" . $conn->real_escape_string($val) . "'";
-            }
-            
-            $res = $conn->query("INSERT INTO nice_dogTab (" . implode(',', $fields) . ") VALUES (" . implode(',', $vals) . ")");
-            if ($res) {
-                $log_messages[] = "✔ [nice_dogTab] 원본 혈통서 기반 모바일 혈통서(-NP) 복제/생성 및 메타데이터 동기화 성공";
-            } else {
-                $err = $conn->error;
-                $conn->close();
-                return ['success' => false, 'error' => "원본 혈통서 기반 모바일 혈통서 복제/생성 실패: " . $err];
-            }
-        }
-    } else {
-        // 원본 정보가 없거나 소유주가 달라 신규 생성인 경우
-        $chk_np = $conn->query("SELECT uid FROM nice_dogTab WHERE reg_no = '$e_np_reg' LIMIT 1");
-        if (!$chk_np || $chk_np->num_rows === 0) {
-            $breed_name_utf8 = $req['dog_classTab_name'];
-            $breed_code = $breed_name_utf8;
-            
-            $conn->query("SET NAMES 'utf8mb4'");
-            $breed_chk = $conn->query("SELECT keyy FROM dog_classTab WHERE kor_name = '" . $conn->real_escape_string($breed_name_utf8) . "' LIMIT 1");
-            if ($breed_chk && $breed_chk->num_rows > 0) {
-                $breed_code = $breed_chk->fetch_assoc()['keyy'];
-            }
-            
-            $conn->query("SET NAMES 'binary'");
             $res = $conn->query("INSERT INTO nice_dogTab (
-                reg_no, fullname, name, dog_class, sex, hair, birth,
+                reg_no, fullname, name, dog_class, sex, hair, birth, micro,
                 poss_id, poss_name, poss_addr, breed_name, breed_addr,
+                birth_m, birth_f, reg_count_m, reg_count_f,
                 fa_regno, mo_regno, fa_name, mo_name, father_saho, mother_saho, reg_date, saho_eng, saho, anc_name, anc_saho
             ) VALUES (
                 '$e_np_reg',
-                '" . $conn->real_escape_string(kkc_convert($req['name'], 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['name'], 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(kkc_convert($in_dog_name, 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(kkc_convert($in_dog_name, 'EUC-KR', false)) . "',
                 '" . $conn->real_escape_string(kkc_convert($breed_code, 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(nice_format_sex($req['sex'] ?? '')) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['hair'], 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(kkc_convert(!empty($req['birth']) ? $req['birth'] : '0000-00-00', 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string($in_sex) . "',
+                '" . $conn->real_escape_string($hair) . "',
+                '" . $conn->real_escape_string(kkc_convert(!empty($in_birth) ? $in_birth : '0000-00-00', 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(kkc_convert($in_micro, 'EUC-KR', false)) . "',
                 '" . $conn->real_escape_string($poss_id) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['poss_name'], 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['poss_addr'], 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['breed_name'], 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['breed_addr'], 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(kkc_convert($in_poss_name, 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(kkc_convert($in_poss_addr, 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(kkc_convert($in_breeder_name, 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(kkc_convert($in_breeder_addr, 'EUC-KR', false)) . "',
+                $in_birth_m, $in_birth_f, $in_reg_count_m, $in_reg_count_f,
                 '" . $conn->real_escape_string($fa_regno) . "',
                 '" . $conn->real_escape_string($mo_regno) . "',
                 '" . $conn->real_escape_string($fa_name) . "',
                 '" . $conn->real_escape_string($mo_name) . "',
                 '" . $conn->real_escape_string($fa_saho_val) . "',
                 '" . $conn->real_escape_string($mo_saho_val) . "',
-                '" . date('Y-m-d') . "',
-                '" . $conn->real_escape_string(kkc_convert($req['saho_eng'] ?? '', 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['saho'] ?? '', 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['anc_name'] ?? '', 'EUC-KR', false)) . "',
-                '" . $conn->real_escape_string(kkc_convert($req['anc_saho'] ?? '', 'EUC-KR', false)) . "'
+                '" . $conn->real_escape_string($reg_date) . "',
+                '" . $conn->real_escape_string($saho_eng) . "',
+                '" . $conn->real_escape_string($saho) . "',
+                '" . $conn->real_escape_string($anc_name) . "',
+                '" . $conn->real_escape_string($anc_saho) . "'
+            )");
+            if ($res) {
+                $log_messages[] = "✔ [nice_dogTab] 원본 혈통서 기반 모바일 혈통서(-NP) 생성 및 메타데이터 동기화 성공";
+            }
+        }
+    } else {
+        // 신규 생성이거나 소유주가 다른 경우
+        $chk_np = $conn->query("SELECT uid FROM nice_dogTab WHERE reg_no = '$e_np_reg' LIMIT 1");
+        if (!$chk_np || $chk_np->num_rows === 0) {
+            $res = $conn->query("INSERT INTO nice_dogTab (
+                reg_no, fullname, name, dog_class, sex, hair, birth, micro,
+                poss_id, poss_name, poss_addr, breed_name, breed_addr,
+                birth_m, birth_f, reg_count_m, reg_count_f,
+                fa_regno, mo_regno, fa_name, mo_name, father_saho, mother_saho, reg_date, saho_eng, saho, anc_name, anc_saho
+            ) VALUES (
+                '$e_np_reg',
+                '" . $conn->real_escape_string(kkc_convert($in_dog_name, 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(kkc_convert($in_dog_name, 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(kkc_convert($breed_code, 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string($in_sex) . "',
+                '" . $conn->real_escape_string($hair) . "',
+                '" . $conn->real_escape_string(kkc_convert(!empty($in_birth) ? $in_birth : '0000-00-00', 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(kkc_convert($in_micro, 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string($poss_id) . "',
+                '" . $conn->real_escape_string(kkc_convert($in_poss_name, 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(kkc_convert($in_poss_addr, 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(kkc_convert($in_breeder_name, 'EUC-KR', false)) . "',
+                '" . $conn->real_escape_string(kkc_convert($in_breeder_addr, 'EUC-KR', false)) . "',
+                $in_birth_m, $in_birth_f, $in_reg_count_m, $in_reg_count_f,
+                '" . $conn->real_escape_string($fa_regno) . "',
+                '" . $conn->real_escape_string($mo_regno) . "',
+                '" . $conn->real_escape_string($fa_name) . "',
+                '" . $conn->real_escape_string($mo_name) . "',
+                '" . $conn->real_escape_string($fa_saho_val) . "',
+                '" . $conn->real_escape_string($mo_saho_val) . "',
+                '" . $conn->real_escape_string($reg_date) . "',
+                '" . $conn->real_escape_string($saho_eng) . "',
+                '" . $conn->real_escape_string($saho) . "',
+                '" . $conn->real_escape_string($anc_name) . "',
+                '" . $conn->real_escape_string($anc_saho) . "'
             )");
             if ($res) {
                 $log_messages[] = "✔ [nice_dogTab] 신규 모바일 혈통서(-NP) 데이터 생성 성공";
-            } else {
-                $err = $conn->error;
-                $conn->close();
-                return ['success' => false, 'error' => "[Step 7 - nice_dogTab INSERT 실패]: " . $err];
             }
         } else {
-            $log_messages[] = "✔ [nice_dogTab] 이미 모바일 혈통서가 존재하여 생성을 건너뛰었습니다.";
+            $np_uid = $chk_np->fetch_assoc()['uid'];
+            $res = $conn->query("UPDATE nice_dogTab SET
+                name = '" . $conn->real_escape_string(kkc_convert($in_dog_name, 'EUC-KR', false)) . "',
+                fullname = '" . $conn->real_escape_string(kkc_convert($in_dog_name, 'EUC-KR', false)) . "',
+                dog_class = '" . $conn->real_escape_string(kkc_convert($breed_code, 'EUC-KR', false)) . "',
+                sex = '" . $conn->real_escape_string($in_sex) . "',
+                micro = '" . $conn->real_escape_string(kkc_convert($in_micro, 'EUC-KR', false)) . "',
+                birth = '" . $conn->real_escape_string(kkc_convert(!empty($in_birth) ? $in_birth : '0000-00-00', 'EUC-KR', false)) . "',
+                poss_id = '" . $conn->real_escape_string($poss_id) . "',
+                poss_name = '" . $conn->real_escape_string(kkc_convert($in_poss_name, 'EUC-KR', false)) . "',
+                poss_addr = '" . $conn->real_escape_string(kkc_convert($in_poss_addr, 'EUC-KR', false)) . "',
+                breed_name = '" . $conn->real_escape_string(kkc_convert($in_breeder_name, 'EUC-KR', false)) . "',
+                breed_addr = '" . $conn->real_escape_string(kkc_convert($in_breeder_addr, 'EUC-KR', false)) . "',
+                birth_m = $in_birth_m,
+                birth_f = $in_birth_f,
+                reg_count_m = $in_reg_count_m,
+                reg_count_f = $in_reg_count_f,
+                fa_name = '" . $conn->real_escape_string($fa_name) . "',
+                mo_name = '" . $conn->real_escape_string($mo_name) . "',
+                fa_regno = '" . $conn->real_escape_string($fa_regno) . "',
+                mo_regno = '" . $conn->real_escape_string($mo_regno) . "',
+                father_saho = '" . $conn->real_escape_string($fa_saho_val) . "',
+                mother_saho = '" . $conn->real_escape_string($mo_saho_val) . "',
+                anc_name = '" . $conn->real_escape_string($anc_name) . "',
+                anc_saho = '" . $conn->real_escape_string($anc_saho) . "',
+                reg_date = '" . $conn->real_escape_string($reg_date) . "',
+                saho = '" . $conn->real_escape_string($saho) . "',
+                saho_eng = '" . $conn->real_escape_string($saho_eng) . "',
+                hair = '" . $conn->real_escape_string($hair) . "'
+                WHERE uid = $np_uid");
         }
     }
 
-    // 3.5. 신규 추가 필드들 (birth_m, birth_f, reg_count_m, reg_count_f, reg_date) 동기화 업데이트 실행
-    $raw_reg_date = trim($req['reg_date'] ?? '');
-    if (empty($raw_reg_date) || $raw_reg_date === '0000-00-00') {
-        $raw_reg_date = date('Y-m-d H:i:s');
-    } else {
-        $raw_reg_date = str_replace('.', '-', $raw_reg_date);
-        if (preg_match('/^\d{8}$/', $raw_reg_date)) {
-            $raw_reg_date = substr($raw_reg_date, 0, 4) . '-' . substr($raw_reg_date, 4, 2) . '-' . substr($raw_reg_date, 6, 2) . ' ' . date('H:i:s');
-        } else if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw_reg_date)) {
-            $raw_reg_date = $raw_reg_date . ' ' . date('H:i:s');
-        }
-    }
-    
-    $reg_date_val = (!empty($raw_reg_date) && $raw_reg_date !== '0000-00-00') 
-        ? "'" . $conn->real_escape_string($raw_reg_date) . "'" 
-        : "NULL";
-
-    $res_fields_update = $conn->query("UPDATE nice_dogTab SET
-        order_no = '" . $conn->real_escape_string($req['order_no'] ?? '') . "',
-        birth_m = " . intval($req['birth_m'] ?? 0) . ",
-        birth_f = " . intval($req['birth_f'] ?? 0) . ",
-        reg_count_m = " . intval($req['reg_count_m'] ?? 0) . ",
-        reg_count_f = " . intval($req['reg_count_f'] ?? 0) . ",
-        reg_date = $reg_date_val
-        WHERE reg_no = '$e_np_reg'");
-    if ($res_fields_update) {
-        $log_messages[] = "✔ [nice_dogTab] 신규 필드 메타데이터 동기화 완료";
-    } else {
-        $err = $conn->error;
-        $conn->close();
-        return ['success' => false, 'error' => "[Step 8 - nice_dogTab UPDATE 실패]: " . $err];
-    }
-    
-    // 4. 심사 요청 상태 갱신
+    // 4. 심사 요청 테이블(nice_pedigree_requests) 전체 필드 완벽 갱신
     $conn->query("SET NAMES 'utf8mb4'");
-    $res_req = $conn->query("UPDATE nice_pedigree_requests SET status = 'Y', admin_memo = '$admin_memo', reg_date = $reg_date_val WHERE uid = $uid");
+    $reg_date_val = (!empty($in_reg_date) && $in_reg_date !== '0000-00-00') ? "'" . $conn->real_escape_string($in_reg_date) . "'" : "NULL";
+    $res_req = $conn->query("UPDATE nice_pedigree_requests SET
+        name = '" . $conn->real_escape_string($in_dog_name) . "',
+        sex = '" . $conn->real_escape_string($in_sex) . "',
+        micro = '" . $conn->real_escape_string($in_micro) . "',
+        birth = '" . $conn->real_escape_string($in_birth) . "',
+        dog_classTab_name = '" . $conn->real_escape_string($in_breed_name) . "',
+        hair = '" . $conn->real_escape_string($in_hair) . "',
+        saho = '" . $conn->real_escape_string($in_saho) . "',
+        saho_eng = '" . $conn->real_escape_string($in_saho_eng) . "',
+        breed_name = '" . $conn->real_escape_string($in_breeder_name) . "',
+        breed_addr = '" . $conn->real_escape_string($in_breeder_addr) . "',
+        poss_name = '" . $conn->real_escape_string($in_poss_name) . "',
+        poss_addr = '" . $conn->real_escape_string($in_poss_addr) . "',
+        birth_m = $in_birth_m,
+        birth_f = $in_birth_f,
+        reg_count_m = $in_reg_count_m,
+        reg_count_f = $in_reg_count_f,
+        reg_date = $reg_date_val,
+        father_name = '" . $conn->real_escape_string($final_fa_name) . "',
+        father_reg_no = '" . $conn->real_escape_string($final_fa_uid) . "',
+        father_saho = '" . $conn->real_escape_string($final_fa_saho) . "',
+        mother_name = '" . $conn->real_escape_string($final_mo_name) . "',
+        mother_reg_no = '" . $conn->real_escape_string($final_mo_uid) . "',
+        mother_saho = '" . $conn->real_escape_string($final_mo_saho) . "',
+        reg_no = '" . $conn->real_escape_string($np_reg_no) . "',
+        status = 'Y',
+        admin_memo = '$admin_memo'
+        WHERE uid = $uid");
     if ($res_req) {
-        $log_messages[] = "✔ [심사 신청 상태] 승인(Y)으로 정상 업데이트 완료";
+        $log_messages[] = "✔ [심사 신청 상태] 수정된 전체 정보 및 승인(Y)으로 정상 업데이트 완료";
     } else {
         $err = $conn->error;
         $conn->close();

@@ -156,6 +156,58 @@ try {
         $total = ($total_res) ? intval($total_res->fetch_assoc()['cnt']) : 0;
         $conn->close();
         $output = ['success' => true, 'data' => $list, 'total' => $total];
+    } else if (strpos($mode, 'admin_nice_') === 0) {
+        $handler_file = dirname(__FILE__) . '/handlers/nice_api_handler.php';
+        if (file_exists($handler_file)) {
+            include_once $handler_file;
+        }
+        
+        switch ($mode) {
+            case 'admin_nice_pedigree_list':
+                if (function_exists('nice_admin_pedigree_list')) {
+                    $output = nice_admin_pedigree_list($input);
+                } else {
+                    $output = ['success' => false, 'error' => 'nice_admin_pedigree_list 함수 누락'];
+                }
+                break;
+            case 'admin_nice_pedigree_action':
+                if (function_exists('nice_admin_pedigree_action')) {
+                    $output = nice_admin_pedigree_action($input);
+                } else {
+                    $output = ['success' => false, 'error' => 'nice_admin_pedigree_action 함수 누락'];
+                }
+                break;
+            case 'admin_nice_pedigree_delete':
+                if (function_exists('nice_admin_pedigree_delete')) {
+                    $output = nice_admin_pedigree_delete($input);
+                } else {
+                    $output = ['success' => false, 'error' => 'nice_admin_pedigree_delete 함수 누락'];
+                }
+                break;
+            case 'admin_nice_get_breed_colors':
+                if (function_exists('nice_admin_get_breed_colors')) {
+                    $output = nice_admin_get_breed_colors($input);
+                } else {
+                    $output = ['success' => false, 'error' => 'nice_admin_get_breed_colors 함수 누락'];
+                }
+                break;
+            case 'admin_nice_generate_reg_no':
+                if (function_exists('nice_admin_generate_reg_no')) {
+                    $output = nice_admin_generate_reg_no($input);
+                } else {
+                    $output = ['success' => false, 'error' => 'nice_admin_generate_reg_no 함수 누락'];
+                }
+                break;
+            case 'admin_nice_lookup_pedigree_tree':
+                if (function_exists('nice_admin_lookup_pedigree_tree')) {
+                    $output = nice_admin_lookup_pedigree_tree($input);
+                } else {
+                    $output = ['success' => false, 'error' => 'nice_admin_lookup_pedigree_tree 함수 누락'];
+                }
+                break;
+            default:
+                $output = ['success' => false, 'error' => '알 수 없는 관리자 모드: ' . $mode];
+        }
     } else {
         $output['error'] = '모드 없음: ' . $mode;
     }
