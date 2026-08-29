@@ -33,10 +33,12 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
   const [members, setMembers] = useState<NiceMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<NiceMember | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [displaySearchQuery, setDisplaySearchQuery] = useState('');
   const [searchField, setSearchField] = useState<'all' | 'name' | 'id' | 'hp' | 'ci'>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const rawCiRef = React.useRef<string>('');
 
   const maskCi = (ci?: string) => {
     if (!ci) return '-';
@@ -52,7 +54,9 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
   const loadData = async (page = currentPage, query = searchQuery, field = searchField) => {
     setIsLoading(true);
     try {
-      const res = await niceAdminFetchMembers(page, query, field);
+      // 🚀 rawCiRef가 있으면 마스킹되지 않은 원본 CI로 정확히 서버 호출
+      const actualQuery = (field === 'ci' && rawCiRef.current) ? rawCiRef.current : query;
+      const res = await niceAdminFetchMembers(page, actualQuery, field);
       if (res && res.success) {
         setMembers(res.data || []);
         setTotalCount(res.total || 0);
@@ -78,7 +82,17 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
       const q = initialSearch.query;
       const f = (initialSearch.field || 'all') as 'all' | 'name' | 'id' | 'hp' | 'ci';
       isInitialSearchHandled.current = true;
-      setSearchQuery(q);
+      
+      if (f === 'ci' && q.length > 20) {
+        rawCiRef.current = q;
+        setSearchQuery(q);
+        setDisplaySearchQuery(maskCi(q));
+      } else {
+        rawCiRef.current = '';
+        setSearchQuery(q);
+        setDisplaySearchQuery(q);
+      }
+      
       setSearchField(f);
       setCurrentPage(1);
       loadData(1, q, f);
@@ -180,7 +194,15 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
         <div className="flex gap-3 flex-1 min-w-[300px] max-w-[650px]">
           <select
             value={searchField}
-            onChange={(e) => setSearchField(e.target.value as any)}
+            onChange={(e) => {
+              const nf = e.target.value as any;
+              setSearchField(nf);
+              if (rawCiRef.current) {
+                rawCiRef.current = '';
+                setSearchQuery('');
+                setDisplaySearchQuery('');
+              }
+            }}
             className="bg-slate-50 border-2 border-slate-100 text-slate-700 font-bold px-4 py-2.5 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-sm transition-all"
           >
             <option value="all">전체 필드</option>
@@ -194,11 +216,31 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
             <input
               type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={displaySearchQuery}
+              onChange={(e) => {
+                const val = e.target.value;
+                rawCiRef.current = '';
+                setDisplaySearchQuery(val);
+                setSearchQuery(val);
+              }}
               placeholder="검색어를 입력해 주세요... (실시간 자동 검색)"
-              className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border-2 border-slate-100 focus:border-blue-500 focus:bg-white rounded-xl transition-all outline-none font-bold text-sm placeholder:text-slate-300"
+              className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border-2 border-slate-100 focus:border-blue-500 focus:bg-white rounded-xl transition-all outline-none font-bold text-sm placeholder:text-slate-300 font-mono"
             />
+            {displaySearchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  rawCiRef.current = '';
+                  setDisplaySearchQuery('');
+                  setSearchQuery('');
+                  loadData(1, '', searchField);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200 transition-all text-xs font-black"
+                title="검색어 지우기"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
 

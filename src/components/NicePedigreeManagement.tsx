@@ -1461,12 +1461,13 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                 <div>
                   <div className="flex items-center justify-between border-b pb-2 mb-3">
                     <h4 className="text-sm font-black text-slate-800 font-sans">소유자 및 신청인 정보</h4>
-                    {(selectedPedigree.poss_ci || selectedPedigree.poss_name) && (
+                    {(selectedPedigree.poss_ci || selectedPedigree.owner_name || selectedPedigree.poss_name) && (
                       <button
                         type="button"
                         onClick={() => {
                           if (onGoToMember) {
-                            const searchTarget = selectedPedigree.poss_name || selectedPedigree.owner_name || selectedPedigree.poss_ci || '';
+                            // 🚀 [1순위: 본인인증 고유 CI, 2순위: 신청인 무명/소유자명]
+                            const searchTarget = selectedPedigree.poss_ci || selectedPedigree.owner_name || selectedPedigree.poss_name || '';
                             if (searchTarget) {
                               onGoToMember(searchTarget);
                               setSelectedPedigree(null);
@@ -1515,7 +1516,8 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                         type="button"
                         onClick={() => {
                           if (onGoToMember) {
-                            const target = selectedPedigree.poss_name || selectedPedigree.poss_ci;
+                            // 🚀 [1순위: 본인인증 고유 CI, 2순위: 신청인 무명/소유자명]
+                            const target = selectedPedigree.poss_ci || selectedPedigree.owner_name || selectedPedigree.poss_name;
                             if (target) {
                               onGoToMember(target);
                               setSelectedPedigree(null);
