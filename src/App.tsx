@@ -422,7 +422,7 @@ const App: React.FC = () => {
                   onGoToPrizes={() => jumpToTab('상력 관리')}
                   onGoToMember={(loginId) => {
                     const isCI = loginId.length > 20 && !loginId.includes('@');
-                    setNiceMemberSearch({ query: loginId, field: isCI ? 'ci' : 'id' });
+                    setNiceMemberSearch({ query: loginId, field: isCI ? 'ci' : 'name' });
                     jumpToTab('NICE 회원관리');
                   }}
                   initialSearch={nicePedigreeSearch}

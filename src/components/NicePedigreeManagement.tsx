@@ -1214,64 +1214,35 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3 font-sans">소유자 및 신청인 정보 (클릭 시 회원관리로 이동)</h4>
+                  <div className="flex items-center justify-between border-b pb-2 mb-3">
+                    <h4 className="text-sm font-black text-slate-800 font-sans">소유자 및 신청인 정보</h4>
+                    {(selectedPedigree.poss_ci || selectedPedigree.poss_name) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onGoToMember) {
+                            const searchTarget = selectedPedigree.poss_ci || selectedPedigree.poss_name;
+                            onGoToMember(searchTarget);
+                            setSelectedPedigree(null);
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95"
+                      >
+                        <Search size={13} />
+                        회원 조회 ➔
+                      </button>
+                    )}
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-black text-slate-400">신청인 실명</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onGoToMember && selectedPedigree.owner_name) {
-                            onGoToMember(selectedPedigree.owner_name);
-                            setSelectedPedigree(null);
-                          }
-                        }}
-                        className="text-sm font-extrabold text-blue-600 hover:text-blue-800 hover:underline text-left mt-1 self-start cursor-pointer"
-                      >
-                        {selectedPedigree.owner_name || selectedPedigree.poss_name || '-'} ➔
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="text-xs font-black text-slate-400">NICE ID / 핀</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onGoToMember && selectedPedigree.owner_id) {
-                            onGoToMember(selectedPedigree.owner_id);
-                            setSelectedPedigree(null);
-                          }
-                        }}
-                        className="text-sm font-extrabold text-blue-600 hover:text-blue-800 hover:underline text-left mt-1 self-start cursor-pointer"
-                      >
-                        {selectedPedigree.owner_id || '-'} ➔
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="text-xs font-black text-slate-400">소유자 이름</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onGoToMember && selectedPedigree.poss_name) {
-                            onGoToMember(selectedPedigree.poss_name);
-                            setSelectedPedigree(null);
-                          }
-                        }}
-                        className="text-sm font-extrabold text-blue-600 hover:text-blue-800 hover:underline text-left mt-1 self-start cursor-pointer"
-                      >
-                        {selectedPedigree.poss_name || '-'} ➔
-                      </button>
-                    </div>
-
-                    <div>{/* 빈 격자 보정용 */}</div>
+                    <DetailItem label="신청인 (앱 닉네임)" value={selectedPedigree.owner_name || selectedPedigree.poss_name || '-'} />
+                    <DetailItem label="소유자 실명" value={selectedPedigree.poss_name || '-'} />
 
                     <div className="col-span-2">
                       <DetailItem label="소유자 주소" value={selectedPedigree.poss_addr || '-'} fullWidth />
                     </div>
 
                     <div className="col-span-2 flex flex-col">
-                      <span className="text-xs font-black text-slate-400">소유자 CI</span>
+                      <span className="text-xs font-black text-slate-400">소유자 CI (클릭 시 회원조회)</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -1280,7 +1251,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                             setSelectedPedigree(null);
                           }
                         }}
-                        className="text-xs font-mono font-bold text-indigo-600 hover:text-indigo-800 hover:underline text-left mt-1 bg-indigo-50/50 p-2 rounded border border-indigo-100 break-all w-full cursor-pointer"
+                        className="text-xs font-mono font-bold text-indigo-600 hover:text-indigo-800 hover:underline text-left mt-1 bg-indigo-50/50 p-2 rounded border border-indigo-100 break-all w-full cursor-pointer transition-colors"
                       >
                         {selectedPedigree.poss_ci || '-'} ➔
                       </button>
