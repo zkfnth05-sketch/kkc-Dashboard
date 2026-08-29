@@ -206,22 +206,34 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
     try {
       const res = await niceAdminLookupPedigreeTree(fReg, mReg, dReg);
       if (res && res.success) {
+        let foundFa = false;
+        let foundMo = false;
         if (res.father) {
-          if (res.father.name) setEditFaName(res.father.name);
-          if (res.father.saho) setEditFaSaho(res.father.saho);
-          if (res.father.reg_no) setEditFaReg(res.father.reg_no);
+          if (res.father.name) { setEditFaName(res.father.name); foundFa = true; }
+          if (res.father.saho) { setEditFaSaho(res.father.saho); foundFa = true; }
+          if (res.father.reg_no) { setEditFaReg(res.father.reg_no); foundFa = true; }
         }
         if (res.mother) {
-          if (res.mother.name) setEditMoName(res.mother.name);
-          if (res.mother.saho) setEditMoSaho(res.mother.saho);
-          if (res.mother.reg_no) setEditMoReg(res.mother.reg_no);
+          if (res.mother.name) { setEditMoName(res.mother.name); foundMo = true; }
+          if (res.mother.saho) { setEditMoSaho(res.mother.saho); foundMo = true; }
+          if (res.mother.reg_no) { setEditMoReg(res.mother.reg_no); foundMo = true; }
         }
+        const ancCount = Array.isArray(res.ancestors) ? res.ancestors.length : 0;
         if (Array.isArray(res.ancestors)) {
           setTreeAncestors(res.ancestors);
         }
+
+        if (ancCount > 0 || foundFa || foundMo) {
+          showAlert('3대 가계도 조회 완료', `일치하는 개체 정보를 불러왔습니다. (조회된 조상견: ${ancCount}마리)`);
+        } else {
+          showAlert('조회 결과 없음', '입력하신 등록번호와 일치하는 나이스 혈통서 개체가 없습니다. (조회된 조상견: 0마리)');
+        }
+      } else {
+        showAlert('조회 실패', res?.error || '가계도 조회 중 오류가 발생했습니다.');
       }
     } catch (err) {
       console.error('가계도 조회 오류:', err);
+      showAlert('조회 오류', '가계도 조회 통신 중 오류가 발생했습니다.');
     } finally {
       setIsLoadingTree(false);
     }
