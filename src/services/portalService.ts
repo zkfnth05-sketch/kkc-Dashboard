@@ -112,7 +112,9 @@ export const niceAdminPedigreeAction = (
   breed_name?: string,
   reg_no?: string,
   fa_name?: string,
-  mo_name?: string
+  mo_name?: string,
+  fa_saho?: string,
+  mo_saho?: string
 ) =>
   portalFetchNice('admin_nice_pedigree_action', {
     uid,
@@ -124,7 +126,9 @@ export const niceAdminPedigreeAction = (
     fa_name,
     mo_name,
     father_name: fa_name,
-    mother_name: mo_name
+    mother_name: mo_name,
+    fa_saho,
+    mo_saho
   });
 
 export const niceAdminDeletePedigree = (uid: number) =>

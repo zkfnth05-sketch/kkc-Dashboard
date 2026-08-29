@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Award, ShieldCheck, FileText, Calendar, Trash2, Edit, RefreshCw, Printer, Download, Eye, Check, X, Image as ImageIcon, Info, Sparkles, Loader2 } from 'lucide-react';
-import { niceAdminFetchPedigrees, niceAdminPedigreeAction, niceAdminDeletePedigree, niceAdminFetchBreedColors, niceAdminGenerateRegNo } from '../services/portalService';
+import { niceAdminFetchPedigrees, niceAdminPedigreeAction, niceAdminDeletePedigree, niceAdminFetchBreedColors, niceAdminGenerateRegNo, niceAdminLookupPedigreeTree } from '../services/portalService';
 import { fetchHairs, fetchDogClasses, checkRegNoExists, fetchLastRegNo } from '../services/pedigreeService';
 import { runSqlBatch } from '../services/memberService';
 import { SearchableColorSelect } from './SearchableColorSelect';
@@ -276,7 +276,12 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       setEditBreed('');
       setEditRegNo('');
       setEditFaName('');
+      setEditFaReg('');
+      setEditFaSaho('');
       setEditMoName('');
+      setEditMoReg('');
+      setEditMoSaho('');
+      setTreeAncestors([]);
       setSelectedGroup('');
     }
   }, [selectedPedigree, dogClasses]);
@@ -458,31 +463,35 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
         setCurrentAction(action);
         setIsSubmitting(true);
         try {
-          // 1. 사전 동기화: nice_pedigree_requests에 관리자가 수정한 부모견 영문명 저장
-          if (editFaName || editMoName) {
+          // 1. 사전 동기화: nice_pedigree_requests에 관리자가 수정한 부모견 영문명 + 견사호 저장
+          if (editFaName || editMoName || editFaSaho || editMoSaho) {
             try {
               const safeFa = editFaName.replace(/'/g, "\\'");
               const safeMo = editMoName.replace(/'/g, "\\'");
+              const safeFaSaho = editFaSaho.replace(/'/g, "\\'");
+              const safeMoSaho = editMoSaho.replace(/'/g, "\\'");
               await runSqlBatch([
-                `UPDATE nice_pedigree_requests SET fa_name = '${safeFa}', father_name = '${safeFa}', mo_name = '${safeMo}', mother_name = '${safeMo}' WHERE uid = ${selectedPedigree.uid}`
+                `UPDATE nice_pedigree_requests SET fa_name = '${safeFa}', father_name = '${safeFa}', mo_name = '${safeMo}', mother_name = '${safeMo}', fa_saho = '${safeFaSaho}', mo_saho = '${safeMoSaho}' WHERE uid = ${selectedPedigree.uid}`
               ]);
             } catch (preErr) {
-              console.error('사전 부모견 영문명 동기화:', preErr);
+              console.error('사전 부모견 영문명/견사호 동기화:', preErr);
             }
           }
 
           // 2. 관리자 액션 (승인/반려) 및 나이스 통보 실행
-          const res = await niceAdminPedigreeAction(selectedPedigree.uid, action, actionMemo, editHair, editBreed, editRegNo, editFaName, editMoName);
+          const res = await niceAdminPedigreeAction(selectedPedigree.uid, action, actionMemo, editHair, editBreed, editRegNo, editFaName, editMoName, editFaSaho, editMoSaho);
 
           if (res && res.success) {
-            // 3. 사후 동기화: nice_dogTab에 발급된 혈통서에도 부모견 영문명 확실히 저장
-            if (action === 'approve' && (editFaName || editMoName)) {
+            // 3. 사후 동기화: nice_dogTab에 발급된 혈통서에도 부모견 영문명 + 견사호 확실히 저장
+            if (action === 'approve' && (editFaName || editMoName || editFaSaho || editMoSaho)) {
               try {
                 const safeFa = editFaName.replace(/'/g, "\\'");
                 const safeMo = editMoName.replace(/'/g, "\\'");
+                const safeFaSaho = editFaSaho.replace(/'/g, "\\'");
+                const safeMoSaho = editMoSaho.replace(/'/g, "\\'");
                 const targetRegNo = editRegNo.replace(/'/g, "\\'");
                 await runSqlBatch([
-                  `UPDATE nice_dogTab SET fa_name = '${safeFa}', mo_name = '${safeMo}' WHERE reg_no = '${targetRegNo}'`
+                  `UPDATE nice_dogTab SET fa_name = '${safeFa}', mo_name = '${safeMo}', fa_saho = '${safeFaSaho}', mo_saho = '${safeMoSaho}' WHERE reg_no = '${targetRegNo}'`
                 ]);
               } catch (postErr) {
                 console.error('사후 nice_dogTab 부모견 동기화:', postErr);

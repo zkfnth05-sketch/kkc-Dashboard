@@ -211,7 +211,6 @@ function nice_api_db_init($conn) {
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `mo_regno` VARCHAR(50) DEFAULT NULL");
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `anc_name` VARCHAR(100) DEFAULT NULL");
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `anc_saho` VARCHAR(100) DEFAULT NULL");
-    // 4-1. 환불 관련 감사 필드 추가 (API 006 규격: req_ci, refund_dttm)
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `refund_dttm` VARCHAR(14) DEFAULT NULL COMMENT '환불일시(YYYYMMDDHH24MISS)'");
     $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `refund_ci` VARCHAR(100) DEFAULT NULL COMMENT '환불 요청자 CI'");
     
@@ -227,6 +226,16 @@ function nice_api_db_init($conn) {
     $conn->query("ALTER TABLE `nice_dogTab` ADD COLUMN IF NOT EXISTS `mo_regno` VARCHAR(50) DEFAULT NULL");
     $conn->query("ALTER TABLE `nice_dogTab` ADD COLUMN IF NOT EXISTS `anc_name` VARCHAR(100) DEFAULT NULL");
     $conn->query("ALTER TABLE `nice_dogTab` ADD COLUMN IF NOT EXISTS `anc_saho` VARCHAR(100) DEFAULT NULL");
+
+    // 6. 부모견 견사호(fa_saho/mo_saho) 컬럼 추가 — nice_pedigree_requests, nice_dogTab 양쪽
+    $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `fa_saho` VARCHAR(100) DEFAULT NULL");
+    $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `father_saho` VARCHAR(100) DEFAULT NULL");
+    $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `mo_saho` VARCHAR(100) DEFAULT NULL");
+    $conn->query("ALTER TABLE `nice_pedigree_requests` ADD COLUMN IF NOT EXISTS `mother_saho` VARCHAR(100) DEFAULT NULL");
+    $conn->query("ALTER TABLE `nice_dogTab` ADD COLUMN IF NOT EXISTS `fa_saho` VARCHAR(100) DEFAULT NULL");
+    $conn->query("ALTER TABLE `nice_dogTab` ADD COLUMN IF NOT EXISTS `father_saho` VARCHAR(100) DEFAULT NULL");
+    $conn->query("ALTER TABLE `nice_dogTab` ADD COLUMN IF NOT EXISTS `mo_saho` VARCHAR(100) DEFAULT NULL");
+    $conn->query("ALTER TABLE `nice_dogTab` ADD COLUMN IF NOT EXISTS `mother_saho` VARCHAR(100) DEFAULT NULL");
 }
 
 /**
@@ -1405,8 +1414,10 @@ function nice_admin_pedigree_list($input) {
                 'dam_reg_no' => $row['mother_reg_no'],
                 'fa_name' => $row['father_name'],
                 'fa_regno' => $row['father_reg_no'],
+                'fa_saho' => $row['fa_saho'] ?? ($row['father_saho'] ?? ''),
                 'mo_name' => $row['mother_name'],
                 'mo_regno' => $row['mother_reg_no'],
+                'mo_saho' => $row['mo_saho'] ?? ($row['mother_saho'] ?? ''),
                 'anc_name' => $row['anc_name'] ?? '',
                 'anc_saho' => $row['anc_saho'] ?? ''
             ];
@@ -1623,6 +1634,8 @@ function nice_admin_pedigree_action($input) {
     $e_edit_mo_name = $conn->real_escape_string($req['mo_name'] ?? ($req['mother_name'] ?? ''));
     $e_edit_fa_reg = $conn->real_escape_string($req['fa_regno'] ?? ($req['father_reg_no'] ?? ''));
     $e_edit_mo_reg = $conn->real_escape_string($req['mo_regno'] ?? ($req['mother_reg_no'] ?? ''));
+    $e_edit_fa_saho = $conn->real_escape_string(trim($input['fa_saho'] ?? ($input['father_saho'] ?? ($req['father_saho'] ?? ($req['fa_saho'] ?? '')))));
+    $e_edit_mo_saho = $conn->real_escape_string(trim($input['mo_saho'] ?? ($input['mother_saho'] ?? ($req['mother_saho'] ?? ($req['mo_saho'] ?? '')))));
     
     $upd_sql = "UPDATE nice_pedigree_requests SET 
         hair = '$e_edit_hair', 
@@ -1635,7 +1648,11 @@ function nice_admin_pedigree_action($input) {
         fa_regno = '$e_edit_fa_reg',
         father_reg_no = '$e_edit_fa_reg',
         mo_regno = '$e_edit_mo_reg',
-        mother_reg_no = '$e_edit_mo_reg'
+        mother_reg_no = '$e_edit_mo_reg',
+        fa_saho = '$e_edit_fa_saho',
+        father_saho = '$e_edit_fa_saho',
+        mo_saho = '$e_edit_mo_saho',
+        mother_saho = '$e_edit_mo_saho'
         WHERE uid = $uid";
     if (!$conn->query($upd_sql)) {
         throw new Exception("[Step 1 - req_update] " . $conn->error);
