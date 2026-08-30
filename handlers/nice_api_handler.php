@@ -94,18 +94,75 @@ if (!function_exists('nice_format_sex')) {
 
 
 /**
+ * 🐕 [인메모리 맵핑] 전체 견종 마스터(dog_classTab) 캐싱 및 사전 맵 로더
+ * MySQL 인코딩(EUC-KR vs UTF-8) 충돌을 원천 차단하고 초고속 조회 지원
+ */
+if (!function_exists('nice_get_breed_map')) {
+    function nice_get_breed_map($conn) {
+        static $cached_map = null;
+        if ($cached_map !== null) return $cached_map;
+        if (!$conn) return ['by_key' => [], 'by_kor' => [], 'by_name' => []];
+
+        $conn->query("SET NAMES 'utf8mb4'");
+        $res = $conn->query("SELECT keyy, name, kor_name FROM dog_classTab");
+        $map = [
+            'by_key' => [],
+            'by_kor' => [],
+            'by_name' => []
+        ];
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $raw_key = trim((string)$row['keyy']);
+                $raw_std = !empty($row['name']) ? trim((string)$row['name']) : trim((string)$row['kor_name']);
+                $raw_kor = !empty($row['kor_name']) ? trim((string)$row['kor_name']) : trim((string)$row['name']);
+                
+                $std_name = (is_string($raw_std) && mb_check_encoding($raw_std, 'UTF-8')) ? $raw_std : kkc_convert($raw_std, 'EUC-KR', true);
+                $kor_name = (is_string($raw_kor) && mb_check_encoding($raw_kor, 'UTF-8')) ? $raw_kor : kkc_convert($raw_kor, 'EUC-KR', true);
+                $key_val = (is_string($raw_key) && mb_check_encoding($raw_key, 'UTF-8')) ? $raw_key : kkc_convert($raw_key, 'EUC-KR', true);
+
+                $entry = [
+                    'key' => $key_val,
+                    'std' => $std_name,
+                    'kor' => $kor_name
+                ];
+
+                if (!empty($key_val)) {
+                    $map['by_key'][$key_val] = $entry;
+                    $map['by_key'][strtoupper($key_val)] = $entry;
+                    $map['by_key'][strtolower($key_val)] = $entry;
+                }
+                if (!empty($kor_name)) {
+                    $map['by_kor'][$kor_name] = $entry;
+                }
+                if (!empty($std_name)) {
+                    $map['by_name'][$std_name] = $entry;
+                    $map['by_name'][strtoupper($std_name)] = $entry;
+                    $map['by_name'][strtolower($std_name)] = $entry;
+                }
+            }
+        }
+        $cached_map = $map;
+        return $cached_map;
+    }
+}
+
+/**
  * 🐕 견종명 표준 포맷터 (NICE API 규격: dog_classTab의 name 컬럼 - 외국계 영문, 한국계 한글)
  */
 if (!function_exists('nice_resolve_standard_breed_name')) {
     function nice_resolve_standard_breed_name($conn, $breed_code_or_name) {
-        if (empty($breed_code_or_name)) return '';
-        $conn->query("SET NAMES 'utf8mb4'");
-        $e_val = $conn->real_escape_string($breed_code_or_name);
-        $res = $conn->query("SELECT name, kor_name FROM dog_classTab WHERE keyy = '$e_val' OR kor_name = '$e_val' OR name = '$e_val' LIMIT 1");
-        if ($res && $row = $res->fetch_assoc()) {
-            return !empty($row['name']) ? $row['name'] : $row['kor_name'];
-        }
-        return $breed_code_or_name;
+        if ($breed_code_or_name === null || $breed_code_or_name === '') return '';
+        $breed_utf8 = trim((string)kkc_convert($breed_code_or_name, 'EUC-KR', true));
+        if ($breed_utf8 === '') return '';
+
+        $map = nice_get_breed_map($conn);
+        if (isset($map['by_key'][$breed_utf8])) return $map['by_key'][$breed_utf8]['std'];
+        if (isset($map['by_key'][strtoupper($breed_utf8)])) return $map['by_key'][strtoupper($breed_utf8)]['std'];
+        if (isset($map['by_kor'][$breed_utf8])) return $map['by_kor'][$breed_utf8]['std'];
+        if (isset($map['by_name'][$breed_utf8])) return $map['by_name'][$breed_utf8]['std'];
+        if (isset($map['by_name'][strtoupper($breed_utf8)])) return $map['by_name'][strtoupper($breed_utf8)]['std'];
+
+        return $breed_utf8;
     }
 }
 
@@ -114,14 +171,38 @@ if (!function_exists('nice_resolve_standard_breed_name')) {
  */
 if (!function_exists('nice_resolve_korean_breed_name')) {
     function nice_resolve_korean_breed_name($conn, $breed_code_or_name) {
-        if (empty($breed_code_or_name)) return '';
-        $conn->query("SET NAMES 'utf8mb4'");
-        $e_val = $conn->real_escape_string($breed_code_or_name);
-        $res = $conn->query("SELECT kor_name, name FROM dog_classTab WHERE keyy = '$e_val' OR kor_name = '$e_val' OR name = '$e_val' LIMIT 1");
-        if ($res && $row = $res->fetch_assoc()) {
-            return !empty($row['kor_name']) ? $row['kor_name'] : $row['name'];
-        }
-        return $breed_code_or_name;
+        if ($breed_code_or_name === null || $breed_code_or_name === '') return '';
+        $breed_utf8 = trim((string)kkc_convert($breed_code_or_name, 'EUC-KR', true));
+        if ($breed_utf8 === '') return '';
+
+        $map = nice_get_breed_map($conn);
+        if (isset($map['by_key'][$breed_utf8])) return $map['by_key'][$breed_utf8]['kor'];
+        if (isset($map['by_key'][strtoupper($breed_utf8)])) return $map['by_key'][strtoupper($breed_utf8)]['kor'];
+        if (isset($map['by_kor'][$breed_utf8])) return $map['by_kor'][$breed_utf8]['kor'];
+        if (isset($map['by_name'][$breed_utf8])) return $map['by_name'][$breed_utf8]['kor'];
+        if (isset($map['by_name'][strtoupper($breed_utf8)])) return $map['by_name'][strtoupper($breed_utf8)]['kor'];
+
+        return $breed_utf8;
+    }
+}
+
+/**
+ * 🐕 견종 키(코드) 조회 포맷터 (예: '잉글리쉬 코커 스파니엘' -> 'ECS')
+ */
+if (!function_exists('nice_resolve_breed_key')) {
+    function nice_resolve_breed_key($conn, $breed_code_or_name) {
+        if ($breed_code_or_name === null || $breed_code_or_name === '') return '';
+        $breed_utf8 = trim((string)kkc_convert($breed_code_or_name, 'EUC-KR', true));
+        if ($breed_utf8 === '') return '';
+
+        $map = nice_get_breed_map($conn);
+        if (isset($map['by_key'][$breed_utf8])) return $map['by_key'][$breed_utf8]['key'];
+        if (isset($map['by_key'][strtoupper($breed_utf8)])) return $map['by_key'][strtoupper($breed_utf8)]['key'];
+        if (isset($map['by_kor'][$breed_utf8])) return $map['by_kor'][$breed_utf8]['key'];
+        if (isset($map['by_name'][$breed_utf8])) return $map['by_name'][$breed_utf8]['key'];
+        if (isset($map['by_name'][strtoupper($breed_utf8)])) return $map['by_name'][strtoupper($breed_utf8)]['key'];
+
+        return $breed_utf8;
     }
 }
 
@@ -328,20 +409,9 @@ function nice_handle_list($data) {
     
     $list = [];
     if ($dog_res && $dog_res->num_rows > 0) {
-        $breed_map = [];
-        $conn->query("SET NAMES 'utf8mb4'");
-        $class_res = $conn->query("SELECT keyy, name, kor_name FROM dog_classTab");
-        if ($class_res) {
-            while ($c_row = $class_res->fetch_assoc()) {
-                $breed_map[$c_row['keyy']] = !empty($c_row['name']) ? $c_row['name'] : $c_row['kor_name'];
-            }
-        }
-        
         while ($d = $dog_res->fetch_assoc()) {
             $breed_code = $d['dog_class'];
-            $breed_name = isset($breed_map[$breed_code]) ? $breed_map[$breed_code] : $breed_code;
-            // dog_classTab에서 utf8mb4로 읽어온 견종명은 이미 UTF-8이므로 이중 변환 방지
-            $dog_class_name = (is_string($breed_name) && mb_check_encoding($breed_name, 'UTF-8')) ? $breed_name : kkc_convert($breed_name, 'EUC-KR', true);
+            $dog_class_name = nice_resolve_standard_breed_name($conn, $breed_code);
             
             $list[] = [
                 'reg_no' => kkc_convert($d['reg_no'], 'EUC-KR', true),
@@ -412,12 +482,7 @@ function nice_handle_detail($data) {
     $dog = $dog_res->fetch_assoc();
     
     $breed_code = $dog['dog_class'];
-    $conn->query("SET NAMES 'utf8mb4'");
-    $breed_name = $breed_code;
-    $class_res = $conn->query("SELECT name, kor_name FROM dog_classTab WHERE keyy = '" . $conn->real_escape_string($breed_code) . "' OR kor_name = '" . $conn->real_escape_string($breed_code) . "' OR name = '" . $conn->real_escape_string($breed_code) . "' LIMIT 1");
-    if ($class_res && $c_row = $class_res->fetch_assoc()) {
-        $breed_name = !empty($c_row['name']) ? $c_row['name'] : $c_row['kor_name'];
-    }
+    $breed_name = nice_resolve_standard_breed_name($conn, $breed_code);
     $conn->query("SET NAMES 'binary'");
     
     $father = nice_get_parent_info($conn, $dog['fa_regno']);
@@ -1107,15 +1172,7 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
     if ($is_approved) {
         // 승인 (S): NICE API 명세 (Sheet 6 R06~R37 & 별첨1) 기준 전 항목 반환
         $breed_code = $dog['dog_class'] ?? ($req['dog_classTab_name'] ?? '');
-        $breed_name = $breed_code;
-        if ($conn) {
-            $conn->query("SET NAMES 'binary'");
-            $e_b_code = $conn->real_escape_string(kkc_convert($breed_code, 'EUC-KR', false));
-            $class_res = $conn->query("SELECT name, kor_name FROM dog_classTab WHERE keyy = '$e_b_code' OR kor_name = '$e_b_code' OR name = '$e_b_code' LIMIT 1");
-            if ($class_res && $c_row = $class_res->fetch_assoc()) {
-                $breed_name = !empty($c_row['name']) ? kkc_convert($c_row['name'], 'EUC-KR', true) : kkc_convert($c_row['kor_name'], 'EUC-KR', true);
-            }
-        }
+        $breed_name = $conn ? nice_resolve_standard_breed_name($conn, $breed_code) : $breed_code;
         
         $father = $conn ? nice_get_parent_info($conn, $dog['fa_regno'] ?? ($req['father_reg_no'] ?? '')) : ['name'=>'', 'reg_no'=>'', 'saho'=>''];
         $mother = $conn ? nice_get_parent_info($conn, $dog['mo_regno'] ?? ($req['mother_reg_no'] ?? '')) : ['name'=>'', 'reg_no'=>'', 'saho'=>''];
@@ -1551,20 +1608,7 @@ function nice_admin_generate_reg_no($input) {
     $keyy = trim($input['keyy'] ?? '');
     
     if (empty($keyy) && !empty($breed)) {
-        $conn->query("SET NAMES 'utf8mb4'");
-        $e_b_utf8 = $conn->real_escape_string($breed);
-        $breed_chk = $conn->query("SELECT keyy FROM dog_classTab WHERE TRIM(kor_name) = '$e_b_utf8' OR TRIM(name) = '$e_b_utf8' OR keyy = '$e_b_utf8' LIMIT 1");
-        if ($breed_chk && $breed_chk->num_rows > 0) {
-            $keyy = trim($breed_chk->fetch_assoc()['keyy'] ?? '');
-        }
-        if (empty($keyy)) {
-            $conn->query("SET NAMES 'binary'");
-            $e_b_euc = $conn->real_escape_string(kkc_convert($breed, 'EUC-KR', false));
-            $breed_chk2 = $conn->query("SELECT keyy FROM dog_classTab WHERE TRIM(kor_name) = '$e_b_euc' OR TRIM(name) = '$e_b_euc' OR keyy = '$e_b_euc' LIMIT 1");
-            if ($breed_chk2 && $breed_chk2->num_rows > 0) {
-                $keyy = kkc_convert(trim($breed_chk2->fetch_assoc()['keyy'] ?? ''), 'EUC-KR', true);
-            }
-        }
+        $keyy = nice_resolve_breed_key($conn, $breed);
     }
     
     $reg_no = nice_generate_unique_reg_no($conn, $keyy, null, $breed);
@@ -1807,24 +1851,7 @@ function nice_admin_pedigree_action($input) {
     } else {
         // 신규이거나 소유주가 다른 경우: 겹치지 않는 NICE 전용 5000번대 등록번호 자동 생성 후 -NP 추가
         $breed_name_utf8 = trim($req['dog_classTab_name']);
-        $conn->query("SET NAMES 'utf8mb4'");
-        $e_b_utf8 = $conn->real_escape_string($breed_name_utf8);
-        $breed_chk = $conn->query("SELECT keyy FROM dog_classTab WHERE TRIM(kor_name) = '$e_b_utf8' OR TRIM(name) = '$e_b_utf8' OR keyy = '$e_b_utf8' LIMIT 1");
-        
-        $keyy = '';
-        if ($breed_chk && $breed_chk->num_rows > 0) {
-            $keyy = trim($breed_chk->fetch_assoc()['keyy'] ?? '');
-        }
-        
-        if (empty($keyy)) {
-            // EUC-KR 인코딩 테이블 대비 2차 검색
-            $conn->query("SET NAMES 'binary'");
-            $e_b_euc = $conn->real_escape_string(kkc_convert($breed_name_utf8, 'EUC-KR', false));
-            $breed_chk2 = $conn->query("SELECT keyy FROM dog_classTab WHERE TRIM(kor_name) = '$e_b_euc' OR TRIM(name) = '$e_b_euc' OR keyy = '$e_b_euc' LIMIT 1");
-            if ($breed_chk2 && $breed_chk2->num_rows > 0) {
-                $keyy = kkc_convert(trim($breed_chk2->fetch_assoc()['keyy'] ?? ''), 'EUC-KR', true);
-            }
-        }
+        $keyy = nice_resolve_breed_key($conn, $breed_name_utf8);
         $generated_reg_no = nice_generate_unique_reg_no($conn, $keyy, null, $breed_name_utf8);
         $np_reg_no = (strpos($generated_reg_no, '-NP') !== false) ? $generated_reg_no : ($generated_reg_no . '-NP');
         
@@ -1852,7 +1879,7 @@ function nice_admin_pedigree_action($input) {
     $in_breeder_name = trim($input['breeder_name'] ?? ($input['breed_name_person'] ?? ($req['breed_name'] ?? '')));
     $in_breeder_addr = trim($input['breeder_addr'] ?? ($req['breed_addr'] ?? ''));
     $in_poss_name    = trim($input['poss_name'] ?? ($req['poss_name'] ?? ($req['req_name'] ?? '')));
-    $in_poss_addr    = trim($input['poss_addr'] ?? ($req['poss_addr'] ?? '')));
+    $in_poss_addr    = trim($input['poss_addr'] ?? ($req['poss_addr'] ?? ''));
     
     $in_birth_m      = isset($input['birth_m']) ? intval($input['birth_m']) : intval($req['birth_m'] ?? 0);
     $in_birth_f      = isset($input['birth_f']) ? intval($input['birth_f']) : intval($req['birth_f'] ?? 0);
@@ -1907,13 +1934,7 @@ function nice_admin_pedigree_action($input) {
 
     // 견종 코드 조회
     $breed_name_utf8 = $in_breed_name;
-    $breed_code = $breed_name_utf8;
-    $conn->query("SET NAMES 'utf8mb4'");
-    $breed_chk = $conn->query("SELECT keyy FROM dog_classTab WHERE kor_name = '" . $conn->real_escape_string($breed_name_utf8) . "' OR name = '" . $conn->real_escape_string($breed_name_utf8) . "' OR keyy = '" . $conn->real_escape_string($breed_name_utf8) . "' LIMIT 1");
-    if ($breed_chk && $breed_chk->num_rows > 0) {
-        $breed_code = $breed_chk->fetch_assoc()['keyy'];
-    }
-
+    $breed_code = nice_resolve_breed_key($conn, $breed_name_utf8);
     $conn->query("SET NAMES 'binary'");
 
     if ($is_same_owner && $orig_dog) {
