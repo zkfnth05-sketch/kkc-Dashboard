@@ -355,9 +355,9 @@ try {
                             } else if ($target_name === 'portal_bridg') {
                                 $target_file = dirname(__FILE__) . '/portal_bridg.php';
                             } else if ($target_name === 'nice_ipin_logic') {
-                                $target_file = dirname(__FILE__) . '/nice_ipin_logic.php';
+                                $target_file = dirname(__FILE__) . '/handlers/nice_ipin_logic.php';
                             } else if ($target_name === 'member_portal_logic') {
-                                $target_file = dirname(__FILE__) . '/member_portal_logic.php';
+                                $target_file = dirname(__FILE__) . '/handlers/member_portal_logic.php';
                             } else if ($target_name === 'nice_api_bridge') {
                                 $target_file = dirname(__FILE__) . '/nice_api_bridge.php';
                             } else if ($target_name === 'nice_api_config') {
