@@ -339,8 +339,9 @@ function nice_get_parent_info($conn, $parent_id) {
     $dog = nice_fetch_dog_by_reg_no($conn, $parent_id);
     if ($dog) {
         $saho = !empty($dog['saho']) ? $dog['saho'] : ($dog['saho_eng'] ?? '');
+        $dog_name = !empty($dog['name']) ? $dog['name'] : ($dog['fullname'] ?? '');
         return [
-            'name' => kkc_convert($dog['fullname'] ?? ($dog['name'] ?? ''), 'EUC-KR', true),
+            'name' => kkc_convert($dog_name, 'EUC-KR', true),
             'reg_no' => kkc_convert($dog['reg_no'], 'EUC-KR', true),
             'saho' => kkc_convert($saho, 'EUC-KR', true),
             'fa_regno' => kkc_convert($dog['fa_regno'] ?? '', 'EUC-KR', true),
@@ -401,10 +402,10 @@ function nice_handle_list($data) {
     }
     $where_sql = implode(' OR ', $where_clauses);
     
-    // 기존 dogTab 및 신규 격리 nice_dogTab 병합 조회
-    $dog_sql = "SELECT reg_no, fullname, dog_class FROM dogTab WHERE $where_sql
+    // 기존 dogTab 및 신규 격리 nice_dogTab 병합 조회 (name 컬럼 명시적 포함)
+    $dog_sql = "SELECT reg_no, name, fullname, dog_class FROM dogTab WHERE $where_sql
                 UNION
-                SELECT reg_no, fullname, dog_class FROM nice_dogTab WHERE $where_sql";
+                SELECT reg_no, name, fullname, dog_class FROM nice_dogTab WHERE $where_sql";
     $dog_res = $conn->query($dog_sql);
     
     $list = [];
@@ -412,10 +413,11 @@ function nice_handle_list($data) {
         while ($d = $dog_res->fetch_assoc()) {
             $breed_code = $d['dog_class'];
             $dog_class_name = nice_resolve_standard_breed_name($conn, $breed_code);
+            $dog_name = !empty($d['name']) ? $d['name'] : ($d['fullname'] ?? '');
             
             $list[] = [
                 'reg_no' => kkc_convert($d['reg_no'], 'EUC-KR', true),
-                'name' => kkc_convert($d['fullname'], 'EUC-KR', true),
+                'name' => kkc_convert($dog_name, 'EUC-KR', true),
                 'dog_classTab_name' => $dog_class_name
             ];
         }
@@ -491,10 +493,12 @@ function nice_handle_detail($data) {
     $formatted_birth = nice_format_date_ymd($dog['birth'] ?? '');
     $formatted_reg_date = nice_format_datetime_ymdhis($dog['reg_date'] ?? '');
     
+    $dog_name = !empty($dog['name']) ? $dog['name'] : ($dog['fullname'] ?? '');
+    
     $res = [
         'result_cd' => 'S000',
         'reg_no' => kkc_convert($dog['reg_no'], 'EUC-KR', true),
-        'name' => kkc_convert($dog['fullname'], 'EUC-KR', true),
+        'name' => kkc_convert($dog_name, 'EUC-KR', true),
         'saho_eng' => kkc_convert($dog['saho_eng'], 'EUC-KR', true),
         'saho' => kkc_convert($dog['saho'], 'EUC-KR', true),
         'dog_classTab_name' => (is_string($breed_name) && mb_check_encoding($breed_name, 'UTF-8')) ? $breed_name : kkc_convert($breed_name, 'EUC-KR', true),
@@ -526,7 +530,7 @@ function nice_handle_detail($data) {
         'mother_saho' => $mother['saho'] ?? '',
         'mo_name' => $mother['name'],
         'mo_regno' => $mother['reg_no'],
-        'anc_name' => isset($dog['anc_name']) ? kkc_convert($dog['anc_name'], 'EUC-KR', true) : kkc_convert($dog['name'], 'EUC-KR', true),
+        'anc_name' => isset($dog['anc_name']) ? kkc_convert($dog['anc_name'], 'EUC-KR', true) : kkc_convert($dog_name, 'EUC-KR', true),
         'anc_saho' => isset($dog['anc_saho']) ? kkc_convert($dog['anc_saho'], 'EUC-KR', true) : kkc_convert($dog['saho_eng'], 'EUC-KR', true),
         'ancestors' => nice_build_ancestors_list($conn, $dog)
     ];
@@ -555,7 +559,7 @@ function nice_build_ancestors_list($conn, $dog) {
                 if ($ff_dog) {
                     $ancestors[] = [
                         'type' => 'fatherFather',
-                        'name' => kkc_convert($ff_dog['fullname'] ?? $ff_dog['name'], 'EUC-KR', true),
+                        'name' => kkc_convert(!empty($ff_dog['name']) ? $ff_dog['name'] : ($ff_dog['fullname'] ?? ''), 'EUC-KR', true),
                         'saho' => kkc_convert(!empty($ff_dog['saho']) ? $ff_dog['saho'] : ($ff_dog['saho_eng'] ?? ''), 'EUC-KR', true),
                         'reg_no' => kkc_convert($ff_dog['reg_no'], 'EUC-KR', true)
                     ];
@@ -565,7 +569,7 @@ function nice_build_ancestors_list($conn, $dog) {
                         if ($fff_dog) {
                             $ancestors[] = [
                                 'type' => 'fatherFatherFather',
-                                'name' => kkc_convert($fff_dog['fullname'] ?? $fff_dog['name'], 'EUC-KR', true),
+                                'name' => kkc_convert(!empty($fff_dog['name']) ? $fff_dog['name'] : ($fff_dog['fullname'] ?? ''), 'EUC-KR', true),
                                 'saho' => kkc_convert(!empty($fff_dog['saho']) ? $fff_dog['saho'] : ($fff_dog['saho_eng'] ?? ''), 'EUC-KR', true),
                                 'reg_no' => kkc_convert($fff_dog['reg_no'], 'EUC-KR', true)
                             ];
@@ -576,7 +580,7 @@ function nice_build_ancestors_list($conn, $dog) {
                         if ($ffm_dog) {
                             $ancestors[] = [
                                 'type' => 'fatherFatherMother',
-                                'name' => kkc_convert($ffm_dog['fullname'] ?? $ffm_dog['name'], 'EUC-KR', true),
+                                'name' => kkc_convert(!empty($ffm_dog['name']) ? $ffm_dog['name'] : ($ffm_dog['fullname'] ?? ''), 'EUC-KR', true),
                                 'saho' => kkc_convert(!empty($ffm_dog['saho']) ? $ffm_dog['saho'] : ($ffm_dog['saho_eng'] ?? ''), 'EUC-KR', true),
                                 'reg_no' => kkc_convert($ffm_dog['reg_no'], 'EUC-KR', true)
                             ];
@@ -590,7 +594,7 @@ function nice_build_ancestors_list($conn, $dog) {
                 if ($fm_dog) {
                     $ancestors[] = [
                         'type' => 'fatherMother',
-                        'name' => kkc_convert($fm_dog['fullname'] ?? $fm_dog['name'], 'EUC-KR', true),
+                        'name' => kkc_convert(!empty($fm_dog['name']) ? $fm_dog['name'] : ($fm_dog['fullname'] ?? ''), 'EUC-KR', true),
                         'saho' => kkc_convert(!empty($fm_dog['saho']) ? $fm_dog['saho'] : ($fm_dog['saho_eng'] ?? ''), 'EUC-KR', true),
                         'reg_no' => kkc_convert($fm_dog['reg_no'], 'EUC-KR', true)
                     ];
@@ -600,7 +604,7 @@ function nice_build_ancestors_list($conn, $dog) {
                         if ($fmf_dog) {
                             $ancestors[] = [
                                 'type' => 'fatherMotherFather',
-                                'name' => kkc_convert($fmf_dog['fullname'] ?? $fmf_dog['name'], 'EUC-KR', true),
+                                'name' => kkc_convert(!empty($fmf_dog['name']) ? $fmf_dog['name'] : ($fmf_dog['fullname'] ?? ''), 'EUC-KR', true),
                                 'saho' => kkc_convert(!empty($fmf_dog['saho']) ? $fmf_dog['saho'] : ($fmf_dog['saho_eng'] ?? ''), 'EUC-KR', true),
                                 'reg_no' => kkc_convert($fmf_dog['reg_no'], 'EUC-KR', true)
                             ];
@@ -611,7 +615,7 @@ function nice_build_ancestors_list($conn, $dog) {
                         if ($fmm_dog) {
                             $ancestors[] = [
                                 'type' => 'fatherMotherMother',
-                                'name' => kkc_convert($fmm_dog['fullname'] ?? $fmm_dog['name'], 'EUC-KR', true),
+                                'name' => kkc_convert(!empty($fmm_dog['name']) ? $fmm_dog['name'] : ($fmm_dog['fullname'] ?? ''), 'EUC-KR', true),
                                 'saho' => kkc_convert(!empty($fmm_dog['saho']) ? $fmm_dog['saho'] : ($fmm_dog['saho_eng'] ?? ''), 'EUC-KR', true),
                                 'reg_no' => kkc_convert($fmm_dog['reg_no'], 'EUC-KR', true)
                             ];
@@ -636,7 +640,7 @@ function nice_build_ancestors_list($conn, $dog) {
                 if ($mf_dog) {
                     $ancestors[] = [
                         'type' => 'motherFather',
-                        'name' => kkc_convert($mf_dog['fullname'] ?? $mf_dog['name'], 'EUC-KR', true),
+                        'name' => kkc_convert(!empty($mf_dog['name']) ? $mf_dog['name'] : ($mf_dog['fullname'] ?? ''), 'EUC-KR', true),
                         'saho' => kkc_convert(!empty($mf_dog['saho']) ? $mf_dog['saho'] : ($mf_dog['saho_eng'] ?? ''), 'EUC-KR', true),
                         'reg_no' => kkc_convert($mf_dog['reg_no'], 'EUC-KR', true)
                     ];
@@ -646,7 +650,7 @@ function nice_build_ancestors_list($conn, $dog) {
                         if ($mff_dog) {
                             $ancestors[] = [
                                 'type' => 'motherFatherFather',
-                                'name' => kkc_convert($mff_dog['fullname'] ?? $mff_dog['name'], 'EUC-KR', true),
+                                'name' => kkc_convert(!empty($mff_dog['name']) ? $mff_dog['name'] : ($mff_dog['fullname'] ?? ''), 'EUC-KR', true),
                                 'saho' => kkc_convert(!empty($mff_dog['saho']) ? $mff_dog['saho'] : ($mff_dog['saho_eng'] ?? ''), 'EUC-KR', true),
                                 'reg_no' => kkc_convert($mff_dog['reg_no'], 'EUC-KR', true)
                             ];
@@ -657,7 +661,7 @@ function nice_build_ancestors_list($conn, $dog) {
                         if ($mfm_dog) {
                             $ancestors[] = [
                                 'type' => 'motherFatherMother',
-                                'name' => kkc_convert($mfm_dog['fullname'] ?? $mfm_dog['name'], 'EUC-KR', true),
+                                'name' => kkc_convert(!empty($mfm_dog['name']) ? $mfm_dog['name'] : ($mfm_dog['fullname'] ?? ''), 'EUC-KR', true),
                                 'saho' => kkc_convert(!empty($mfm_dog['saho']) ? $mfm_dog['saho'] : ($mfm_dog['saho_eng'] ?? ''), 'EUC-KR', true),
                                 'reg_no' => kkc_convert($mfm_dog['reg_no'], 'EUC-KR', true)
                             ];
@@ -671,7 +675,7 @@ function nice_build_ancestors_list($conn, $dog) {
                 if ($mm_dog) {
                     $ancestors[] = [
                         'type' => 'motherMother',
-                        'name' => kkc_convert($mm_dog['fullname'] ?? $mm_dog['name'], 'EUC-KR', true),
+                        'name' => kkc_convert(!empty($mm_dog['name']) ? $mm_dog['name'] : ($mm_dog['fullname'] ?? ''), 'EUC-KR', true),
                         'saho' => kkc_convert(!empty($mm_dog['saho']) ? $mm_dog['saho'] : ($mm_dog['saho_eng'] ?? ''), 'EUC-KR', true),
                         'reg_no' => kkc_convert($mm_dog['reg_no'], 'EUC-KR', true)
                     ];
@@ -681,7 +685,7 @@ function nice_build_ancestors_list($conn, $dog) {
                         if ($mmf_dog) {
                             $ancestors[] = [
                                 'type' => 'motherMotherFather',
-                                'name' => kkc_convert($mmf_dog['fullname'] ?? $mmf_dog['name'], 'EUC-KR', true),
+                                'name' => kkc_convert(!empty($mmf_dog['name']) ? $mmf_dog['name'] : ($mmf_dog['fullname'] ?? ''), 'EUC-KR', true),
                                 'saho' => kkc_convert(!empty($mmf_dog['saho']) ? $mm_dog['saho'] : ($mm_dog['saho_eng'] ?? ''), 'EUC-KR', true),
                                 'reg_no' => kkc_convert($mmf_dog['reg_no'], 'EUC-KR', true)
                             ];
@@ -692,7 +696,7 @@ function nice_build_ancestors_list($conn, $dog) {
                         if ($mmm_dog) {
                             $ancestors[] = [
                                 'type' => 'motherMotherMother',
-                                'name' => kkc_convert($mmm_dog['fullname'] ?? $mmm_dog['name'], 'EUC-KR', true),
+                                'name' => kkc_convert(!empty($mmm_dog['name']) ? $mmm_dog['name'] : ($mmm_dog['fullname'] ?? ''), 'EUC-KR', true),
                                 'saho' => kkc_convert(!empty($mmm_dog['saho']) ? $mmm_dog['saho'] : ($mmm_dog['saho_eng'] ?? ''), 'EUC-KR', true),
                                 'reg_no' => kkc_convert($mmm_dog['reg_no'], 'EUC-KR', true)
                             ];
@@ -1177,7 +1181,8 @@ function nice_notify_screening_result($conn, $poss_ci, $reg_no, $status, $order_
         $father = $conn ? nice_get_parent_info($conn, $dog['fa_regno'] ?? ($req['father_reg_no'] ?? '')) : ['name'=>'', 'reg_no'=>'', 'saho'=>''];
         $mother = $conn ? nice_get_parent_info($conn, $dog['mo_regno'] ?? ($req['mother_reg_no'] ?? '')) : ['name'=>'', 'reg_no'=>'', 'saho'=>''];
         
-        $plain['name'] = kkc_convert($dog['fullname'] ?? ($dog['name'] ?? ($req['name'] ?? '')), 'EUC-KR', true);
+        $target_dog_name = !empty($dog['name']) ? $dog['name'] : (!empty($req['name']) ? $req['name'] : ($dog['fullname'] ?? ''));
+        $plain['name'] = kkc_convert($target_dog_name, 'EUC-KR', true);
         $plain['saho'] = kkc_convert($dog['saho'] ?? ($req['saho'] ?? ''), 'EUC-KR', true);
         $plain['dog_classTab_name'] = (is_string($breed_name) && mb_check_encoding($breed_name, 'UTF-8')) ? $breed_name : kkc_convert($breed_name, 'EUC-KR', true);
         $plain['micro'] = kkc_convert($dog['micro'] ?? ($req['micro'] ?? ''), 'EUC-KR', true);
@@ -1911,11 +1916,11 @@ function nice_admin_pedigree_action($input) {
     $mo_match = !empty($input_mo_reg) ? nice_fetch_dog_by_reg_no($conn, $input_mo_reg) : null;
 
     $final_fa_uid = $fa_match ? (!empty($fa_match['uid']) ? $fa_match['uid'] : $fa_match['reg_no']) : $input_fa_reg;
-    $final_fa_name = $fa_match ? kkc_convert($fa_match['fullname'] ?? ($fa_match['name'] ?? $input_fa_name), 'EUC-KR', true) : $input_fa_name;
+    $final_fa_name = $fa_match ? kkc_convert(!empty($fa_match['name']) ? $fa_match['name'] : (!empty($fa_match['fullname']) ? $fa_match['fullname'] : $input_fa_name), 'EUC-KR', true) : $input_fa_name;
     $final_fa_saho = $fa_match ? kkc_convert(!empty($fa_match['saho']) ? $fa_match['saho'] : ($fa_match['saho_eng'] ?? $input_fa_saho), 'EUC-KR', true) : $input_fa_saho;
 
     $final_mo_uid = $mo_match ? (!empty($mo_match['uid']) ? $mo_match['uid'] : $mo_match['reg_no']) : $input_mo_reg;
-    $final_mo_name = $mo_match ? kkc_convert($mo_match['fullname'] ?? ($mo_match['name'] ?? $input_mo_name), 'EUC-KR', true) : $input_mo_name;
+    $final_mo_name = $mo_match ? kkc_convert(!empty($mo_match['name']) ? $mo_match['name'] : (!empty($mo_match['fullname']) ? $mo_match['fullname'] : $input_mo_name), 'EUC-KR', true) : $input_mo_name;
     $final_mo_saho = $mo_match ? kkc_convert(!empty($mo_match['saho']) ? $mo_match['saho'] : ($mo_match['saho_eng'] ?? $input_mo_saho), 'EUC-KR', true) : $input_mo_saho;
 
     $fa_name = kkc_convert($final_fa_name, 'EUC-KR', false);
