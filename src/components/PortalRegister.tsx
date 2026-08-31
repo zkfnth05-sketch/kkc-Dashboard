@@ -38,8 +38,16 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
     }
   }, [smsTimer]);
 
-  // 📱 NICE 아이핀 팝업 성공 postMessage 수신 리스너
+  // 📱 NICE 본인인증 팝업 성공 postMessage 수신 리스너 (휴대폰 번호 자동 추출 및 포맷팅)
   useEffect(() => {
+    const formatPhone = (raw?: string) => {
+      if (!raw) return '';
+      const clean = raw.replace(/[^0-9]/g, '');
+      if (clean.length === 11) return clean.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+      if (clean.length === 10) return clean.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+      return raw;
+    };
+
     const handlePostMessage = async (e: MessageEvent) => {
       if (e.data && e.data.type === 'NICE_AUTH_SUCCESS') {
         const { web_transaction_id } = e.data;
@@ -49,24 +57,30 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
           const res = await portalNiceGetVerifiedData(web_transaction_id);
           if (res.success) {
             const user = res.data;
-            const formattedBirth = user.birthdate ? user.birthdate.substring(2) : '';
+            const formattedBirth = user.birthdate 
+              ? (user.birthdate.length >= 8 ? user.birthdate.substring(2) : user.birthdate)
+              : '';
+            const formattedHp = formatPhone(user.mobile_no);
             
             setFormData(prev => ({
               ...prev,
               name: user.name || prev.name,
               birth: formattedBirth || prev.birth,
-              hp: user.mobile_no || prev.hp,
+              hp: formattedHp || prev.hp,
               nice_ci: user.ci || '',
               nice_di: user.di || ''
             }));
             
             setIsIpinVerified(true);
-            alert(`아이핀 인증 성공: ${user.name}님 환영합니다.`);
+            if (formattedHp) {
+              setIsHpVerified(true);
+            }
+            alert(`✅ NICE 본인인증 성공: ${user.name}님 환영합니다.`);
           } else {
-            setError(res.error || '아이핀 인증 결과 확인 실패');
+            setError(res.error || 'NICE 인증 결과 확인 실패');
           }
         } catch (err: any) {
-          setError(err.message || '아이핀 인증 처리 중 오류');
+          setError(err.message || 'NICE 인증 처리 중 오류');
         }
         setIsLoading(false);
       }
@@ -80,7 +94,8 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
     setIsLoading(true);
     setError('');
     try {
-      const res = await portalGetNiceAuthUrl();
+      // 휴대폰 본인확인('M') + 아이핀('I') 통합 지원
+      const res = await portalGetNiceAuthUrl(['M', 'I']);
       if (res.success && res.data && res.data.auth_url) {
         const width = 480;
         const height = 812;
@@ -92,10 +107,10 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
           `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no`
         );
       } else {
-        setError(res.error || '아이핀 인증 요청 실패');
+        setError(res.error || 'NICE 인증 요청 실패');
       }
     } catch (err: any) {
-      setError(err.message || '아이핀 인증 요청 오류');
+      setError(err.message || 'NICE 인증 요청 오류');
     }
     setIsLoading(false);
   };

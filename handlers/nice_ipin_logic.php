@@ -81,12 +81,16 @@ function kkf_portal_get_nice_auth_url($input) {
         $return_url = "https://kkc3349.mycafe24.com/portal_bridg.php?mode=nice_callback"
                     . "&req_no=" . urlencode($request_no);
         
+        $svc_types = (isset($input['svc_types']) && is_array($input['svc_types']) && !empty($input['svc_types']))
+            ? $input['svc_types']
+            : ['M', 'I']; // 휴대폰 본인확인('M') + 아이핀('I') 통합 인증
+
         $ch = curl_init($url_api);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
             'request_no' => $request_no,
             'return_url' => $return_url,
-            'svc_types' => ['I'], // 아이핀 전용
+            'svc_types' => $svc_types,
             'method_type' => 'GET',
             'exp_mods' => ['closeButtonOn']
         ]));
