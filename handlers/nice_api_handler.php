@@ -490,10 +490,47 @@ function nice_handle_detail($data) {
     $father = nice_get_parent_info($conn, $dog['fa_regno']);
     $mother = nice_get_parent_info($conn, $dog['mo_regno']);
     
+    // 🐕 부모견 텍스트 필드(sire_name_text / dam_name_text) 폴백 보완
+    $fa_name = !empty($father['name']) ? $father['name'] : kkc_convert($dog['sire_name_text'] ?? '', 'EUC-KR', true);
+    $fa_reg = !empty($father['reg_no']) ? $father['reg_no'] : kkc_convert($dog['sire_reg_no_text'] ?? '', 'EUC-KR', true);
+    $fa_saho = !empty($father['saho']) ? $father['saho'] : '';
+    
+    $mo_name = !empty($mother['name']) ? $mother['name'] : kkc_convert($dog['dam_name_text'] ?? '', 'EUC-KR', true);
+    $mo_reg = !empty($mother['reg_no']) ? $mother['reg_no'] : kkc_convert($dog['dam_reg_no_text'] ?? '', 'EUC-KR', true);
+    $mo_saho = !empty($mother['saho']) ? $mother['saho'] : '';
+    
     $formatted_birth = nice_format_date_ymd($dog['birth'] ?? '');
     $formatted_reg_date = nice_format_datetime_ymdhis($dog['reg_date'] ?? '');
     
     $dog_name = !empty($dog['name']) ? $dog['name'] : ($dog['fullname'] ?? '');
+    
+    // 🔢 출산수 및 등록수 파싱 (dongtae_no 지원)
+    $birth_m = 0; $birth_f = 0; $reg_count_m = 0; $reg_count_f = 0;
+    if (isset($dog['birth_m']) && is_numeric($dog['birth_m']) && (intval($dog['birth_m']) > 0 || intval($dog['birth_f'] ?? 0) > 0)) {
+        $birth_m = intval($dog['birth_m']);
+        $birth_f = intval($dog['birth_f'] ?? 0);
+        $reg_count_m = intval($dog['reg_count_m'] ?? 0);
+        $reg_count_f = intval($dog['reg_count_f'] ?? 0);
+    } elseif (!empty($dog['dongtae_no'])) {
+        $dt = trim((string)$dog['dongtae_no']);
+        if (preg_match('/^(\d)(\d)$/', $dt, $dt_m)) {
+            $birth_m = intval($dt_m[1]);
+            $birth_f = intval($dt_m[2]);
+            $reg_count_m = $birth_m;
+            $reg_count_f = $birth_f;
+        } elseif (is_numeric($dt)) {
+            $val = intval($dt);
+            if ($val >= 10 && $val <= 99) {
+                $birth_m = intval(floor($val / 10));
+                $birth_f = intval($val % 10);
+            } else {
+                $birth_m = $val;
+                $birth_f = 0;
+            }
+            $reg_count_m = $birth_m;
+            $reg_count_f = $birth_f;
+        }
+    }
     
     $res = [
         'result_cd' => 'S000',
@@ -512,24 +549,24 @@ function nice_handle_detail($data) {
         'birth' => $formatted_birth,
         'reg_date' => $formatted_reg_date,
         'regDate' => $formatted_reg_date,
-        'birth_m' => isset($dog['birth_m']) ? intval($dog['birth_m']) : 0,
-        'birth_M' => isset($dog['birth_m']) ? intval($dog['birth_m']) : 0,
-        'birth_f' => isset($dog['birth_f']) ? intval($dog['birth_f']) : 0,
-        'birth_F' => isset($dog['birth_f']) ? intval($dog['birth_f']) : 0,
-        'reg_count_m' => isset($dog['reg_count_m']) ? intval($dog['reg_count_m']) : 0,
-        'reg_count_M' => isset($dog['reg_count_m']) ? intval($dog['reg_count_m']) : 0,
-        'reg_count_f' => isset($dog['reg_count_f']) ? intval($dog['reg_count_f']) : 0,
-        'reg_count_F' => isset($dog['reg_count_f']) ? intval($dog['reg_count_f']) : 0,
-        'father_name' => $father['name'],
-        'father_reg_no' => $father['reg_no'],
-        'father_saho' => $father['saho'] ?? '',
-        'fa_name' => $father['name'],
-        'fa_regno' => $father['reg_no'],
-        'mother_name' => $mother['name'],
-        'mother_reg_no' => $mother['reg_no'],
-        'mother_saho' => $mother['saho'] ?? '',
-        'mo_name' => $mother['name'],
-        'mo_regno' => $mother['reg_no'],
+        'birth_m' => $birth_m,
+        'birth_M' => $birth_m,
+        'birth_f' => $birth_f,
+        'birth_F' => $birth_f,
+        'reg_count_m' => $reg_count_m,
+        'reg_count_M' => $reg_count_m,
+        'reg_count_f' => $reg_count_f,
+        'reg_count_F' => $reg_count_f,
+        'father_name' => $fa_name,
+        'father_reg_no' => $fa_reg,
+        'father_saho' => $fa_saho,
+        'fa_name' => $fa_name,
+        'fa_regno' => $fa_reg,
+        'mother_name' => $mo_name,
+        'mother_reg_no' => $mo_reg,
+        'mother_saho' => $mo_saho,
+        'mo_name' => $mo_name,
+        'mo_regno' => $mo_reg,
         'anc_name' => isset($dog['anc_name']) ? kkc_convert($dog['anc_name'], 'EUC-KR', true) : kkc_convert($dog_name, 'EUC-KR', true),
         'anc_saho' => isset($dog['anc_saho']) ? kkc_convert($dog['anc_saho'], 'EUC-KR', true) : kkc_convert($dog['saho_eng'], 'EUC-KR', true),
         'ancestors' => nice_build_ancestors_list($conn, $dog)
@@ -723,9 +760,19 @@ function nice_fetch_dog_by_reg_no($conn, $query_str) {
     $e_orig = $conn->real_escape_string(kkc_convert($query_str, 'EUC-KR', false));
     
     $conn->query("SET NAMES 'binary'");
-    // 🛡️ 나이스는 오직 nice_dogTab에서만, 오직 등록번호(reg_no) 또는 UID로만 조회 (dogTab 조회 금지, 이름 조회 금지)
+    // 1. nice_dogTab에서 먼저 조회 (등록번호 또는 UID)
     $res = $conn->query("SELECT * FROM nice_dogTab WHERE reg_no IN ('$e_np', '$e_clean', '$e_orig') OR uid = '$e_clean' LIMIT 1");
-    return ($res && $res->num_rows > 0) ? $res->fetch_assoc() : null;
+    if ($res && $res->num_rows > 0) {
+        return $res->fetch_assoc();
+    }
+    
+    // 2. dogTab(정식 혈통서 원본 테이블)에서 조회 (등록번호 또는 UID)
+    $res2 = $conn->query("SELECT * FROM dogTab WHERE reg_no IN ('$e_clean', '$e_orig') OR uid = '$e_clean' LIMIT 1");
+    if ($res2 && $res2->num_rows > 0) {
+        return $res2->fetch_assoc();
+    }
+    
+    return null;
 }
 
 /**
