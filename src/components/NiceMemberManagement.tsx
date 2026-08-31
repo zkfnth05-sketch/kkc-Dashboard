@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, UserCheck, ShieldAlert, Calendar, MapPin, Download, RefreshCw, Trash2, Edit, CheckCircle, Dog } from 'lucide-react';
+import { Search, UserCheck, ShieldAlert, ShieldCheck, Calendar, MapPin, Download, RefreshCw, Trash2, Edit, CheckCircle, Dog } from 'lucide-react';
 import { niceAdminFetchMembers, niceAdminDeleteMember } from '../services/portalService';
 
 interface NiceMember {
@@ -288,7 +288,7 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
                   <th className="py-4 px-6">생년월일</th>
                   <th className="py-4 px-6">휴대폰 번호</th>
                   <th className="py-4 px-6">소유견 등록번호</th>
-                  <th className="py-4 px-6">NICE 고유인증키 (CI)</th>
+                  <th className="py-4 px-6">NICE 본인인증 상태</th>
                   <th className="py-4 px-6">인증/가입일시</th>
                   <th className="py-4 px-6 text-center">관리</th>
                 </tr>
@@ -329,7 +329,10 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <code className="text-xs bg-slate-50 px-2 py-1 rounded text-slate-500 font-mono border border-slate-100">{maskCi(m.ci)}</code>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-black shadow-xs">
+                        <ShieldCheck size={13} className="text-emerald-600" />
+                        NICE 인증완료
+                      </span>
                     </td>
                     <td className="py-4 px-6 text-slate-400 font-medium text-xs">{m.verified_at || '-'}</td>
                     <td className="py-4 px-6 text-center" onClick={(e) => e.stopPropagation()}>
@@ -413,16 +416,15 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
                 <h4 className="text-xs font-black text-indigo-600 mb-3 uppercase tracking-wider">🛡️ NICE 본인확인 정보</h4>
                 <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
                   <div>
-                    <div className="text-xs font-black text-slate-400 mb-1">인증 일시</div>
+                    <div className="text-xs font-black text-slate-400 mb-1.5">NICE 실명인증 상태</div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-black">
+                      <ShieldCheck size={13} className="text-emerald-600" />
+                      NICE 실명인증 완료 (안전 보관)
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-black text-slate-400 mb-1">인증 완료 일시</div>
                     <div className="text-xs font-mono font-bold text-slate-700">{selectedMember.verified_at || '-'}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-black text-slate-400 mb-1">NICE 고유 연결값 (CI)</div>
-                    <div className="text-[10px] font-mono bg-white p-2 rounded border border-slate-200 text-slate-600 break-all select-all">{maskCi(selectedMember.ci)}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-black text-slate-400 mb-1">NICE 중복 가입 확인값 (DI)</div>
-                    <div className="text-[10px] font-mono bg-white p-2 rounded border border-slate-200 text-slate-600 break-all select-all">{maskCi(selectedMember.di)}</div>
                   </div>
                 </div>
               </div>

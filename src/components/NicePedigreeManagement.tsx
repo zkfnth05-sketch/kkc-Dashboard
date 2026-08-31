@@ -1511,7 +1511,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                     </div>
 
                     <div className="col-span-2 flex flex-col">
-                      <span className="text-xs font-black text-slate-400">소유자 CI (클릭 시 회원조회)</span>
+                      <span className="text-xs font-black text-slate-400">NICE 실명인증 회원 정보</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -1524,9 +1524,13 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                             }
                           }
                         }}
-                        className="text-xs font-mono font-bold text-indigo-600 hover:text-indigo-800 hover:underline text-left mt-1 bg-indigo-50/50 p-2 rounded border border-indigo-100 break-all w-full cursor-pointer transition-colors"
+                        className="text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100/70 text-left mt-1 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 flex items-center justify-between w-full cursor-pointer transition-all shadow-xs"
                       >
-                        {maskCi(selectedPedigree.poss_ci)} ➔
+                        <span className="flex items-center gap-1.5">
+                          <ShieldCheck size={14} className="text-emerald-600" />
+                          NICE 실명인증 완료 회원
+                        </span>
+                        <span className="text-xs font-bold text-emerald-600">회원 상세 조회 ➔</span>
                       </button>
                     </div>
                   </div>
