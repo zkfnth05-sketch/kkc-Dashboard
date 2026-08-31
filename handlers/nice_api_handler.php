@@ -504,31 +504,27 @@ function nice_handle_detail($data) {
     
     $dog_name = !empty($dog['name']) ? $dog['name'] : ($dog['fullname'] ?? '');
     
-    // 🔢 출산수 및 등록수 파싱 (dongtae_no 지원)
+    // 🔢 출산수 및 등록수 조회 (dongtaeTab 실데이터 직접 연동)
     $birth_m = 0; $birth_f = 0; $reg_count_m = 0; $reg_count_f = 0;
     if (isset($dog['birth_m']) && is_numeric($dog['birth_m']) && (intval($dog['birth_m']) > 0 || intval($dog['birth_f'] ?? 0) > 0)) {
         $birth_m = intval($dog['birth_m']);
         $birth_f = intval($dog['birth_f'] ?? 0);
         $reg_count_m = intval($dog['reg_count_m'] ?? 0);
         $reg_count_f = intval($dog['reg_count_f'] ?? 0);
-    } elseif (!empty($dog['dongtae_no'])) {
-        $dt = trim((string)$dog['dongtae_no']);
-        if (preg_match('/^(\d)(\d)$/', $dt, $dt_m)) {
-            $birth_m = intval($dt_m[1]);
-            $birth_f = intval($dt_m[2]);
-            $reg_count_m = $birth_m;
-            $reg_count_f = $birth_f;
-        } elseif (is_numeric($dt)) {
-            $val = intval($dt);
-            if ($val >= 10 && $val <= 99) {
-                $birth_m = intval(floor($val / 10));
-                $birth_f = intval($val % 10);
-            } else {
-                $birth_m = $val;
-                $birth_f = 0;
-            }
-            $reg_count_m = $birth_m;
-            $reg_count_f = $birth_f;
+    } elseif (!empty($dog['dongtae_no']) && $dog['dongtae_no'] !== '-' && $dog['dongtae_no'] !== '0') {
+        $dt_no = trim((string)$dog['dongtae_no']);
+        $e_dt_no = $conn->real_escape_string(kkc_convert($dt_no, 'EUC-KR', false));
+        $dt_res = $conn->query("SELECT birth_M, birth_F, reg_count_M, reg_count_F FROM dongtaeTab WHERE dongtae_no = '$e_dt_no' LIMIT 1");
+        if ($dt_res && $dt_row = $dt_res->fetch_assoc()) {
+            $birth_m = intval($dt_row['birth_M'] ?? 0);
+            $birth_f = intval($dt_row['birth_F'] ?? 0);
+            $reg_count_m = intval($dt_row['reg_count_M'] ?? 0);
+            $reg_count_f = intval($dt_row['reg_count_F'] ?? 0);
+        } else {
+            $birth_m = intval($dog['birth_num'] ?? 0);
+            $birth_f = 0;
+            $reg_count_m = intval($dog['regist_num'] ?? 0);
+            $reg_count_f = 0;
         }
     }
     
