@@ -173,3 +173,10 @@ export const niceAdminTransferOwnership = (params: {
   poss_ci?: string;
   move_ci?: string;
 }) => portalFetchNice('nice_transfer_ownership', params);
+
+export const niceAdminUpdatePedigreeAll = (data: any) =>
+  portalFetchNice('admin_nice_pedigree_update_all', data);
+
+export const niceAdminGetOwnerHistory = (reg_no?: string, dog_uid?: string | number) =>
+  portalFetchNice('admin_nice_get_owner_history', { reg_no, dog_uid });
+

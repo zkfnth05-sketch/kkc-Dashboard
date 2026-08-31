@@ -289,6 +289,11 @@ try {
                 case 'admin_nice_pedigree_action':
                     $res_data = nice_admin_pedigree_action($input_json);
                     break;
+                case 'admin_nice_pedigree_update_all':
+                    if (function_exists('nice_admin_pedigree_update_all')) {
+                        $res_data = nice_admin_pedigree_update_all($input_json);
+                    }
+                    break;
                 case 'nice_transfer_ownership':
                 case 'admin_nice_pedigree_transfer':
                     if (function_exists('nice_admin_pedigree_transfer')) {
@@ -309,6 +314,11 @@ try {
                     break;
                 case 'admin_nice_lookup_pedigree_tree':
                     $res_data = nice_admin_lookup_pedigree_tree($input_json);
+                    break;
+                case 'admin_nice_get_owner_history':
+                    if (function_exists('nice_admin_get_owner_history')) {
+                        $res_data = nice_admin_get_owner_history($input_json);
+                    }
                     break;
                 case 'admin_inspect_htaccess':
                     $ht_file = dirname(__FILE__) . '/.htaccess';

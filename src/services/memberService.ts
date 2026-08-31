@@ -406,7 +406,9 @@ export const searchAllPersons = async (query: string, table: string = 'memTab', 
                 phone: m.hp || m.mb_hp || m.phone || '', 
                 address: (m.addr || m.mb_addr1 || '') + ' ' + (m.addr_1 || m.mb_addr2 || ''),
                 saho: m.saho || '',
-                sahoEng: m.saho_eng || ''
+                sahoEng: m.saho_eng || '',
+                nice_ci: m.nice_ci || '',
+                nice_verified_at: m.nice_verified_at || ''
             } 
         })), 
         debug: res 

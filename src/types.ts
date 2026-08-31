@@ -135,7 +135,7 @@ export interface DongtaeInfo {
 }
 
 export interface ParentDogInfo { uid: string; name: string; fullname: string; reg_no: string; birth: string; dog_class: string; hair: string; hair_long: string; saho_eng: string; foreign100: string; foreign_no: string; foreign_no2: string; fa_regno?: string; mo_regno?: string; spec_bone?: string; spec_dna?: string; spec_train?: string; spec_win?: string; spec_win2?: string; sex?: string; gender?: string; spec_male?: string; saho?: string; micro?: string; }
-export interface PersonSearchResult { id: string; name: string; source: string; context: string; data: { id: string; name: string; nameEng: string; phone: string; address: string; }; }
+export interface PersonSearchResult { id: string; name: string; source: string; context: string; data: { id: string; name: string; nameEng: string; phone: string; address: string; saho?: string; sahoEng?: string; nice_ci?: string; nice_verified_at?: string; }; }
 export interface OwnerHistory { uid: string; dog_uid: string; reg_no: string; change_date: string; poss_id: string; poss_name: string; poss_name_eng: string; poss_addr: string; poss_phone: string; sign_date?: string; }
 
 export const MEMBER_RANK_MAP: Record<string, string> = {

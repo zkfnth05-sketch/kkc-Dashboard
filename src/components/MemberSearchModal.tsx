@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PersonSearchResult } from '../types';
 import { searchAllPersons } from '../services/memberService';
-import { X, Loader2, Search, User, Terminal, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Loader2, Search, User, Terminal, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
 
 interface PersonSearchModalProps {
   isOpen: boolean;
@@ -147,11 +147,21 @@ export const PersonSearchModal: React.FC<PersonSearchModalProps> = ({
                   className="p-3 border border-transparent hover:border-blue-200 hover:bg-blue-50 cursor-pointer rounded-sm transition-all group flex justify-between items-center"
                 >
                   <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-gray-900 text-[15px]">{person.name}</span>
                         <span className="text-[11px] text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
                            {person.context}
                         </span>
+                        {Boolean(person.data.nice_ci) ? (
+                          <span className="text-[10px] text-emerald-700 font-black bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1 shadow-2xs">
+                            <ShieldCheck size={11} className="text-emerald-600" />
+                            NICE 연동완료 (CI 보유)
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 flex items-center gap-1">
+                            ⚠️ NICE 미연동
+                          </span>
+                        )}
                       </div>
                       <div className="text-xs text-gray-500 mt-1 flex flex-col gap-1">
                         <div className="truncate">

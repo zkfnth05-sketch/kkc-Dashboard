@@ -177,6 +177,21 @@ try {
                     $output = ['success' => false, 'error' => 'nice_admin_pedigree_action 함수 누락'];
                 }
                 break;
+            case 'admin_nice_pedigree_update_all':
+                if (function_exists('nice_admin_pedigree_update_all')) {
+                    $output = nice_admin_pedigree_update_all($input);
+                } else {
+                    $output = ['success' => false, 'error' => 'nice_admin_pedigree_update_all 함수 누락'];
+                }
+                break;
+            case 'nice_transfer_ownership':
+            case 'admin_nice_pedigree_transfer':
+                if (function_exists('nice_admin_pedigree_transfer')) {
+                    $output = nice_admin_pedigree_transfer($input);
+                } else {
+                    $output = ['success' => false, 'error' => 'nice_admin_pedigree_transfer 함수 누락'];
+                }
+                break;
             case 'admin_nice_pedigree_delete':
                 if (function_exists('nice_admin_pedigree_delete')) {
                     $output = nice_admin_pedigree_delete($input);
@@ -203,6 +218,13 @@ try {
                     $output = nice_admin_lookup_pedigree_tree($input);
                 } else {
                     $output = ['success' => false, 'error' => 'nice_admin_lookup_pedigree_tree 함수 누락'];
+                }
+                break;
+            case 'admin_nice_get_owner_history':
+                if (function_exists('nice_admin_get_owner_history')) {
+                    $output = nice_admin_get_owner_history($input);
+                } else {
+                    $output = ['success' => false, 'error' => 'nice_admin_get_owner_history 함수 누락'];
                 }
                 break;
             default:

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Award, ShieldCheck, FileText, Calendar, Trash2, Edit, RefreshCw, Printer, Download, Eye, Check, X, Image as ImageIcon, Info, Sparkles, Loader2 } from 'lucide-react';
-import { niceAdminFetchPedigrees, niceAdminPedigreeAction, niceAdminDeletePedigree, niceAdminFetchBreedColors, niceAdminGenerateRegNo, niceAdminLookupPedigreeTree } from '../services/portalService';
+import { Search, Award, ShieldCheck, FileText, Calendar, Trash2, Edit, RefreshCw, Printer, Download, Eye, Check, X, Image as ImageIcon, Info, Sparkles, Loader2, History } from 'lucide-react';
+import { niceAdminFetchPedigrees, niceAdminPedigreeAction, niceAdminDeletePedigree, niceAdminFetchBreedColors, niceAdminGenerateRegNo, niceAdminLookupPedigreeTree, niceAdminUpdatePedigreeAll, niceAdminGetOwnerHistory } from '../services/portalService';
 import { fetchHairs, fetchDogClasses, checkRegNoExists, fetchLastRegNo } from '../services/pedigreeService';
 import { runSqlBatch } from '../services/memberService';
 import { SearchableColorSelect } from './SearchableColorSelect';
+import { PersonSearchModal } from './MemberSearchModal';
+import { PersonSearchResult } from '../types';
 
 interface NicePedigree {
   uid: number;
@@ -197,7 +199,42 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
   const [editBreederName, setEditBreederName] = useState('');
   const [editBreederAddr, setEditBreederAddr] = useState('');
   const [editPossName, setEditPossName] = useState('');
+  const [editPossId, setEditPossId] = useState('');
+  const [editReqMobile, setEditReqMobile] = useState('');
   const [editPossAddr, setEditPossAddr] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // 소유자 변경 이력 (poss_changeTab) State
+  const [ownerHistory, setOwnerHistory] = useState<any[]>([]);
+  const [isLoadingOwnerHistory, setIsLoadingOwnerHistory] = useState(false);
+
+  const loadOwnerHistory = async (regNo?: string, dogUid?: string | number) => {
+    const r = (regNo || editRegNo || selectedPedigree?.reg_no || '').trim();
+    const u = dogUid || selectedPedigree?.uid;
+    if (!r && !u) {
+      setOwnerHistory([]);
+      return;
+    }
+    setIsLoadingOwnerHistory(true);
+    try {
+      const res = await niceAdminGetOwnerHistory(r, u);
+      if (res && res.success && Array.isArray(res.data)) {
+        setOwnerHistory(res.data);
+      } else {
+        setOwnerHistory([]);
+      }
+    } catch (err) {
+      console.error('소유자 변경 이력 조회 오류:', err);
+      setOwnerHistory([]);
+    } finally {
+      setIsLoadingOwnerHistory(false);
+    }
+  };
+
+  // 회원 검색 모달 (소유자 / 번식자 검색) State
+  const [isPersonSearchModalOpen, setIsPersonSearchModalOpen] = useState(false);
+  const [searchTarget, setSearchTarget] = useState<'owner' | 'breeder'>('owner');
+  const [searchInitialQuery, setSearchInitialQuery] = useState('');
 
   // 관리자 직접 지정/수정용 부모견 및 족보 State
   const [editFaName, setEditFaName] = useState('');
@@ -305,6 +342,8 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 
       const pName = (selectedPedigree.poss_name || selectedPedigree.owner_name || '').trim();
       setEditPossName(pName === '-' ? '' : pName);
+      setEditPossId(selectedPedigree.owner_id || '');
+      setEditReqMobile(selectedPedigree.req_mobile || '');
 
       const pAddr = (selectedPedigree.poss_addr || '').trim();
       setEditPossAddr(pAddr === '-' ? '' : pAddr);
@@ -346,6 +385,9 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
           setSelectedGroup(found.group);
         }
       }
+
+      // 소유자 변경 이력 로드
+      loadOwnerHistory(selectedPedigree.reg_no, selectedPedigree.uid);
     } else {
       setEditDogName('');
       setEditSex('M');
@@ -361,6 +403,8 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       setEditBreederName('');
       setEditBreederAddr('');
       setEditPossName('');
+      setEditPossId('');
+      setEditReqMobile('');
       setEditPossAddr('');
       setEditHair('');
       setEditBreed('');
@@ -373,8 +417,98 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       setEditMoSaho('');
       setTreeAncestors([]);
       setSelectedGroup('');
+      setOwnerHistory([]);
     }
   }, [selectedPedigree, dogClasses]);
+
+  // 회원 검색 모달 선택 완료 핸들러
+  const handlePersonSelect = (person: PersonSearchResult) => {
+    if (searchTarget === 'owner') {
+      setEditPossName(person.name || '');
+      setEditPossId(person.data?.id || person.id || '');
+      setEditReqMobile(person.data?.phone || '');
+      setEditPossAddr(person.data?.address || '');
+    } else if (searchTarget === 'breeder') {
+      setEditBreederName(person.name || '');
+      setEditBreederAddr(person.data?.address || '');
+      if (person.data?.saho) setEditSaho(person.data.saho);
+      if (person.data?.sahoEng) setEditSahoEng(person.data.sahoEng);
+    }
+    setIsPersonSearchModalOpen(false);
+  };
+
+  // 승인 완료된 모바일 혈통서 전체 수정 및 일괄 저장 핸들러
+  const handleSaveAllUpdates = async () => {
+    if (!selectedPedigree) return;
+    if (!editBreed.trim()) {
+      showAlert('견종 선택 필요', '견종을 선택해 주세요.');
+      return;
+    }
+    if (!editHair.trim()) {
+      showAlert('모색 입력 필요', '모색(털 색상)을 입력해 주세요.');
+      return;
+    }
+    if (!editRegNo.trim()) {
+      showAlert('등록번호 입력 필요', '등록번호를 입력해 주세요.');
+      return;
+    }
+
+    const isOwnerChange = (selectedPedigree.poss_name || selectedPedigree.owner_name) !== editPossName;
+    const confirmTitle = isOwnerChange ? '소유자 변경 및 전체 정보 수정' : '모바일 혈통서 정보 수정';
+    const confirmMsg = isOwnerChange
+      ? `소유자가 [${selectedPedigree.poss_name || selectedPedigree.owner_name || '-'}] ➔ [${editPossName}] (으)로 변경됩니다.\n\n• 직전 소유자 정보가 소유자 변경 이력(poss_changeTab)에 자동 등록됩니다.\n• NICE 금융망(API 005)으로 실시간 소유권 이전 통보가 전송됩니다.\n\n수정 사항을 저장하시겠습니까?`
+      : `[${editDogName || selectedPedigree.dog_name}] 모바일 혈통서의 수정된 전체 정보를 DB에 일괄 저장하시겠습니까?`;
+
+    showConfirm(confirmTitle, confirmMsg, async () => {
+      setIsSavingEdit(true);
+      try {
+        const payload = {
+          uid: selectedPedigree.uid,
+          hair: editHair,
+          breed_name: editBreed,
+          dog_classTab_name: editBreed,
+          reg_no: editRegNo,
+          dog_name: editDogName,
+          name: editDogName,
+          sex: editSex,
+          micro: editMicro,
+          birth: editBirth,
+          saho: editSaho,
+          saho_eng: editSahoEng,
+          breeder_name: editBreederName,
+          breeder_addr: editBreederAddr,
+          poss_name: editPossName,
+          poss_id: editPossId,
+          poss_phone: editReqMobile,
+          poss_addr: editPossAddr,
+          birth_m: editBirthM === '' ? 0 : Number(editBirthM),
+          birth_f: editBirthF === '' ? 0 : Number(editBirthF),
+          reg_count_m: editRegCountM === '' ? 0 : Number(editRegCountM),
+          reg_count_f: editRegCountF === '' ? 0 : Number(editRegCountF),
+          reg_date: editRegDate,
+          fa_name: editFaName,
+          fa_regno: editFaReg,
+          fa_saho: editFaSaho,
+          mo_name: editMoName,
+          mo_regno: editMoReg,
+          mo_saho: editMoSaho
+        };
+
+        const res = await niceAdminUpdatePedigreeAll(payload);
+        if (res && res.success) {
+          showAlert('수정 완료', res.message || '모바일 혈통서 전체 정보가 성공적으로 수정 저장되었습니다.');
+          loadData();
+          loadOwnerHistory(editRegNo, selectedPedigree.uid);
+        } else {
+          showAlert('수정 실패', res?.error || '모바일 혈통서 정보 수정 도중 오류가 발생했습니다.');
+        }
+      } catch (err: any) {
+        showAlert('오류', err?.message || '수정 요청 중 네트워크 통신 오류가 발생했습니다.');
+      } finally {
+        setIsSavingEdit(false);
+      }
+    });
+  };
 
   // 심사 처리 피드백 입력란
   const [actionMemo, setActionMemo] = useState('');
@@ -1437,7 +1571,21 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-black text-slate-800 border-b pb-2 mb-3">번식자 정보</h4>
+                  <div className="flex items-center justify-between border-b pb-2 mb-3">
+                    <h4 className="text-sm font-black text-slate-800">번식자 정보</h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchTarget('breeder');
+                        setSearchInitialQuery(editBreederName);
+                        setIsPersonSearchModalOpen(true);
+                      }}
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold border border-slate-300 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                    >
+                      <Search size={12} />
+                      회원 검색
+                    </button>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col">
                       <span className="text-xs font-black text-slate-500 mb-1">번식자 이름</span>
@@ -1464,30 +1612,45 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between border-b pb-2 mb-3">
+                  <div className="border-b pb-2 mb-3">
                     <h4 className="text-sm font-black text-slate-800 font-sans">소유자 및 신청인 정보</h4>
+                  </div>
+                  
+                  {/* 2층: 소유자 검색 & 회원 상세 조회 버튼 나란히 배치 */}
+                  <div className="flex gap-2.5 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchTarget('owner');
+                        setSearchInitialQuery(editPossName);
+                        setIsPersonSearchModalOpen(true);
+                      }}
+                      className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                    >
+                      <Search size={13} />
+                      소유자 변경 (회원 검색) ➔
+                    </button>
                     {(selectedPedigree.poss_ci || selectedPedigree.owner_name || selectedPedigree.poss_name) && (
                       <button
                         type="button"
                         onClick={() => {
                           if (onGoToMember) {
-                            // 🚀 [1순위: CI, 2순위: 실명+휴대폰 2중 복합 매칭]
                             onGoToMember({
                               ci: selectedPedigree.poss_ci,
-                              name: selectedPedigree.poss_name || selectedPedigree.owner_name,
-                              hp: selectedPedigree.req_mobile,
-                              id: selectedPedigree.owner_id
+                              name: editPossName || selectedPedigree.poss_name || selectedPedigree.owner_name,
+                              hp: editReqMobile || selectedPedigree.req_mobile,
+                              id: editPossId || selectedPedigree.owner_id
                             });
                             setSelectedPedigree(null);
                           }
                         }}
-                        className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95"
+                        className="flex-1 py-2 bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs"
                       >
-                        <Search size={13} />
-                        회원 조회 ➔
+                        회원 상세 조회 ➔
                       </button>
                     )}
                   </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <DetailItem label="신청인 (앱 닉네임)" value={selectedPedigree.owner_name || selectedPedigree.poss_name || '-'} />
                     <div className="flex flex-col">
@@ -1500,11 +1663,26 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                         className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       />
                     </div>
-                    <DetailItem 
-                      label="신청자 연락처 (휴대폰)" 
-                      value={selectedPedigree.req_mobile ? (selectedPedigree.req_mobile.replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, '$1-$2-$3')) : '-'} 
-                    />
-                    <div>{/* 2열 격자 맞춤용 */}</div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">소유자 연락처 (휴대폰)</span>
+                      <input
+                        type="text"
+                        value={editReqMobile}
+                        onChange={(e) => setEditReqMobile(e.target.value)}
+                        placeholder="010-0000-0000"
+                        className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-500 mb-1">소유자 회원 ID (포털 ID)</span>
+                      <input
+                        type="text"
+                        value={editPossId}
+                        onChange={(e) => setEditPossId(e.target.value)}
+                        placeholder="회원 ID 입력..."
+                        className="px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
+                      />
+                    </div>
 
                     <div className="col-span-2 flex flex-col">
                       <span className="text-xs font-black text-slate-500 mb-1">소유자 주소</span>
@@ -1523,12 +1701,11 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                         type="button"
                         onClick={() => {
                           if (onGoToMember) {
-                            // 🚀 [1순위: CI, 2순위: 실명+휴대폰 2중 복합 매칭]
                             onGoToMember({
                               ci: selectedPedigree.poss_ci,
-                              name: selectedPedigree.poss_name || selectedPedigree.owner_name,
-                              hp: selectedPedigree.req_mobile,
-                              id: selectedPedigree.owner_id
+                              name: editPossName || selectedPedigree.poss_name || selectedPedigree.owner_name,
+                              hp: editReqMobile || selectedPedigree.req_mobile,
+                              id: editPossId || selectedPedigree.owner_id
                             });
                             setSelectedPedigree(null);
                           }
@@ -1545,7 +1722,55 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                   </div>
                 </div>
 
-          {/* 심사 / 환불 액션 폼 */}
+                {/* 📋 소유자 변경 이력 (poss_changeTab 실시간 조회) */}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <h5 className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                      <History size={14} className="text-indigo-600" />
+                      소유자 변경 이력 (Owner Change History)
+                    </h5>
+                    <span className="text-[11px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">
+                      총 <span className="text-indigo-600 font-extrabold">{ownerHistory.length}</span>건 기록
+                    </span>
+                  </div>
+
+                  {isLoadingOwnerHistory ? (
+                    <div className="flex items-center justify-center py-4 text-slate-400 text-xs gap-1.5">
+                      <Loader2 size={14} className="animate-spin text-indigo-500" />
+                      소유자 변경 이력 불러오는 중...
+                    </div>
+                  ) : ownerHistory.length > 0 ? (
+                    <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+                      {ownerHistory.map((h, idx) => (
+                        <div key={h.uid || idx} className="bg-white p-3 rounded-lg border border-slate-200 text-xs shadow-2xs space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                              <span className="text-[10px] bg-indigo-50 text-indigo-700 font-black px-1.5 py-0.5 rounded border border-indigo-100 font-mono">
+                                #{ownerHistory.length - idx}
+                              </span>
+                              <span className="font-black text-slate-800">{h.poss_name || '이름 없음'}</span>
+                              {h.poss_id && <span className="text-[11px] text-slate-400 font-mono">({h.poss_id})</span>}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded flex items-center gap-1">
+                              <Calendar size={11} className="text-slate-400" />
+                              {h.change_date || h.sign_date || '-'}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-600 flex flex-col gap-0.5 pl-1 border-l-2 border-slate-200">
+                            {h.poss_phone && <span className="font-medium">📞 연락처: {h.poss_phone}</span>}
+                            {h.poss_addr && <span className="truncate text-slate-500">📍 주소: {h.poss_addr}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center text-slate-400 text-xs font-bold bg-white rounded-lg border border-dashed border-slate-200">
+                      등록된 이전 소유자 변경 이력이 없습니다.
+                    </div>
+                  )}
+                </div>
+
+          {/* 심사 / 환불 액션 폼 또는 승인 완료건 일괄 수정 저장 */}
           {(selectedPedigree.status === 'P' || selectedPedigree.status === 'R') ? (
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
               <h5 className="text-sm font-black text-slate-800 flex items-center gap-1.5">
@@ -1604,20 +1829,26 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
               )}
             </div>
           ) : (
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-5">
-              <h5 className="text-sm font-black text-slate-400">심사 이력</h5>
-              <div className="mt-3 space-y-2.5">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400 font-bold">처리 결과</span>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+              <div className="flex justify-between items-center text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 font-bold">심사 상태:</span>
                   <span>{getStatusBadge(selectedPedigree.status)}</span>
                 </div>
-                <div className="text-xs">
-                  <div className="text-slate-400 font-bold mb-1">관리자 메모</div>
-                  <div className="bg-white p-3 rounded-lg border border-slate-200 font-bold text-slate-700">
-                    {selectedPedigree.admin_memo || '남겨진 메모가 없습니다.'}
-                  </div>
-                </div>
+                {selectedPedigree.admin_memo && (
+                  <span className="text-slate-400 font-medium">메모: {selectedPedigree.admin_memo}</span>
+                )}
               </div>
+
+              <button
+                type="button"
+                onClick={handleSaveAllUpdates}
+                disabled={isSavingEdit}
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-98 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-lg shadow-blue-100 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                {isSavingEdit ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                {isSavingEdit ? '전체 정보 저장 및 동기화 중...' : '💾 모바일 혈통서 전체 수정사항 저장하기 (소유자 변경 동기화)'}
+              </button>
             </div>
           )}
         </div>
@@ -1635,11 +1866,22 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
           <ImageDocCard label="문서 4 (기타 증명)" path={selectedPedigree.image4_path} />
         </div>
       </div>
-    </div>
-          </div >
-        </div >
+          </div>
+        </div>
+      </div>
       )}
-    </div >
+
+      {/* 🔍 소유자 / 번식자 회원 검색 모달 */}
+      {isPersonSearchModalOpen && (
+        <PersonSearchModal
+          isOpen={isPersonSearchModalOpen}
+          onClose={() => setIsPersonSearchModalOpen(false)}
+          onSelectPerson={handlePersonSelect}
+          title={searchTarget === 'owner' ? '소유자(회원) 검색 및 선택' : '번식자(회원) 검색 및 선택'}
+          initialQuery={searchInitialQuery}
+        />
+      )}
+    </div>
   );
 };
 
