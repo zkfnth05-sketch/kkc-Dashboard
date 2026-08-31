@@ -420,9 +420,21 @@ const App: React.FC = () => {
                   showConfirm={showConfirm}
                   onGoToPoints={(regNo) => { setPointSearch({ query: regNo, field: 'regNo' }); jumpToTab('포인트 관리'); }}
                   onGoToPrizes={() => jumpToTab('상력 관리')}
-                  onGoToMember={(loginId) => {
-                    const isCI = loginId.length > 20 && !loginId.includes('@');
-                    setNiceMemberSearch({ query: loginId, field: isCI ? 'ci' : 'name' });
+                  onGoToMember={(target: any) => {
+                    if (typeof target === 'string') {
+                      const isCI = target.length > 20 && !target.includes('@');
+                      setNiceMemberSearch({ query: target, field: isCI ? 'ci' : 'name' });
+                    } else if (target && typeof target === 'object') {
+                      if (target.ci && target.ci.trim() !== '') {
+                        setNiceMemberSearch({ query: target.ci, field: 'ci', name: target.name, hp: target.hp });
+                      } else if (target.name && target.name.trim() !== '') {
+                        setNiceMemberSearch({ query: target.name, field: 'name', name: target.name, hp: target.hp });
+                      } else if (target.hp && target.hp.trim() !== '') {
+                        setNiceMemberSearch({ query: target.hp, field: 'hp', hp: target.hp });
+                      } else if (target.id && target.id.trim() !== '') {
+                        setNiceMemberSearch({ query: target.id, field: 'id' });
+                      }
+                    }
                     jumpToTab('NICE 회원관리');
                   }}
                   initialSearch={nicePedigreeSearch}

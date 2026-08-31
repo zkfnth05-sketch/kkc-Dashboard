@@ -84,7 +84,7 @@ interface NicePedigreeManagementProps {
   showConfirm: (title: string, message: string, onConfirm: () => void) => void;
   onGoToPoints: (regNo: string) => void;
   onGoToPrizes: () => void;
-  onGoToMember: (loginId: string) => void;
+  onGoToMember: (target: string | { ci?: string; name?: string; hp?: string; id?: string }) => void;
   initialSearch?: { query: string; field: string } | null;
   onSearchHandled?: () => void;
 }
@@ -1471,12 +1471,14 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                         type="button"
                         onClick={() => {
                           if (onGoToMember) {
-                            // 🚀 [1순위: 본인인증 고유 CI, 2순위: 신청인 무명/소유자명]
-                            const searchTarget = selectedPedigree.poss_ci || selectedPedigree.owner_name || selectedPedigree.poss_name || '';
-                            if (searchTarget) {
-                              onGoToMember(searchTarget);
-                              setSelectedPedigree(null);
-                            }
+                            // 🚀 [1순위: CI, 2순위: 실명+휴대폰 2중 복합 매칭]
+                            onGoToMember({
+                              ci: selectedPedigree.poss_ci,
+                              name: selectedPedigree.poss_name || selectedPedigree.owner_name,
+                              hp: selectedPedigree.req_mobile,
+                              id: selectedPedigree.owner_id
+                            });
+                            setSelectedPedigree(null);
                           }
                         }}
                         className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95"
@@ -1521,12 +1523,14 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                         type="button"
                         onClick={() => {
                           if (onGoToMember) {
-                            // 🚀 [1순위: 신청인의 실제 고유 poss_ci, 2순위: 신청인 로그인 ID]
-                            const target = selectedPedigree.poss_ci || selectedPedigree.owner_id || selectedPedigree.owner_name;
-                            if (target) {
-                              onGoToMember(target);
-                              setSelectedPedigree(null);
-                            }
+                            // 🚀 [1순위: CI, 2순위: 실명+휴대폰 2중 복합 매칭]
+                            onGoToMember({
+                              ci: selectedPedigree.poss_ci,
+                              name: selectedPedigree.poss_name || selectedPedigree.owner_name,
+                              hp: selectedPedigree.req_mobile,
+                              id: selectedPedigree.owner_id
+                            });
+                            setSelectedPedigree(null);
                           }
                         }}
                         className="text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100/70 text-left mt-1 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 flex items-center justify-between w-full cursor-pointer transition-all shadow-xs"

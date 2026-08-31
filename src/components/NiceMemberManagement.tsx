@@ -19,7 +19,7 @@ interface NiceMemberManagementProps {
   showAlert: (title: string, message: string) => void;
   showConfirm: (title: string, message: string, onConfirm: () => void) => void;
   onSearchPedigree?: (regNo: string) => void;
-  initialSearch?: { query: string; field: string } | null;
+  initialSearch?: { query: string; field: string; name?: string; hp?: string } | null;
   onSearchHandled?: () => void;
 }
 
@@ -39,6 +39,8 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const rawCiRef = React.useRef<string>('');
+
+  const cleanHp = (str?: string) => (str || '').replace(/[^0-9]/g, '');
 
   const maskCi = (ci?: string) => {
     if (!ci) return '-';
@@ -61,9 +63,20 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
         setMembers(res.data || []);
         setTotalCount(res.total || 0);
         if (res.data && res.data.length > 0) {
-          setSelectedMember(res.data[0]);
-          if (field === 'ci' && rawCiRef.current) {
-            setDisplaySearchQuery(res.data[0].name);
+          // 🚀 [1순위: CI, 2순위: 실명+휴대폰 번호 2중 복합 매칭]
+          if (initialSearch?.hp && field === 'name') {
+            const exactHpMatch = res.data.find((m: NiceMember) => m.hp && cleanHp(m.hp) === cleanHp(initialSearch.hp));
+            if (exactHpMatch) {
+              setSelectedMember(exactHpMatch);
+              setDisplaySearchQuery(exactHpMatch.name);
+            } else {
+              setSelectedMember(res.data[0]);
+            }
+          } else {
+            setSelectedMember(res.data[0]);
+            if (field === 'ci' && rawCiRef.current) {
+              setDisplaySearchQuery(res.data[0].name);
+            }
           }
         } else {
           setSelectedMember(null);
@@ -89,11 +102,11 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
       if (f === 'ci' && q.length > 20) {
         rawCiRef.current = q;
         setSearchQuery(q);
-        setDisplaySearchQuery('NICE 실명인증 회원');
+        setDisplaySearchQuery(initialSearch.name || 'NICE 실명인증 회원');
       } else {
         rawCiRef.current = '';
         setSearchQuery(q);
-        setDisplaySearchQuery(q);
+        setDisplaySearchQuery(initialSearch.name || q);
       }
       
       setSearchField(f);
