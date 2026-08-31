@@ -12,7 +12,8 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
     id: '', passwd: '', confirmPasswd: '', name: '', name_eng: '', 
     birth: '', hp: '', phone: '', email: '', 
     zipcode: '', addr: '', addr_1: '',
-    zipcode2: '', addr2: '', addr2_1: '' 
+    zipcode2: '', addr2: '', addr2_1: '',
+    nice_ci: '', nice_di: ''
   });
   const [isIdChecked, setIsIdChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +55,9 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
               ...prev,
               name: user.name || prev.name,
               birth: formattedBirth || prev.birth,
-              hp: user.mobile_no || prev.hp
+              hp: user.mobile_no || prev.hp,
+              nice_ci: user.ci || '',
+              nice_di: user.di || ''
             }));
             
             setIsIpinVerified(true);
