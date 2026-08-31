@@ -1516,8 +1516,8 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
                         type="button"
                         onClick={() => {
                           if (onGoToMember) {
-                            // 🚀 [1순위: 본인인증 고유 CI, 2순위: 신청인 무명/소유자명]
-                            const target = selectedPedigree.poss_ci || selectedPedigree.owner_name || selectedPedigree.poss_name;
+                            // 🚀 [1순위: 신청인의 실제 고유 poss_ci, 2순위: 신청인 로그인 ID]
+                            const target = selectedPedigree.poss_ci || selectedPedigree.owner_id || selectedPedigree.owner_name;
                             if (target) {
                               onGoToMember(target);
                               setSelectedPedigree(null);

@@ -62,6 +62,9 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
         setTotalCount(res.total || 0);
         if (res.data && res.data.length > 0) {
           setSelectedMember(res.data[0]);
+          if (field === 'ci' && rawCiRef.current) {
+            setDisplaySearchQuery(res.data[0].name);
+          }
         } else {
           setSelectedMember(null);
         }
@@ -86,7 +89,7 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
       if (f === 'ci' && q.length > 20) {
         rawCiRef.current = q;
         setSearchQuery(q);
-        setDisplaySearchQuery(maskCi(q));
+        setDisplaySearchQuery('NICE 실명인증 회원');
       } else {
         rawCiRef.current = '';
         setSearchQuery(q);
@@ -209,7 +212,7 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
             <option value="name">실명</option>
             <option value="id">아이디</option>
             <option value="hp">휴대폰 번호</option>
-            <option value="ci">NICE CI</option>
+            <option value="ci">나이스 실명인증</option>
           </select>
 
           <div className="relative flex-1">
@@ -419,7 +422,7 @@ export const NiceMemberManagement: React.FC<NiceMemberManagementProps> = ({
                     <div className="text-xs font-black text-slate-400 mb-1.5">NICE 실명인증 상태</div>
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-black">
                       <ShieldCheck size={13} className="text-emerald-600" />
-                      NICE 실명인증 완료 (안전 보관)
+                      NICE 실명인증 완료
                     </div>
                   </div>
                   <div>
