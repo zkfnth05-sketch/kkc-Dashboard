@@ -1,6 +1,7 @@
 import { Pedigree, ParentDogInfo, OwnerHistory } from '../types';
 import { fetchDogsByRegNos, fetchDogsByUids, fetchOwnerHistory, addOwnerChange, deleteOwnerHistory, fetchPointsByRegNo, fetchPrizesByRegNo } from '../services/memberService';
 import { fetchHairs, addDogClass, addHairColor, fetchDogClasses, deleteDogClass, deleteHairColor } from '../services/pedigreeService';
+import { niceAdminTransferOwnership } from '../services/portalService';
 import { PersonSearchModal } from './MemberSearchModal';
 import { OwnerChangeModal } from './OwnerChangeModal';
 import { SearchableColorSelect } from './SearchableColorSelect';
@@ -401,6 +402,15 @@ export const PedigreeEditForm: React.FC<PedigreeEditFormProps> = ({
         sign_date: new Date().toISOString().split('T')[0]
       };
       await addOwnerChange(dbData, 'poss_changeTab');
+      try {
+        await niceAdminTransferOwnership({
+          reg_no: formData.regNo,
+          old_owner_id: formData.ownerId,
+          new_owner_id: data.poss_id
+        });
+      } catch (transErr) {
+        console.error('NICE transfer notification error:', transErr);
+      }
       setIsOwnerChangeModalOpen(false);
       loadOwnerHistory();
     } catch (e: any) {
