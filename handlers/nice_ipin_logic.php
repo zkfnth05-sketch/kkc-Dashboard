@@ -83,7 +83,7 @@ function kkf_portal_get_nice_auth_url($input) {
         
         $svc_types = (isset($input['svc_types']) && is_array($input['svc_types']) && !empty($input['svc_types']))
             ? $input['svc_types']
-            : ['M', 'I']; // 휴대폰 본인확인('M') + 아이핀('I') 통합 인증
+            : ['I']; // 아이핀 전용 (NICE 계약 Scope)
 
         $ch = curl_init($url_api);
         curl_setopt($ch, CURLOPT_POST, true);

@@ -94,8 +94,8 @@ export const PortalRegister: React.FC<PortalRegisterProps> = ({ onBackToLogin })
     setIsLoading(true);
     setError('');
     try {
-      // 휴대폰 본인확인('M') + 아이핀('I') 통합 지원
-      const res = await portalGetNiceAuthUrl(['M', 'I']);
+      // 아이핀 전용 ('I')
+      const res = await portalGetNiceAuthUrl(['I']);
       if (res.success && res.data && res.data.auth_url) {
         const width = 480;
         const height = 812;
