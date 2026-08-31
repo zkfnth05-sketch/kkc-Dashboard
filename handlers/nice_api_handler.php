@@ -1335,6 +1335,56 @@ function nice_notify_ownership_transfer($poss_ci, $move_ci, $reg_no) {
 }
 
 /**
+ * 🎖️ NICE 소유권 이전 통보 실행 (Admin API)
+ */
+function nice_admin_pedigree_transfer($input) {
+    $conn = get_kkc_portal_db();
+    $reg_no = trim($input['reg_no'] ?? '');
+    $old_owner_id = trim($input['old_owner_id'] ?? '');
+    $new_owner_id = trim($input['new_owner_id'] ?? '');
+    $poss_ci = trim($input['poss_ci'] ?? '');
+    $move_ci = trim($input['move_ci'] ?? '');
+    
+    // CI가 직접 전달되지 않았으면 ID로 DB에서 자동 조회
+    if (empty($poss_ci) && !empty($old_owner_id)) {
+        $e_old = $conn->real_escape_string($old_owner_id);
+        $conn->query("SET NAMES 'binary'");
+        $row = $conn->query("SELECT nice_ci FROM memTab WHERE id = '$e_old' UNION SELECT nice_ci FROM nice_memTab WHERE id = '$e_old'")->fetch_assoc();
+        $poss_ci = $row['nice_ci'] ?? '';
+    }
+    if (empty($move_ci) && !empty($new_owner_id)) {
+        $e_new = $conn->real_escape_string($new_owner_id);
+        $conn->query("SET NAMES 'binary'");
+        $row = $conn->query("SELECT nice_ci FROM memTab WHERE id = '$e_new' UNION SELECT nice_ci FROM nice_memTab WHERE id = '$e_new'")->fetch_assoc();
+        $move_ci = $row['nice_ci'] ?? '';
+    }
+    
+    $conn->close();
+    
+    if (empty($move_ci) && empty($poss_ci)) {
+        return [
+            'success' => true,
+            'is_nice_notified' => false,
+            'message' => 'NICE 인증 회원이 아니므로 협회 내부 소유권 이전만 처리되었습니다.'
+        ];
+    }
+    
+    // 나이스 통보 실행 (API 005)
+    $res = nice_notify_ownership_transfer($poss_ci, $move_ci, $reg_no);
+    $rslt_cd = $res['data']['result_cd'] ?? 'F999';
+    $is_success = ($rslt_cd === 'S000');
+    
+    return [
+        'success' => true,
+        'is_nice_notified' => true,
+        'is_nice_success' => $is_success,
+        'rslt_cd' => $rslt_cd,
+        'nice_response' => $res,
+        'message' => $is_success ? "✔ [NICE 소유권 이전 통보] 정상 전송 완료 (응답코드: S000)" : "⚠️ [NICE 통보 오류] 응답코드: $rslt_cd"
+    ];
+}
+
+/**
  * ==============================================================================
  * ⚙️ [ADMIN DASHBOARD HANDLERS]
  * ==============================================================================

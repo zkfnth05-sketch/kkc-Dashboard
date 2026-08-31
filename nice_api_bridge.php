@@ -289,6 +289,12 @@ try {
                 case 'admin_nice_pedigree_action':
                     $res_data = nice_admin_pedigree_action($input_json);
                     break;
+                case 'nice_transfer_ownership':
+                case 'admin_nice_pedigree_transfer':
+                    if (function_exists('nice_admin_pedigree_transfer')) {
+                        $res_data = nice_admin_pedigree_transfer($input_json);
+                    }
+                    break;
                 case 'admin_nice_member_delete':
                     $res_data = nice_admin_member_delete($input_json);
                     break;

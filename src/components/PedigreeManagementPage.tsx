@@ -15,9 +15,10 @@ import { EvaluationModal } from './EvaluationPage';
 import { PedigreeRegistrationStart } from './PedigreeRegistrationStart';
 import { PedigreeRegistrationForm } from './PedigreeRegistrationForm';
 import { Pedigree, Evaluation } from '../types';
-import { fetchDogsByRegNos, createRecord } from '../services/memberService';
+import { fetchDogsByRegNos, createRecord, addOwnerChange } from '../services/memberService';
 import { fetchPedigrees, updatePedigree, createPedigree, fetchDogClasses, deletePedigree } from '../services/pedigreeService'; 
 import { generateDongtaeNo, saveDongtaeInfo } from '../services/dongtaeService'; // 👈 동태 서비스 추가
+import { niceAdminTransferOwnership } from '../services/portalService';
 
 interface Checkpoint { id: string; timestamp: string; data: any; label: string; targetId: string; }
 
@@ -87,11 +88,45 @@ export const PedigreeManagementPage: React.FC<PedigreeManagementPageProps> = ({
   const handleSavePedigree = async (p: Pedigree) => {
     setIsLoading(true);
     try {
+      const isOwnerChanged = editingPedigree && (
+        (p.owner && editingPedigree.owner && p.owner.trim() !== editingPedigree.owner.trim()) ||
+        (p.ownerId && editingPedigree.ownerId && p.ownerId.trim() !== editingPedigree.ownerId.trim())
+      );
+
+      // 1️⃣ 기존 소유자 변경 시 poss_changeTab에 직전 소유자 이력 자동 아카이빙
+      if (isOwnerChanged && editingPedigree) {
+        try {
+          await addOwnerChange({
+            dog_uid: p.id,
+            reg_no: p.regNo,
+            poss_id: editingPedigree.ownerId || '',
+            poss_name: editingPedigree.owner || '',
+            poss_phone: editingPedigree.ownerPhone || '',
+            poss_addr: editingPedigree.ownerAddr || '',
+            change_date: new Date().toISOString().split('T')[0],
+            sign_date: new Date().toISOString().split('T')[0]
+          }, 'poss_changeTab');
+        } catch (histErr) {
+          console.error('소유자 변경 이력 자동 아카이빙 실패:', histErr);
+        }
+
+        // 2️⃣ NICE 소유권 이전 통보 (API 005)
+        try {
+          await niceAdminTransferOwnership({
+            reg_no: p.regNo,
+            old_owner_id: editingPedigree.ownerId,
+            new_owner_id: p.ownerId
+          });
+        } catch (niceErr) {
+          console.error('NICE 소유권 이전 통보 예외:', niceErr);
+        }
+      }
+
       const res = await updatePedigree(tableName, p);
       if (res.success) {
         setPedigrees(prev => prev.map(item => item.id === p.id ? { ...item, ...p } : item));
         if (selectedPedigree?.id === p.id) setSelectedPedigree({ ...p });
-        showAlert('저장 성공', '혈통서 정보가 수정되었습니다.');
+        showAlert('저장 성공', isOwnerChanged ? '혈통서 수정 및 소유자 변경 이력 등록(NICE 연동 통보)이 완료되었습니다.' : '혈통서 정보가 수정되었습니다.');
         setEditingPedigree(null);
         loadData(currentPage, filters.query, filters.field, filters.rank);
       }

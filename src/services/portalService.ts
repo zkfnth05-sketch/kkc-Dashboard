@@ -165,3 +165,11 @@ export const niceAdminLookupPedigreeTree = (
     mo_regno,
     reg_no
   });
+
+export const niceAdminTransferOwnership = (params: {
+  reg_no: string;
+  old_owner_id?: string;
+  new_owner_id?: string;
+  poss_ci?: string;
+  move_ci?: string;
+}) => portalFetchNice('nice_transfer_ownership', params);
