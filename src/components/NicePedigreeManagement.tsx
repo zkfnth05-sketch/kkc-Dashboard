@@ -546,9 +546,14 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
       ? (action === 'reject' ? '환불 승인(반려 확정)' : '환불 거절(정상 발급)')
       : (action === 'approve' ? '발급 승인' : '심사 반려');
 
+    const confirmTitle = action === 'approve' ? '모바일 혈통서 발급 승인 확인' : `${actionText} 처리`;
+    const confirmMsg = action === 'approve'
+      ? `[${selectedPedigree.dog_name}] 개체의 모바일 혈통서 발급 승인을 진행하시겠습니까?\n\nℹ️ 보안 안내: 발급 승인 통보 완료 시, 개인정보 보호 지침에 따라 신청 시 전송된 임시 본인인증키(CI)는 서버에서 즉시 자동 폐기됩니다.`
+      : `[${selectedPedigree.dog_name}] 개체의 ${actionText} 처리를 진행하시겠습니까?`;
+
     showConfirm(
-      `${actionText} 처리`,
-      `[${selectedPedigree.dog_name}] 개체의 ${actionText} 처리를 진행하시겠습니까?`,
+      confirmTitle,
+      confirmMsg,
       async () => {
         setCurrentAction(action);
         setIsSubmitting(true);

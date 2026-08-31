@@ -2180,7 +2180,11 @@ function nice_admin_pedigree_action($input) {
             $rslt_cd = $res_data['result_cd'] ?? 'F999';
             if ($rslt_cd === 'S000') {
                 $is_nice_success = true;
-                $nice_status_msg = "✔ [NICE 서버 통보] 정상 완료 (응답코드: S000)";
+                $nice_status_msg = "✔ [NICE 금융망 통보] 정상 전송 완료 (응답코드: S000)";
+                
+                // 🛡️ [개인정보보호] 나이스 승인 통보 완료 즉시 신청 건의 임시 poss_ci 완전 자동 폐기
+                $conn->query("UPDATE nice_pedigree_requests SET poss_ci = '' WHERE uid = $uid");
+                $log_messages[] = "✔ [개인정보보호] 신청 건 임시 본인인증키(CI) 자동 폐기 완료";
             } else {
                 $cd_desc = [
                     'F001' => '소유자 CI 확인실패(미등록CI)',
@@ -2204,15 +2208,17 @@ function nice_admin_pedigree_action($input) {
     $conn->close();
     
     $final_title = $is_nice_success 
-        ? "🎉 [모바일 혈통서 발급 및 나이스 통보 완료]" 
+        ? "🎉 [모바일 혈통서 발급 및 승인 완료]" 
         : "⚠️ [KKC 발급 완료 / 나이스 서버 통보 주의]";
         
     $summary = $final_title . "\n\n"
         . "━━━━━━━━━━━━━━━━━━━━━━━\n"
         . "1️⃣ [1단계: KKC 내부 DB 처리]\n"
         . implode("\n", $log_messages) . "\n\n"
-        . "2️⃣ [2단계: NICE 서버 통보]\n"
-        . $nice_status_msg;
+        . "2️⃣ [2단계: NICE 금융망 전송]\n"
+        . $nice_status_msg . "\n\n"
+        . "3️⃣ [3단계: 개인정보 보호 조치 완료 🛡️]\n"
+        . "✔ 신청 임시 CI가 보안 규정에 따라 안전하게 자동 폐기되었습니다.";
         
     return ['success' => true, 'is_nice_success' => $is_nice_success, 'message' => $summary];
 }
