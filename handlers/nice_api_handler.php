@@ -1327,7 +1327,7 @@ function nice_notify_ownership_transfer($poss_ci, $move_ci, $reg_no) {
         'move_ci' => $move_ci,
         'reg_no' => $reg_no
     ];
-    $env = defined('NICE_API_ENV') ? NICE_API_ENV : 'UAT';
+    $env = defined('NICE_API_ENV') ? NICE_API_ENV : 'PROD';
     $product_id = ($env === 'PROD') 
         ? (defined('NICE_PRODUCT_ID_TRANSFER_PROD') ? NICE_PRODUCT_ID_TRANSFER_PROD : '2601941116')
         : (defined('NICE_PRODUCT_ID_TRANSFER_UAT') ? NICE_PRODUCT_ID_TRANSFER_UAT : '2601687173');
@@ -1342,21 +1342,58 @@ function nice_admin_pedigree_transfer($input) {
     $reg_no = trim($input['reg_no'] ?? '');
     $old_owner_id = trim($input['old_owner_id'] ?? '');
     $new_owner_id = trim($input['new_owner_id'] ?? '');
+    $old_owner_name = trim($input['old_owner_name'] ?? '');
+    $new_owner_name = trim($input['new_owner_name'] ?? '');
+    $old_owner_phone = trim($input['old_owner_phone'] ?? '');
+    $new_owner_phone = trim($input['new_owner_phone'] ?? '');
     $poss_ci = trim($input['poss_ci'] ?? '');
     $move_ci = trim($input['move_ci'] ?? '');
     
-    // CI가 직접 전달되지 않았으면 ID로 DB에서 자동 조회
-    if (empty($poss_ci) && !empty($old_owner_id)) {
-        $e_old = $conn->real_escape_string($old_owner_id);
-        $conn->query("SET NAMES 'binary'");
-        $row = $conn->query("SELECT nice_ci FROM memTab WHERE id = '$e_old' UNION SELECT nice_ci FROM nice_memTab WHERE id = '$e_old'")->fetch_assoc();
-        $poss_ci = $row['nice_ci'] ?? '';
+    // 1. 기존 소유자 CI 탐색
+    if (empty($poss_ci)) {
+        if (!empty($old_owner_id)) {
+            $e_old = $conn->real_escape_string($old_owner_id);
+            $conn->query("SET NAMES 'binary'");
+            $row = $conn->query("SELECT nice_ci FROM memTab WHERE id = '$e_old' AND nice_ci != '' UNION SELECT nice_ci FROM nice_memTab WHERE id = '$e_old' AND nice_ci != '' LIMIT 1")->fetch_assoc();
+            $poss_ci = $row['nice_ci'] ?? '';
+        }
+        if (empty($poss_ci) && !empty($old_owner_name)) {
+            $e_old_name = $conn->real_escape_string(kkc_convert($old_owner_name, 'EUC-KR', false));
+            $conn->query("SET NAMES 'binary'");
+            $row = $conn->query("SELECT nice_ci FROM memTab WHERE name = '$e_old_name' AND nice_ci != '' UNION SELECT nice_ci FROM nice_memTab WHERE name = '$e_old_name' AND nice_ci != '' LIMIT 1")->fetch_assoc();
+            $poss_ci = $row['nice_ci'] ?? '';
+        }
+        if (empty($poss_ci) && !empty($reg_no)) {
+            $e_reg = $conn->real_escape_string(kkc_convert($reg_no, 'EUC-KR', false));
+            $row = $conn->query("SELECT poss_id FROM nice_dogTab WHERE reg_no = '$e_reg' UNION SELECT poss_id FROM dogTab WHERE reg_no = '$e_reg' LIMIT 1")->fetch_assoc();
+            $f_id = $row['poss_id'] ?? '';
+            if (!empty($f_id)) {
+                $e_fid = $conn->real_escape_string($f_id);
+                $row2 = $conn->query("SELECT nice_ci FROM memTab WHERE id = '$e_fid' AND nice_ci != '' UNION SELECT nice_ci FROM nice_memTab WHERE id = '$e_fid' AND nice_ci != '' LIMIT 1")->fetch_assoc();
+                $poss_ci = $row2['nice_ci'] ?? '';
+            }
+        }
     }
-    if (empty($move_ci) && !empty($new_owner_id)) {
-        $e_new = $conn->real_escape_string($new_owner_id);
-        $conn->query("SET NAMES 'binary'");
-        $row = $conn->query("SELECT nice_ci FROM memTab WHERE id = '$e_new' UNION SELECT nice_ci FROM nice_memTab WHERE id = '$e_new'")->fetch_assoc();
-        $move_ci = $row['nice_ci'] ?? '';
+
+    // 2. 신규 소유자 CI 탐색
+    if (empty($move_ci)) {
+        if (!empty($new_owner_id)) {
+            $e_new = $conn->real_escape_string($new_owner_id);
+            $conn->query("SET NAMES 'binary'");
+            $row = $conn->query("SELECT nice_ci FROM memTab WHERE id = '$e_new' AND nice_ci != '' UNION SELECT nice_ci FROM nice_memTab WHERE id = '$e_new' AND nice_ci != '' LIMIT 1")->fetch_assoc();
+            $move_ci = $row['nice_ci'] ?? '';
+        }
+        if (empty($move_ci) && !empty($new_owner_name)) {
+            $e_new_name = $conn->real_escape_string(kkc_convert($new_owner_name, 'EUC-KR', false));
+            $conn->query("SET NAMES 'binary'");
+            $row = $conn->query("SELECT nice_ci FROM memTab WHERE name = '$e_new_name' AND nice_ci != '' UNION SELECT nice_ci FROM nice_memTab WHERE name = '$e_new_name' AND nice_ci != '' LIMIT 1")->fetch_assoc();
+            $move_ci = $row['nice_ci'] ?? '';
+        }
+        if (empty($move_ci) && !empty($new_owner_phone)) {
+            $clean_hp = preg_replace('/[^0-9]/', '', $new_owner_phone);
+            $row = $conn->query("SELECT nice_ci FROM memTab WHERE REPLACE(hp, '-', '') = '$clean_hp' AND nice_ci != '' UNION SELECT nice_ci FROM nice_memTab WHERE REPLACE(hp, '-', '') = '$clean_hp' AND nice_ci != '' LIMIT 1")->fetch_assoc();
+            $move_ci = $row['nice_ci'] ?? '';
+        }
     }
     
     $conn->close();
@@ -1371,7 +1408,7 @@ function nice_admin_pedigree_transfer($input) {
     
     // 나이스 통보 실행 (API 005)
     $res = nice_notify_ownership_transfer($poss_ci, $move_ci, $reg_no);
-    $rslt_cd = $res['data']['result_cd'] ?? 'F999';
+    $rslt_cd = $res['data']['result_cd'] ?? ($res['data']['resultCd'] ?? 'F999');
     $is_success = ($rslt_cd === 'S000');
     
     return [
@@ -1379,6 +1416,8 @@ function nice_admin_pedigree_transfer($input) {
         'is_nice_notified' => true,
         'is_nice_success' => $is_success,
         'rslt_cd' => $rslt_cd,
+        'poss_ci' => $poss_ci,
+        'move_ci' => $move_ci,
         'nice_response' => $res,
         'message' => $is_success ? "✔ [NICE 소유권 이전 통보] 정상 전송 완료 (응답코드: S000)" : "⚠️ [NICE 통보 오류] 응답코드: $rslt_cd"
     ];
@@ -1556,6 +1595,7 @@ function nice_admin_pedigree_list($input) {
                 'micro' => $row['micro'],
                 'owner_name' => $row['req_name'],
                 'owner_id' => $row['petpin'],
+                'poss_id' => $row['petpin'] ?? ($row['poss_id'] ?? ''),
                 'sire_name' => $row['father_name'],
                 'dam_name' => $row['mother_name'],
                 'registered_at' => $row['created_at'],
@@ -2447,8 +2487,11 @@ function nice_admin_pedigree_update_all($input) {
 
     // 2. 소유자 변경 감지 시 poss_changeTab 이력 아카이빙 및 나이스 소유권 이전 통보 (API 005)
     $is_owner_changed = (!empty($in_poss_name) && !empty($old_poss_name) && $in_poss_name !== $old_poss_name);
+    $transfer_result = null;
+    $updated_poss_ci = $req['poss_ci'] ?? '';
+
     if ($is_owner_changed) {
-        // A) poss_changeTab에 직전 소유자 이력 저장
+        // A) 직전 소유자 ID 및 개체 UID 조회
         $conn->query("SET NAMES 'binary'");
         $e_old_name = $conn->real_escape_string(kkc_convert($old_poss_name, 'EUC-KR', false));
         $e_old_addr = $conn->real_escape_string(kkc_convert($req['poss_addr'] ?? '', 'EUC-KR', false));
@@ -2456,22 +2499,37 @@ function nice_admin_pedigree_update_all($input) {
         $e_reg = $conn->real_escape_string(kkc_convert($in_reg_no, 'EUC-KR', false));
         $today = date('Y-m-d');
 
-        // dog_uid 조회
-        $d_row = $conn->query("SELECT uid, poss_id FROM dogTab WHERE reg_no = '$e_reg' LIMIT 1")->fetch_assoc();
+        $d_row = $conn->query("SELECT uid, poss_id FROM nice_dogTab WHERE reg_no = '$e_reg' UNION SELECT uid, poss_id FROM dogTab WHERE reg_no = '$e_reg' LIMIT 1")->fetch_assoc();
         $dog_uid = intval($d_row['uid'] ?? 0);
-        $old_poss_id = $d_row['poss_id'] ?? '';
+        $old_poss_id = $d_row['poss_id'] ?? ($req['petpin'] ?? '');
 
+        if (empty($in_poss_id) && !empty($in_poss_name)) {
+            $e_in_name = $conn->real_escape_string(kkc_convert($in_poss_name, 'EUC-KR', false));
+            $u_row = $conn->query("SELECT id FROM memTab WHERE name = '$e_in_name' UNION SELECT id FROM nice_memTab WHERE name = '$e_in_name' LIMIT 1")->fetch_assoc();
+            if (!empty($u_row['id'])) {
+                $in_poss_id = $u_row['id'];
+            }
+        }
+
+        // B) poss_changeTab에 직전 소유자 이력 저장
         $conn->query("INSERT INTO poss_changeTab (dog_uid, reg_no, poss_name, poss_id, poss_phone, poss_addr, change_date, sign_date) 
                       VALUES ($dog_uid, '$e_reg', '$e_old_name', '$old_poss_id', '$e_old_phone', '$e_old_addr', '$today', '$today')");
 
-        // B) NICE 소유권 이전 통보 (API 005)
+        // C) NICE 소유권 이전 통보 (API 005)
         if (function_exists('nice_admin_pedigree_transfer')) {
-            nice_admin_pedigree_transfer([
+            $transfer_result = nice_admin_pedigree_transfer([
                 'reg_no' => $in_reg_no,
                 'old_owner_id' => $old_poss_id,
                 'new_owner_id' => $in_poss_id,
+                'old_owner_name' => $old_poss_name,
+                'new_owner_name' => $in_poss_name,
+                'old_owner_phone' => $req['req_mobile'] ?? '',
+                'new_owner_phone' => $in_poss_phone,
                 'poss_ci' => $req['poss_ci'] ?? ''
             ]);
+            if (!empty($transfer_result['move_ci'])) {
+                $updated_poss_ci = $transfer_result['move_ci'];
+            }
         }
     }
 
@@ -2492,6 +2550,8 @@ function nice_admin_pedigree_update_all($input) {
         poss_name = '" . $conn->real_escape_string($in_poss_name) . "',
         poss_addr = '" . $conn->real_escape_string($in_poss_addr) . "',
         req_mobile = '" . $conn->real_escape_string($in_poss_phone) . "',
+        poss_ci = '" . $conn->real_escape_string($updated_poss_ci) . "',
+        petpin = '" . $conn->real_escape_string($in_poss_id) . "',
         birth_m = $in_birth_m,
         birth_f = $in_birth_f,
         reg_count_m = $in_reg_count_m,
@@ -2500,19 +2560,24 @@ function nice_admin_pedigree_update_all($input) {
         father_name = '" . $conn->real_escape_string($final_fa_name) . "',
         father_reg_no = '" . $conn->real_escape_string($final_fa_uid) . "',
         father_saho = '" . $conn->real_escape_string($final_fa_saho) . "',
+        fa_saho = '" . $conn->real_escape_string($final_fa_saho) . "',
         mother_name = '" . $conn->real_escape_string($final_mo_name) . "',
         mother_reg_no = '" . $conn->real_escape_string($final_mo_uid) . "',
         mother_saho = '" . $conn->real_escape_string($final_mo_saho) . "',
+        mo_saho = '" . $conn->real_escape_string($final_mo_saho) . "',
         reg_no = '" . $conn->real_escape_string($in_reg_no) . "'
     WHERE uid = $uid");
 
-    // 4. dogTab / nice_dogTab 실데이터 동시 갱신
+    // 4. nice_dogTab / dogTab 실데이터 동시 갱신 (EUC-KR 변환 적용)
+    $breed_code = nice_resolve_breed_key($conn, $in_breed_name);
+    if (empty($breed_code)) $breed_code = $in_breed_name;
+
     $conn->query("SET NAMES 'binary'");
     $e_name = $conn->real_escape_string(kkc_convert($in_dog_name, 'EUC-KR', false));
     $e_sex = $conn->real_escape_string(kkc_convert($in_sex, 'EUC-KR', false));
     $e_micro = $conn->real_escape_string(kkc_convert($in_micro, 'EUC-KR', false));
     $e_birth = $conn->real_escape_string(kkc_convert($in_birth, 'EUC-KR', false));
-    $e_breed = $conn->real_escape_string(kkc_convert($in_breed_name, 'EUC-KR', false));
+    $e_breed_code = $conn->real_escape_string(kkc_convert($breed_code, 'EUC-KR', false));
     $e_hair = $conn->real_escape_string(kkc_convert($in_hair, 'EUC-KR', false));
     $e_saho = $conn->real_escape_string(kkc_convert($in_saho, 'EUC-KR', false));
     $e_saho_eng = $conn->real_escape_string(kkc_convert($in_saho_eng, 'EUC-KR', false));
@@ -2524,12 +2589,53 @@ function nice_admin_pedigree_update_all($input) {
     $e_poss_addr = $conn->real_escape_string(kkc_convert($in_poss_addr, 'EUC-KR', false));
     $e_reg = $conn->real_escape_string(kkc_convert($in_reg_no, 'EUC-KR', false));
 
-    $dog_update_sql = "UPDATE dogTab SET
+    $e_fa_name = $conn->real_escape_string(kkc_convert($final_fa_name, 'EUC-KR', false));
+    $e_fa_regno = $conn->real_escape_string(kkc_convert($final_fa_uid, 'EUC-KR', false));
+    $e_fa_saho = $conn->real_escape_string(kkc_convert($final_fa_saho, 'EUC-KR', false));
+    $e_mo_name = $conn->real_escape_string(kkc_convert($final_mo_name, 'EUC-KR', false));
+    $e_mo_regno = $conn->real_escape_string(kkc_convert($final_mo_uid, 'EUC-KR', false));
+    $e_mo_saho = $conn->real_escape_string(kkc_convert($final_mo_saho, 'EUC-KR', false));
+
+    // A) nice_dogTab (나이스 모바일 혈통서 실원부) 갱신
+    $nice_dog_update_sql = "UPDATE nice_dogTab SET
         name = '$e_name',
+        fullname = '$e_name',
         sex = '$e_sex',
         micro = '$e_micro',
         birth = '$e_birth',
-        dog_class = '$e_breed',
+        dog_class = '$e_breed_code',
+        hair = '$e_hair',
+        saho = '$e_saho',
+        saho_eng = '$e_saho_eng',
+        breed_name = '$e_breeder',
+        breed_addr = '$e_breeder_addr',
+        poss_name = '$e_poss_name',
+        poss_id = '$e_poss_id',
+        poss_phone = '$e_poss_phone',
+        poss_addr = '$e_poss_addr',
+        birth_m = $in_birth_m,
+        birth_f = $in_birth_f,
+        reg_count_m = $in_reg_count_m,
+        reg_count_f = $in_reg_count_f,
+        fa_name = '$e_fa_name',
+        fa_regno = '$e_fa_regno',
+        fa_saho = '$e_fa_saho',
+        father_saho = '$e_fa_saho',
+        mo_name = '$e_mo_name',
+        mo_regno = '$e_mo_regno',
+        mo_saho = '$e_mo_saho',
+        mother_saho = '$e_mo_saho'
+    WHERE reg_no = '$e_reg'";
+    $conn->query($nice_dog_update_sql);
+
+    // B) dogTab (일반 협회 혈통서 실원부) 갱신 (레거시 스키마 준수)
+    $dog_update_sql = "UPDATE dogTab SET
+        name = '$e_name',
+        fullname = '$e_name',
+        sex = '$e_sex',
+        micro = '$e_micro',
+        birth = '$e_birth',
+        dog_class = '$e_breed_code',
         hair = '$e_hair',
         saho = '$e_saho',
         saho_eng = '$e_saho_eng',
@@ -2540,7 +2646,9 @@ function nice_admin_pedigree_update_all($input) {
         poss_phone = '$e_poss_phone',
         poss_addr = '$e_poss_addr',
         birth_num = $in_birth_m,
-        regist_num = $in_reg_count_m
+        regist_num = $in_reg_count_m,
+        fa_regno = '$e_fa_regno',
+        mo_regno = '$e_mo_regno'
     WHERE reg_no = '$e_reg'";
     $conn->query($dog_update_sql);
 
@@ -2549,8 +2657,11 @@ function nice_admin_pedigree_update_all($input) {
     return [
         'success' => true,
         'is_owner_changed' => $is_owner_changed,
+        'transfer_result' => $transfer_result,
         'message' => $is_owner_changed 
-            ? '모바일 혈통서 수정 및 소유자 변경(이력 등록 및 NICE 통보)이 성공적으로 완료되었습니다.'
+            ? (($transfer_result && !empty($transfer_result['is_nice_success'])) 
+                ? '✔ 모바일 혈통서 수정 및 소유자 변경 (NICE 통보 및 DB 동기화 완료)' 
+                : ('모바일 혈통서 수정 완료 ' . ($transfer_result['message'] ?? '')))
             : '모바일 혈통서 전체 정보가 성공적으로 수정 저장되었습니다.'
     ];
 }

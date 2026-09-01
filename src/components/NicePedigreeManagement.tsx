@@ -342,7 +342,7 @@ export const NicePedigreeManagement: React.FC<NicePedigreeManagementProps> = ({
 
       const pName = (selectedPedigree.poss_name || selectedPedigree.owner_name || '').trim();
       setEditPossName(pName === '-' ? '' : pName);
-      setEditPossId(selectedPedigree.owner_id || '');
+      setEditPossId(selectedPedigree.owner_id || selectedPedigree.poss_id || '');
       setEditReqMobile(selectedPedigree.req_mobile || '');
 
       const pAddr = (selectedPedigree.poss_addr || '').trim();
