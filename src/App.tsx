@@ -28,7 +28,9 @@ import { AlertCircle, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
 
 const DEFAULT_URL = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? '/bridg.php'
-  : 'https://kkc3349.mycafe24.com/bridg.php';
+  : (typeof window !== 'undefined' && !window.location.hostname.includes('vercel.app')
+      ? `${window.location.origin}/bridg.php`
+      : 'https://kkc.or.kr/bridg.php');
 
 const GlobalModal = ({ isOpen, type, title, message, onConfirm, onCancel }: any) => {
   if (!isOpen) return null;
@@ -260,7 +262,7 @@ const App: React.FC = () => {
         }}
         onBack={() => {
           // 🏠 워드프레스 메인 홈페이지로 이동
-          window.location.href = "https://kkc3349.mycafe24.com";
+          window.location.href = "https://kkc.or.kr";
         }}
       />
     );
@@ -283,7 +285,7 @@ const App: React.FC = () => {
         }} 
         onBackToCompetition={() => {
           // 🏠 워드프레스 메인 홈페이지로 이동
-          window.location.href = "https://kkc3349.mycafe24.com";
+          window.location.href = "https://kkc.or.kr";
         }}
       />
     );

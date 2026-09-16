@@ -485,7 +485,7 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
                       <td className="py-2 border-r border-gray-200">
                         {dog.photo ? (
                           <img
-                            src={`https://kkc3349.mycafe24.com/data/dog/${dog.photo}`}
+                            src={`https://kkc.or.kr/data/dog/${dog.photo}`}
                             alt={dog.name}
                             className="w-10 h-10 object-cover mx-auto rounded-sm border border-gray-200"
                             onError={(e) => {

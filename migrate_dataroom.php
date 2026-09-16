@@ -62,7 +62,7 @@ foreach ($legacy_forms as $form) {
     $file_name = trim($form['userfile']);
     
     // 신규 업로드 폴더 주소 매핑
-    $file_url = "https://kkc3349.mycafe24.com/wp-content/uploads/dataroom/" . $file_name;
+    $file_url = "https://kkc.or.kr/wp-content/uploads/dataroom/" . $file_name;
 
     // 🚀 [중복 방지 체크] 이미 해당 UID로 복사된 내역이 있는지 조회
     $existing_post = $wpdb->get_var(

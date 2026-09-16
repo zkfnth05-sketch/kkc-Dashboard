@@ -117,7 +117,7 @@ export const NoticeManagementPage: React.FC<NoticeManagementPageProps> = ({ tabl
       onSearch={(_, q) => { setFilters({ query: q }); loadData(1, q); }}
       onPageChange={(p) => loadData(p, filters.query)}
       onDelete={handleDeleteNotice} onEdit={setEditingNotice} onCreate={() => setIsCreatingNotice(true)}
-      siteUrl="https://kkc3349.mycafe24.com" tableName={tableName} categories={categories}
+      siteUrl="https://kkc.or.kr" tableName={tableName} categories={categories}
     />
   );
 };

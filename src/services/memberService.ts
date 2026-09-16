@@ -3,7 +3,9 @@ import { Member, Pedigree, Notice, PostCategory, ParentDogInfo, PersonSearchResu
 
 export let BRIDGE_URL = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? '/bridg.php'
-    : 'https://kkc3349.mycafe24.com/bridg.php';
+    : (typeof window !== 'undefined' && !window.location.hostname.includes('vercel.app')
+        ? `${window.location.origin}/bridg.php`
+        : 'https://kkc.or.kr/bridg.php');
 export const SECRET_KEY = 'kkc-super-secret-key-change-this-now-12345!';
 
 export const setApiConfig = (url: string) => {

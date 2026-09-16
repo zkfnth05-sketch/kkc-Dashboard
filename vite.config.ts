@@ -11,17 +11,17 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       proxy: {
         '/bridg.php': {
-          target: 'https://kkc3349.mycafe24.com',
+          target: 'https://kkc.or.kr',
           changeOrigin: true,
           secure: false,
         },
         '/portal_bridg.php': {
-          target: 'https://kkc3349.mycafe24.com',
+          target: 'https://kkc.or.kr',
           changeOrigin: true,
           secure: false,
         },
         '/nice_api_bridge.php': {
-          target: 'https://kkc3349.mycafe24.com',
+          target: 'https://kkc.or.kr',
           changeOrigin: true,
           secure: false,
         }

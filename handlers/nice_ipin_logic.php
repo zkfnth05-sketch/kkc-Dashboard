@@ -25,7 +25,7 @@ function kkf_portal_get_nice_auth_url($input) {
         $mock_web_tx = 'mock_tx_' . time() . mt_rand(1000, 9999);
         $mock_tran = 'mock_tran_' . time() . mt_rand(1000, 9999);
         
-        $auth_url = 'https://kkc3349.mycafe24.com/portal_bridg.php?mode=nice_mock_popup&request_no=' . $request_no . '&transaction_id=' . $mock_tran . '&web_transaction_id=' . $mock_web_tx;
+        $auth_url = 'https://kkc.or.kr/portal_bridg.php?mode=nice_mock_popup&request_no=' . $request_no . '&transaction_id=' . $mock_tran . '&web_transaction_id=' . $mock_web_tx;
         
         return [
             'success' => true,
@@ -78,7 +78,7 @@ function kkf_portal_get_nice_auth_url($input) {
         $url_api = "https://auth.niceid.co.kr/ido/intc/v1.0/auth/url";
         
         // NICE 연동 후 돌아올 콜백 리턴 URL
-        $return_url = "https://kkc3349.mycafe24.com/portal_bridg.php?mode=nice_callback"
+        $return_url = "https://kkc.or.kr/portal_bridg.php?mode=nice_callback"
                     . "&req_no=" . urlencode($request_no);
         
         $svc_types = (isset($input['svc_types']) && is_array($input['svc_types']) && !empty($input['svc_types']))
@@ -272,7 +272,7 @@ function kkf_portal_render_nice_mock_popup($input) {
     $req_no = htmlspecialchars($input['request_no'] ?? '');
     $web_tx = htmlspecialchars($input['web_transaction_id'] ?? '');
     
-    $callback_url = "https://kkc3349.mycafe24.com/portal_bridg.php?mode=nice_callback"
+    $callback_url = "https://kkc.or.kr/portal_bridg.php?mode=nice_callback"
                   . "&req_no=" . urlencode($req_no)
                   . "&web_transaction_id=" . urlencode($web_tx);
                   

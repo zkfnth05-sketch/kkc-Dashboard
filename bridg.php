@@ -10,6 +10,10 @@ $allowed_origins = [
     'https://kkf-admin-dashboard.vercel.app',
     'http://localhost:3000',
     'http://localhost:5173',
+    'https://kkc.or.kr',
+    'https://www.kkc.or.kr',
+    'http://kkc.or.kr',
+    'http://www.kkc.or.kr',
     'https://kkc3349.mycafe24.com'
 ];
 
@@ -19,7 +23,7 @@ $is_vercel_preview = (strpos($origin, 'vercel.app') !== false);
 if (in_array($origin, $allowed_origins) || $is_vercel_preview) {
     header("Access-Control-Allow-Origin: $origin");
 } else {
-    header("Access-Control-Allow-Origin: https://kkc-admin-dashboard.vercel.app");
+    header("Access-Control-Allow-Origin: https://kkc.or.kr");
 }
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, X-Auth-Token, Origin, Accept");

@@ -71,10 +71,10 @@ export const PublicCompetitionPage: React.FC = () => {
     };
 
     const getPortalUrl = (params: string) => {
-        // 🚀 [WAF / PORTAL FIX] 워드프레스의 숏코드 오류를 방지하기 위해 
-        // 인증과 신청은 가장 안정적인 Vercel 독립 도메인에서 처리합니다.
-        const VERCEL_BASE = "https://kkc-admin-dashboard.vercel.app";
-        return `${VERCEL_BASE}/${params}`;
+        // 🚀 [PORTAL NAVIGATION] 현재 접속 호스트를 유지하여 세션 유실 방지
+        const base = typeof window !== 'undefined' ? window.location.origin : "https://kkc.or.kr";
+        const cleanParams = params.startsWith('?') ? params : `?${params}`;
+        return `${base}/${cleanParams}`;
     };
 
     const getStatus = (comp: Competition) => {
@@ -199,7 +199,7 @@ export const PublicCompetitionPage: React.FC = () => {
                         <div className="flex items-center gap-4">
                             {/* OFFICIAL WEBSITE BUTTON (PREMIUM) */}
                             <button 
-                                onClick={() => window.location.href = "https://kkc3349.mycafe24.com"}
+                                onClick={() => window.location.href = "https://kkc.or.kr"}
                                 className="group relative flex items-center gap-3 px-6 py-3 bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-teal-200/50 transition-all duration-500 hover:-translate-y-1 active:scale-95 overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-br from-teal-600/0 via-emerald-400/0 to-green-400/0 group-hover:from-teal-600/5 group-hover:via-emerald-400/5 group-hover:to-green-400/5 transition-all duration-700" />

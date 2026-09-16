@@ -150,7 +150,7 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
         </div>
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => window.location.href = "https://kkc3349.mycafe24.com"} 
+            onClick={() => window.location.href = "https://kkc.or.kr"} 
             className="flex items-center gap-2 text-slate-500 hover:bg-slate-100 px-4 py-2 rounded-xl font-bold transition-all border border-slate-200 shadow-sm"
           >
             <Globe size={18} /> 홈페이지
@@ -183,7 +183,7 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
           <div className="flex flex-col md:flex-row items-center md:items-start gap-10 relative z-10">
             <div className="relative">
               <div className="w-32 h-32 bg-gradient-to-br from-blue-600 to-blue-800 rounded-[32px] flex items-center justify-center text-white shadow-2xl shadow-blue-200 overflow-hidden border-4 border-white">
-                {profile.mem_pic ? <img src={`https://kkc3349.mycafe24.com/data/member/${profile.mem_pic}`} alt={safeName} className="w-full h-full object-cover" /> : <span className="text-5xl font-black">{safeName.charAt(0)}</span>}
+                {profile.mem_pic ? <img src={`https://kkc.or.kr/data/member/${profile.mem_pic}`} alt={safeName} className="w-full h-full object-cover" /> : <span className="text-5xl font-black">{safeName.charAt(0)}</span>}
               </div>
               <div className="absolute -bottom-2 -right-2 bg-green-500 text-white p-1.5 rounded-full border-4 border-white shadow-lg"><ShieldCheck size={20} /></div>
             </div>
@@ -320,7 +320,7 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
                 <div key={idx} onClick={() => setSelectedDog(dog)} className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 flex items-center justify-between group hover:shadow-xl hover:translate-y-[-4px] transition-all cursor-pointer">
                   <div className="flex items-center gap-5">
                     <div className="w-20 h-20 bg-slate-50 rounded-2xl overflow-hidden flex items-center justify-center border border-slate-50 group-hover:border-blue-300">
-                      {dog.pix1 ? <img src={`https://kkc3349.mycafe24.com/data/dog/${dog.pix1}`} alt={dog.name} className="w-full h-full object-cover" /> : <Dog size={24} className="text-slate-200" />}
+                      {dog.pix1 ? <img src={`https://kkc.or.kr/data/dog/${dog.pix1}`} alt={dog.name} className="w-full h-full object-cover" /> : <Dog size={24} className="text-slate-200" />}
                     </div>
                     <div><div className="font-black text-lg text-slate-900">{dog.name}</div><div className="text-xs text-slate-400 font-bold tracking-tight">{dog.dog_class} | {dog.reg_no}</div></div>
                   </div>
@@ -422,7 +422,7 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
           <div className="bg-white rounded-[40px] w-full max-w-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh]">
             <div className="bg-blue-600 p-8 text-white relative flex items-center gap-6">
                <button onClick={() => setSelectedDog(null)} className="absolute top-8 right-8 p-2 bg-white/20 rounded-full hover:bg-white/30"><X size={20} /></button>
-               <div className="w-24 h-24 bg-white/10 rounded-2xl overflow-hidden border border-white/20">{selectedDog.pix1 && <img src={`https://kkc3349.mycafe24.com/data/dog/${selectedDog.pix1}`} alt="" className="w-full h-full object-cover" />}</div>
+               <div className="w-24 h-24 bg-white/10 rounded-2xl overflow-hidden border border-white/20">{selectedDog.pix1 && <img src={`https://kkc.or.kr/data/dog/${selectedDog.pix1}`} alt="" className="w-full h-full object-cover" />}</div>
                <div><h2 className="text-3xl font-black tracking-tighter">{selectedDog.name}</h2><p className="font-bold opacity-80">{selectedDog.reg_no}</p></div>
             </div>
             <div className="flex-1 overflow-y-auto p-10 space-y-12">

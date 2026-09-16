@@ -32,7 +32,7 @@ function kkc_pg_register($input) {
     }
 
     // 콜백 주소 정의 (도메인 변경 시에도 자동 적응하도록 동적 site_url() 적용)
-    $base_domain = function_exists('site_url') ? site_url() : 'https://kkc3349.mycafe24.com';
+    $base_domain = function_exists('site_url') ? site_url() : 'https://kkc.or.kr';
     $base_domain = rtrim($base_domain, '/');
     $ok_url = $base_domain . '/payment_callback.php';
     $fail_url = $ok_url . '?status=fail';

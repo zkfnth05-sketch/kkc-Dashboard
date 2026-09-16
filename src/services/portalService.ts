@@ -1,5 +1,17 @@
 
-const PORTAL_BRIDGE_URL = 'https://kkc3349.mycafe24.com/portal_bridg.php';
+const getPortalBridgeUrl = () => {
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return '/portal_bridg.php';
+    }
+    if (!window.location.hostname.includes('vercel.app')) {
+      return `${window.location.origin}/portal_bridg.php`;
+    }
+  }
+  return 'https://kkc.or.kr/portal_bridg.php';
+};
+
+const PORTAL_BRIDGE_URL = getPortalBridgeUrl();
 
 export const portalFetch = async (mode: string, data: any = {}) => {
   try {
@@ -66,7 +78,7 @@ export const portalApproveMembershipApplication = (uid: number, action: 'approve
 // ==============================================================================
 // 🛡️ [NICE API ADMIN PORTAL SERVICE]
 // ==============================================================================
-const NICE_BRIDGE_URL = 'https://kkc3349.mycafe24.com/portal_bridg.php';
+const NICE_BRIDGE_URL = getPortalBridgeUrl();
 
 export const portalFetchNice = async (mode: string, data: any = {}) => {
   try {

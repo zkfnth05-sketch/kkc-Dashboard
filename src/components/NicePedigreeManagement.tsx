@@ -1896,7 +1896,7 @@ const ImageDocCard: React.FC<{ label: string; path?: string }> = ({ label, path 
   const fullUrl = path
     ? (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')
       ? path
-      : `https://kkc3349.mycafe24.com${path.startsWith('/') ? '' : '/'}${path}`)
+      : `https://kkc.or.kr${path.startsWith('/') ? '' : '/'}${path}`)
     : undefined;
 
   return (

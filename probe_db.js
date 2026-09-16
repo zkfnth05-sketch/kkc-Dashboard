@@ -1,6 +1,6 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
-const BRIDGE_URL = 'https://kkc3349.mycafe24.com/bridg.php';
+const BRIDGE_URL = 'https://kkc.or.kr/bridg.php';
 const SECRET_KEY = 'kkc-super-secret-key-change-this-now-12345!';
 
 async function probeDb() {
