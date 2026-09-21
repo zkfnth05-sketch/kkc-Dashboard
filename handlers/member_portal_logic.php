@@ -206,10 +206,6 @@ function kkf_portal_apply_membership($input) {
         $conn = get_kkc_portal_db();
         $conn->query("SET NAMES 'utf8'"); // 신청 내역은 UTF-8로 저장 시도
 
-        // 🔍 [SERVER DEBUG LOG] - 루트 디렉토리에 로그를 남깁니다.
-        $log_data = "\n--- [" . date('Y-m-d H:i:s') . "] ---\n" . "DATA: " . json_encode($input, JSON_UNESCAPED_UNICODE) . "\n";
-        file_put_contents(dirname(dirname(__FILE__)) . '/debug_portal.txt', $log_data, FILE_APPEND);
-
         // 🧬 [FLEXIBLE INPUT PARSING] 
         $src = isset($input['data']) && is_array($input['data']) ? array_merge($input, $input['data']) : $input;
 

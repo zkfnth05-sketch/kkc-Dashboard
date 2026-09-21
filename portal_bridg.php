@@ -31,11 +31,6 @@ try {
     }
 
     $raw_input = file_get_contents('php://input');
-    
-    // 🔍 [ROOT GATEWAY LOG] 무조건 생성되는 로그
-    $log_data = "\n--- [" . date('Y-m-d H:i:s') . "] ---\n" . "RAW GATEWAY: " . $raw_input . "\n";
-    file_put_contents(dirname(__FILE__) . '/debug_gateway.txt', $log_data, FILE_APPEND);
-
     $input = json_decode($raw_input, true);
     if (!$input) $input = array_merge($_GET, $_POST);
 
@@ -91,6 +86,13 @@ try {
             $output = ['success' => false, 'error' => '아이핀 검증 핸들러 함수를 찾을 수 없습니다.'];
         }
     } else if ($mode === 'admin_nice_member_list') {
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
+        $auth_token = $headers['X-Auth-Token'] ?? ($headers['x-auth-token'] ?? ($_SERVER['HTTP_X_AUTH_TOKEN'] ?? ($input['token'] ?? '')));
+        if ($auth_token !== 'kkc-super-secret-key-change-this-now-12345!') {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['success' => false, 'error' => '관리자 인증 토큰이 유효하지 않습니다.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
         $conn = get_kkc_portal_db();
         $page = max(1, intval($input['page'] ?? 1));
         $limit = intval($input['limit'] ?? 50);
@@ -157,6 +159,13 @@ try {
         $conn->close();
         $output = ['success' => true, 'data' => $list, 'total' => $total];
     } else if (strpos($mode, 'admin_nice_') === 0) {
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
+        $auth_token = $headers['X-Auth-Token'] ?? ($headers['x-auth-token'] ?? ($_SERVER['HTTP_X_AUTH_TOKEN'] ?? ($input['token'] ?? '')));
+        if ($auth_token !== 'kkc-super-secret-key-change-this-now-12345!') {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['success' => false, 'error' => '관리자 인증 토큰이 유효하지 않습니다.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
         $handler_file = dirname(__FILE__) . '/handlers/nice_api_handler.php';
         if (file_exists($handler_file)) {
             include_once $handler_file;

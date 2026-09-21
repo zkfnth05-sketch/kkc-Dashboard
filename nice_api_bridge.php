@@ -22,78 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// 임시 데이터 초기화 (초코 및 테스트 심사 건 상태를 심사대기 P로 초기화)
-if (isset($_GET['reset_uid'])) {
-    include_once 'handlers/nice_api_handler.php';
-    $conn = get_kkc_portal_db();
-    $t_uid = intval($_GET['reset_uid']);
-    if ($t_uid > 0) {
-        $conn->query("UPDATE nice_pedigree_requests SET status = 'P', reg_no = '', admin_memo = NULL WHERE uid = $t_uid");
-        $conn->query("DELETE FROM nice_dogTab WHERE reg_no IN (SELECT reg_no FROM nice_pedigree_requests WHERE uid = $t_uid) OR order_no IN (SELECT order_no FROM nice_pedigree_requests WHERE uid = $t_uid)");
-        echo json_encode(['success' => true, 'reset_uid' => $t_uid]);
-    }
-    $conn->close();
-    exit;
-}
 
-if (isset($_GET['reset_test']) || isset($_GET['reset_choco'])) {
-    include_once 'handlers/nice_api_handler.php';
-    $conn = get_kkc_portal_db();
-    $conn->query("UPDATE nice_pedigree_requests SET status = 'P', admin_memo = NULL WHERE uid IN (80, 81) OR name = '초코'");
-    $conn->query("DELETE FROM nice_dogTab WHERE reg_no LIKE '%-NP%' AND (fullname LIKE '%초코%' OR fullname LIKE '%80%' OR uid > 0 AND reg_no IN (SELECT reg_no FROM nice_pedigree_requests WHERE uid IN (80, 81)))");
-    echo "테스트 심사 건(80, 81, 초코)이 심사대기(P) 상태로 초기화되었습니다!";
-    $conn->close();
-    exit;
-}
-
-if (isset($_GET['migrate_db_now'])) {
-    include_once 'handlers/nice_api_handler.php';
-    $conn = get_kkc_portal_db();
-    
-    function column_exists($conn, $table, $column) {
-        $res = $conn->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
-        return ($res && $res->num_rows > 0);
-    }
-    
-    $out = [];
-    $req_cols = [
-        'fa_name' => "VARCHAR(100) DEFAULT NULL",
-        'fa_regno' => "VARCHAR(50) DEFAULT NULL",
-        'mo_name' => "VARCHAR(100) DEFAULT NULL",
-        'mo_regno' => "VARCHAR(50) DEFAULT NULL",
-        'anc_name' => "VARCHAR(100) DEFAULT NULL",
-        'anc_saho' => "VARCHAR(100) DEFAULT NULL"
-    ];
-    foreach ($req_cols as $col => $def) {
-        if (!column_exists($conn, 'nice_pedigree_requests', $col)) {
-            $conn->query("ALTER TABLE `nice_pedigree_requests` ADD `$col` $def");
-            $out[] = "Added $col to nice_pedigree_requests";
-        }
-    }
-    
-    $dog_cols = [
-        'birth_m' => "INT(11) DEFAULT NULL",
-        'birth_f' => "INT(11) DEFAULT NULL",
-        'reg_count_m' => "INT(11) DEFAULT NULL",
-        'reg_count_f' => "INT(11) DEFAULT NULL",
-        'fa_name' => "VARCHAR(100) DEFAULT NULL",
-        'fa_regno' => "VARCHAR(50) DEFAULT NULL",
-        'mo_name' => "VARCHAR(100) DEFAULT NULL",
-        'mo_regno' => "VARCHAR(50) DEFAULT NULL",
-        'anc_name' => "VARCHAR(100) DEFAULT NULL",
-        'anc_saho' => "VARCHAR(100) DEFAULT NULL"
-    ];
-    foreach ($dog_cols as $col => $def) {
-        if (!column_exists($conn, 'nice_dogTab', $col)) {
-            $conn->query("ALTER TABLE `nice_dogTab` ADD `$col` $def");
-            $out[] = "Added $col to nice_dogTab";
-        }
-    }
-    
-    echo json_encode(['success' => true, 'actions' => $out]);
-    $conn->close();
-    exit;
-}
 
 // 보안 설정 로드 (파일이 존재할 경우 로드하여 하드코딩된 민감정보 외부 분리)
 if (file_exists(dirname(__FILE__) . '/nice_api_config.php')) {

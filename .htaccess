@@ -1,0 +1,24 @@
+# BEGIN KKC Security Rules
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+# 1. 내부 핸들러 및 라이브러리 폴더 직접 접근 차단
+RewriteRule ^(handlers|lib)/ - [F,L]
+
+# 2. 민감한 시스템 및 로그 파일 직접 접근 차단
+RewriteRule ^(\.env|\.user\.ini|\.git|.*\.log|.*\.sql|debug_.*\.txt) - [F,L]
+
+# 3. 워드프레스 기본 라우팅 유지
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.php [L]
+</IfModule>
+
+# 파일 직접 열람 금지 (보안 확장자)
+<FilesMatch "(^\.env|\.user\.ini|\.git|\.log$|\.sql$|^debug_.*\.txt$)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+# END KKC Security Rules
