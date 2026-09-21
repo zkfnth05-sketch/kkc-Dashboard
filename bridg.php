@@ -30,18 +30,11 @@ header("Access-Control-Allow-Headers: Content-Type, X-Auth-Token, Origin, Accept
 header("Access-Control-Allow-Credentials: true");
 header("Content-Type: application/json; charset=utf-8");
 
-// 🚀 [DEBUG] 긴급 추적용 로깅 함수
+// 🚀 [DEBUG] 긴급 추적용 로깅 함수 (실서비스에서는 파일 생성 비활성화)
 function kkc_debug_log($msg, $data = null) {
-    $log_file = dirname(__FILE__) . '/kkc_bridge_debug.log';
-    $time = date('[Y-m-d H:i:s]');
-    $content = $time . " " . $msg;
-    if ($data !== null) {
-        $content .= "\nDATA: " . print_r($data, true);
-    }
-    file_put_contents($log_file, $content . "\n-------------------\n", FILE_APPEND);
+    // 실서비스 파일 생성 방지
+    return;
 }
-
-kkc_debug_log(">>> Request Start: " . $_SERVER['REQUEST_METHOD'] . " from " . ($_SERVER['HTTP_ORIGIN'] ?? 'N/A') . " to " . $_SERVER['REQUEST_URI']);
 
 // 🚀 JSON 응답을 위한 헬퍼 함수
 function kkc_output_json($data) {
