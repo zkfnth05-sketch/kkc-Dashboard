@@ -683,28 +683,28 @@ const MembershipUpgradeModal = ({ onClose, onApply }: any) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-        <div className="bg-white rounded-[50px] w-full max-w-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-            <div className="p-10 pb-6 flex justify-between items-center bg-white">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 pt-16 md:pt-20 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
+        <div className="bg-white rounded-[40px] w-full max-w-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[85vh]">
+            <div className="p-8 pb-5 flex justify-between items-center bg-white border-b border-slate-100 shrink-0">
                 <div>
-                   <h2 className="text-3xl font-black text-slate-900 tracking-tight">멤버십 전환 신청</h2>
+                   <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">멤버십 전환 신청</h2>
                    <p className="text-slate-400 font-bold text-xs mt-1 uppercase tracking-widest">Upgrade Your Experience</p>
                 </div>
-                <button onClick={onClose} className="p-3 bg-slate-50 text-slate-400 hover:text-red-500 rounded-full transition-all"><X size={20} /></button>
+                <button onClick={onClose} className="p-3 bg-slate-100 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"><X size={20} /></button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-10 pt-4">
+            <div className="flex-1 overflow-y-auto p-8 pt-6">
                 {step === 1 ? (
-                    <div className="space-y-8">
+                    <div className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {plans.map(plan => (
                                 <button 
                                     key={plan.id} 
                                     onClick={() => setSelectedPlan(plan)} 
-                                    className={`p-6 rounded-[32px] border-2 text-left transition-all relative ${selectedPlan?.id === plan.id ? 'border-orange-500 bg-orange-50/50' : 'border-slate-100 hover:border-slate-200 bg-slate-50/30'}`}
+                                    className={`p-6 rounded-[28px] border-2 text-left transition-all relative ${selectedPlan?.id === plan.id ? 'border-orange-500 bg-orange-50/50 shadow-md shadow-orange-100' : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'}`}
                                 >
                                     <div className="text-lg font-black text-slate-900 mb-1">{plan.title}</div>
-                                    <div className="text-xs text-slate-400 font-bold mb-4">{plan.desc}</div>
+                                    <div className="text-xs text-slate-500 font-bold mb-4">{plan.desc}</div>
                                     <div className="text-2xl font-black text-orange-600">₩{plan.price.toLocaleString()}</div>
                                     {selectedPlan?.id === plan.id && <div className="absolute top-4 right-4 text-orange-500"><CheckCircle size={24} /></div>}
                                 </button>
@@ -713,40 +713,40 @@ const MembershipUpgradeModal = ({ onClose, onApply }: any) => {
 
                         {/* Benefits Display */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                            <div className="bg-blue-50/50 p-6 rounded-[32px] border border-blue-100 space-y-4">
+                            <div className="bg-blue-50/50 p-6 rounded-[28px] border border-blue-100 space-y-3">
                                 <h5 className="font-black text-blue-700 text-sm flex items-center gap-2"><Star size={16} fill="currentColor" /> 정회원 혜택</h5>
-                                <ul className="text-[11px] text-blue-900/70 space-y-2 font-bold leading-relaxed">
+                                <ul className="text-[12px] text-blue-900/80 space-y-1.5 font-bold leading-relaxed">
                                     <li>• 회원증 발급 (가입비 포함)</li>
                                     <li>• 협회 주최 전 행사 무료 입장</li>
                                     <li>• 자견 등록 및 혈통서 발급 권한</li>
                                     <li>• Dog Show 출전 자격 부여</li>
                                 </ul>
                             </div>
-                            <div className="bg-orange-50/50 p-6 rounded-[32px] border border-orange-100 space-y-4">
+                            <div className="bg-orange-50/50 p-6 rounded-[28px] border border-orange-100 space-y-3">
                                 <h5 className="font-black text-orange-700 text-sm flex items-center gap-2"><Gem size={16} fill="currentColor" /> 특별회원 혜택</h5>
-                                <ul className="text-[11px] text-orange-900/70 space-y-2 font-bold leading-relaxed">
+                                <ul className="text-[12px] text-orange-900/80 space-y-1.5 font-bold leading-relaxed">
                                     <li>• 정회원과 동일한 모든 혜택 제공</li>
-                                    <li className="text-orange-600 font-extrabold">• 만 65세까지 유효 (평생 혜택)</li>
+                                    <li className="text-orange-600 font-black">• 만 65세까지 유효 (평생 혜택)</li>
                                     <li>• 단 한번의 회비로 영구 자격 유지</li>
                                 </ul>
                             </div>
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
+                    <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                         {/* 결제 수단 선택 */}
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 block mb-2">결제 방식 선택</label>
+                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-2 block mb-2">결제 방식 선택</label>
                             <div className="grid grid-cols-2 gap-4">
                                 <button 
                                     onClick={() => setPaymentMethod('card')}
-                                    className={`py-4 px-6 rounded-[24px] border-2 font-black text-sm transition-all ${paymentMethod === 'card' ? 'border-orange-500 bg-orange-50/50 text-orange-600' : 'border-slate-100 text-slate-500 bg-slate-50/30'}`}
+                                    className={`py-4 px-6 rounded-[24px] border-2 font-black text-sm transition-all ${paymentMethod === 'card' ? 'border-orange-500 bg-orange-50/50 text-orange-600 shadow-md' : 'border-slate-200 text-slate-600 bg-slate-50/50 hover:bg-slate-100'}`}
                                 >
                                     💳 신용카드 결제
                                 </button>
                                 <button 
                                     onClick={() => setPaymentMethod('bank')}
-                                    className={`py-4 px-6 rounded-[24px] border-2 font-black text-sm transition-all ${paymentMethod === 'bank' ? 'border-orange-500 bg-orange-50/50 text-orange-600' : 'border-slate-100 text-slate-500 bg-slate-50/30'}`}
+                                    className={`py-4 px-6 rounded-[24px] border-2 font-black text-sm transition-all ${paymentMethod === 'bank' ? 'border-orange-500 bg-orange-50/50 text-orange-600 shadow-md' : 'border-slate-200 text-slate-600 bg-slate-50/50 hover:bg-slate-100'}`}
                                 >
                                     🏦 무통장 입금
                                 </button>
@@ -755,29 +755,29 @@ const MembershipUpgradeModal = ({ onClose, onApply }: any) => {
 
                         {paymentMethod === 'bank' ? (
                             <div className="space-y-6">
-                                <div className="bg-blue-50 p-6 rounded-[32px] border border-blue-100">
-                                  <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2">Deposit Account (입금 계좌)</div>
-                                  <div className="text-xl font-black text-blue-900 mb-1">KEB하나은행 222-910031-30404</div>
-                                  <div className="text-sm font-bold text-blue-600">(사단법인 한국애견협회)</div>
+                                <div className="bg-blue-50 p-6 rounded-[28px] border border-blue-200">
+                                  <div className="text-[11px] font-black text-blue-600 uppercase tracking-widest mb-1">Deposit Account (입금 계좌)</div>
+                                  <div className="text-xl font-black text-blue-950 mb-1">KEB하나은행 222-910031-30404</div>
+                                  <div className="text-sm font-bold text-blue-700">(사단법인 한국애견협회)</div>
                                 </div>
                                 <div className="space-y-2">
-                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 block mb-2">실제 입금자 성함을 입력해 주세요</label>
+                                   <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest ml-2 block mb-2">실제 입금자 성함을 입력해 주세요</label>
                                    <input 
-                                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-[24px] px-6 py-4 text-lg font-black outline-none transition-all" 
-                                      placeholder="입금자 성함" 
+                                      className="w-full bg-slate-50 border-2 border-slate-200 focus:border-blue-500 focus:bg-white rounded-[24px] px-6 py-4 text-lg font-black outline-none transition-all text-slate-900" 
+                                      placeholder="입금자 성함 입력" 
                                       value={depositor} 
                                       onChange={e => setDepositor(e.target.value)} 
                                    />
-                                   <p className="text-[11px] text-slate-400 font-bold ml-2 mt-2 leading-relaxed">
+                                   <p className="text-[11px] text-slate-500 font-bold ml-2 mt-2 leading-relaxed">
                                      * 입금 확인 후 등급 변경까지 영업일 기준 약 1일이 소요됩니다.
                                    </p>
                                 </div>
                             </div>
                         ) : (
-                            <div className="bg-orange-50/50 p-8 rounded-[32px] border border-orange-100 space-y-2 text-center">
-                                <div className="text-2xl">💳</div>
-                                <h4 className="font-black text-orange-950 text-base">신용카드 결제 진행</h4>
-                                <p className="text-xs text-orange-900/60 font-bold leading-relaxed">
+                            <div className="bg-orange-50/60 p-8 rounded-[28px] border border-orange-200 space-y-2 text-center">
+                                <div className="text-3xl mb-1">💳</div>
+                                <h4 className="font-black text-orange-950 text-lg">신용카드 결제 진행</h4>
+                                <p className="text-xs text-orange-900/80 font-bold leading-relaxed">
                                     [신청 완료하기] 버튼을 누르시면 안전한 KG모빌리언스 신용카드 결제창이 팝업으로 표시됩니다.
                                 </p>
                             </div>
@@ -786,16 +786,23 @@ const MembershipUpgradeModal = ({ onClose, onApply }: any) => {
                 )}
             </div>
 
-            <div className="p-10 bg-slate-50 border-t flex gap-4 shrink-0">
-                <button onClick={() => step === 1 ? onClose() : setStep(1)} className="flex-1 py-4 bg-white border border-slate-200 rounded-[22px] font-black text-sm text-slate-500 transition-all hover:bg-slate-100">
+            <div className="p-6 md:p-8 bg-slate-50 border-t border-slate-200 flex gap-4 shrink-0">
+                <button 
+                  onClick={() => step === 1 ? onClose() : setStep(1)} 
+                  className="flex-1 py-4 bg-white border-2 border-slate-300 rounded-[22px] font-black text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all shadow-sm active:scale-95"
+                >
                   {step === 1 ? '취소' : '이전으로'}
                 </button>
                 <button 
                   disabled={step === 1 && !selectedPlan} 
                   onClick={() => step === 1 ? handleNext() : handleFinalSubmit()} 
-                  className="flex-[1.5] py-4 bg-slate-900 text-white rounded-[22px] font-black text-sm flex items-center justify-center gap-2 hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95 disabled:opacity-30"
+                  className={`flex-[1.5] py-4 rounded-[22px] font-black text-sm flex items-center justify-center gap-2 transition-all shadow-xl active:scale-95 ${
+                    step === 1 && !selectedPlan 
+                      ? 'bg-slate-200 text-slate-500 border border-slate-300 cursor-not-allowed shadow-none' 
+                      : 'bg-orange-600 text-white hover:bg-orange-700 shadow-orange-200 cursor-pointer'
+                  }`}
                 >
-                  {step === 1 ? '계속하기' : '신청 완료하기'}
+                  {step === 1 ? (selectedPlan ? '계속하기' : '등급을 먼저 선택해 주세요') : '신청 완료하기'}
                 </button>
             </div>
         </div>
@@ -848,8 +855,8 @@ const MemberEditModal = ({ profile, isLoading, onClose, onSave }: any) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white rounded-[40px] w-full max-w-4xl shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 pt-16 md:pt-20 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
+            <div className="bg-white rounded-[40px] w-full max-w-4xl shadow-2xl max-h-[85vh] flex flex-col">
                 <div className="p-8 pb-6 flex justify-between items-center bg-white border-b border-slate-100 shrink-0">
                     <div>
                         <h2 className="text-3xl font-black text-slate-900 tracking-tight">회원 정보 수정</h2>
@@ -1109,7 +1116,7 @@ const ApplicationDetailModal = ({ app, onClose }: any) => {
     const isPaid = app.payment_status === '입금완료' || app.payment_status === '입금';
     
     return (
-        <div className="fixed inset-0 z-[203] flex justify-center items-start p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in overflow-y-auto" onClick={onClose}>
+        <div className="fixed inset-0 z-[99999] flex justify-center items-start p-4 pt-16 md:pt-20 bg-slate-950/70 backdrop-blur-md animate-in fade-in overflow-y-auto" onClick={onClose}>
             <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl animate-in zoom-in-95 flex flex-col my-8" onClick={e => e.stopPropagation()}>
                 <div className={`p-8 pb-14 text-white relative overflow-hidden ${isPaid ? 'bg-gradient-to-br from-teal-500 to-emerald-600' : 'bg-gradient-to-br from-orange-500 to-rose-600'}`}>
                     <div className="absolute -right-10 -bottom-10 opacity-10 rotate-12"><Calendar size={180} /></div>
