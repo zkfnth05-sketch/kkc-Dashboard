@@ -153,9 +153,10 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
         <div className="flex items-center gap-4">
           <button 
             onClick={() => window.location.href = "https://kkc.or.kr"} 
-            className="flex items-center gap-2 text-slate-500 hover:bg-slate-100 px-4 py-2 rounded-xl font-bold transition-all border border-slate-200 shadow-sm"
+            style={{ color: '#334155', backgroundColor: '#ffffff', borderColor: '#cbd5e1' }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all border shadow-sm hover:bg-slate-50"
           >
-            <Globe size={18} /> 홈페이지
+            <Globe size={18} /> <span style={{ color: '#334155', fontWeight: 700 }}>홈페이지</span>
           </button>
           {onBackToCompetition && (
             <button 
@@ -163,17 +164,16 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
                 const url = new URL(window.location.href);
                 url.searchParams.set("view", "public_competition");
                 window.history.pushState(null, "", url.href);
-                // App.tsx에서 refreshKey를 통해 다시 랜더링하도록 유도하기 위해 
-                // 강제 페이지 이동(Vercel 내부)을 수행합니다.
                 window.location.href = url.href; 
               }} 
-              className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 px-5 py-2 rounded-xl font-bold transition-all shadow-lg shadow-blue-100 group"
+              style={{ color: '#ffffff', backgroundColor: '#2563eb' }}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl font-bold transition-all shadow-lg shadow-blue-100 hover:bg-blue-700 group"
             >
-              <Trophy size={18} className="group-hover:rotate-12 transition-transform" /> 대회 신청하기
+              <Trophy size={18} className="group-hover:rotate-12 transition-transform" /> <span style={{ color: '#ffffff', fontWeight: 900 }}>대회 신청하기</span>
             </button>
           )}
-          <button onClick={onLogout} className="flex items-center gap-2 text-slate-400 hover:text-red-500 font-bold ml-2 transition-colors">
-            <LogOut size={20} /> 로그아웃
+          <button onClick={onLogout} style={{ color: '#64748b' }} className="flex items-center gap-2 font-bold ml-2 transition-colors hover:text-red-500">
+            <LogOut size={20} /> <span style={{ color: '#64748b' }}>로그아웃</span>
           </button>
         </div>
       </nav>
@@ -206,12 +206,20 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
               </div>
 
               <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-6">
-                <button onClick={() => setIsEditModalOpen(true)} className="flex items-center gap-2 bg-white text-slate-500 border border-slate-200 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
-                  <Settings size={14} /> 내 정보 관리
+                <button 
+                  onClick={() => setIsEditModalOpen(true)} 
+                  style={{ color: '#334155', backgroundColor: '#ffffff', borderColor: '#cbd5e1' }}
+                  className="flex items-center gap-2 border px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
+                >
+                  <Settings size={14} /> <span style={{ color: '#334155' }}>내 정보 관리</span>
                 </button>
                 {(!pendingApp || pendingApp.status !== 'P') && profile.mem_degree !== 'C0' && (
-                  <button onClick={() => setIsUpgradeModalOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-[0.1em] shadow-xl shadow-orange-100/50 hover:scale-105 active:scale-95 transition-all group">
-                    <Gem size={14} className="group-hover:animate-bounce" /> {profile.mem_degree === 'B0' ? '정회원 신청하기' : '멤버십 갱신/전환'}
+                  <button 
+                    onClick={() => setIsUpgradeModalOpen(true)} 
+                    style={{ color: '#ffffff' }}
+                    className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-[0.1em] shadow-xl shadow-orange-100/50 hover:scale-105 active:scale-95 transition-all group"
+                  >
+                    <Gem size={14} className="group-hover:animate-bounce" /> <span style={{ color: '#ffffff' }}>{profile.mem_degree === 'B0' ? '정회원 신청하기' : '멤버십 갱신/전환'}</span>
                   </button>
                 )}
               </div>
@@ -689,18 +697,27 @@ const MembershipUpgradeModal = ({ onClose, onApply }: any) => {
                 {step === 1 ? (
                     <div className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {plans.map(plan => (
-                                <button 
-                                    key={plan.id} 
-                                    onClick={() => setSelectedPlan(plan)} 
-                                    className={`p-6 rounded-[28px] border-2 text-left transition-all relative ${selectedPlan?.id === plan.id ? 'border-orange-500 bg-orange-50/50 shadow-md shadow-orange-100' : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'}`}
-                                >
-                                    <div className="text-lg font-black text-slate-900 mb-1">{plan.title}</div>
-                                    <div className="text-xs text-slate-500 font-bold mb-4">{plan.desc}</div>
-                                    <div className="text-2xl font-black text-orange-600">₩{plan.price.toLocaleString()}</div>
-                                    {selectedPlan?.id === plan.id && <div className="absolute top-4 right-4 text-orange-500"><CheckCircle size={24} /></div>}
-                                </button>
-                            ))}
+                            {plans.map(plan => {
+                                const isSelected = selectedPlan?.id === plan.id;
+                                return (
+                                    <button 
+                                        key={plan.id} 
+                                        type="button"
+                                        onClick={() => setSelectedPlan(plan)} 
+                                        style={{
+                                            backgroundColor: isSelected ? '#fff7ed' : '#ffffff',
+                                            borderColor: isSelected ? '#ea580c' : '#cbd5e1',
+                                            color: '#0f172a'
+                                        }}
+                                        className={`p-6 rounded-[28px] border-2 text-left transition-all relative ${isSelected ? 'shadow-md shadow-orange-100' : 'hover:border-slate-400'}`}
+                                    >
+                                        <div className="text-lg font-black mb-1" style={{ color: '#0f172a', fontWeight: 900 }}>{plan.title}</div>
+                                        <div className="text-xs font-bold mb-4" style={{ color: '#64748b', fontWeight: 700 }}>{plan.desc}</div>
+                                        <div className="text-2xl font-black" style={{ color: '#ea580c', fontWeight: 900 }}>₩{plan.price.toLocaleString()}</div>
+                                        {isSelected && <div className="absolute top-4 right-4 text-orange-500"><CheckCircle size={24} /></div>}
+                                    </button>
+                                );
+                            })}
                         </div>
 
                         {/* Benefits Display */}
@@ -1020,9 +1037,10 @@ const MemberEditModal = ({ profile, isLoading, onClose, onSave }: any) => {
                                     <button 
                                         type="button" 
                                         onClick={() => handleAddressSearch('main')}
-                                        className="px-6 py-2 bg-blue-50 text-blue-600 rounded-2xl font-black text-sm hover:bg-blue-100 transition-all border border-blue-100 shadow-sm active:scale-95"
+                                        style={{ color: '#2563eb', backgroundColor: '#eff6ff', borderColor: '#dbeafe' }}
+                                        className="px-6 py-2 rounded-2xl font-black text-sm hover:bg-blue-100 transition-all border shadow-sm active:scale-95"
                                     >
-                                        주소 검색
+                                        <span style={{ color: '#2563eb' }}>주소 검색</span>
                                     </button>
                                 </div>
                                 <input
@@ -1057,9 +1075,10 @@ const MemberEditModal = ({ profile, isLoading, onClose, onSave }: any) => {
                                             addr2: formData.addr, 
                                             addr2_1: formData.addr_1 
                                         })}
-                                        className="px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-2xl font-bold text-xs hover:bg-slate-50 transition-all shadow-sm"
+                                        style={{ color: '#64748b', backgroundColor: '#ffffff', borderColor: '#e2e8f0' }}
+                                        className="px-4 py-2 border rounded-2xl font-bold text-xs hover:bg-slate-50 transition-all shadow-sm"
                                     >
-                                        거주지와 동일하게 채우기
+                                        <span style={{ color: '#64748b' }}>거주지와 동일하게 채우기</span>
                                     </button>
                                 </div>
                                 <div className="flex gap-2">
@@ -1072,9 +1091,10 @@ const MemberEditModal = ({ profile, isLoading, onClose, onSave }: any) => {
                                     <button 
                                         type="button" 
                                         onClick={() => handleAddressSearch('dm')}
-                                        className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-2xl font-black text-sm transition-all shadow-sm active:scale-95"
+                                        style={{ color: '#334155', backgroundColor: '#e2e8f0' }}
+                                        className="px-6 py-2 rounded-2xl font-black text-sm transition-all shadow-sm active:scale-95 hover:bg-slate-300"
                                     >
-                                        수령지 검색
+                                        <span style={{ color: '#334155' }}>수령지 검색</span>
                                     </button>
                                 </div>
                                 <input
@@ -1099,11 +1119,20 @@ const MemberEditModal = ({ profile, isLoading, onClose, onSave }: any) => {
                 <div className="p-6 bg-white border-t border-slate-100 flex gap-4 shrink-0 mx-auto w-full justify-between items-center rounded-b-[40px]">
                     <div className="text-xs text-slate-400 font-bold hidden md:block">* 제출 시 정보가 즉시 업데이트됩니다.</div>
                     <div className="flex gap-4 w-full md:w-auto">
-                        <button onClick={onClose} className="flex-1 md:flex-none px-10 py-4 bg-white border-2 border-slate-200 rounded-[20px] font-black text-slate-500 transition-all hover:bg-slate-50 hover:border-slate-300">
-                            취소
+                        <button 
+                            onClick={onClose} 
+                            style={{ color: '#64748b', backgroundColor: '#ffffff', borderColor: '#e2e8f0' }}
+                            className="flex-1 md:flex-none px-10 py-4 border-2 rounded-[20px] font-black transition-all hover:bg-slate-50 hover:border-slate-300"
+                        >
+                            <span style={{ color: '#64748b' }}>취소</span>
                         </button>
-                        <button disabled={isLoading} onClick={handleSave} className="flex-1 md:flex-none px-14 py-4 bg-blue-600 text-white rounded-[20px] font-black shadow-xl shadow-blue-200 transition-all hover:bg-blue-700 active:scale-95 text-lg flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:shadow-none min-w-[200px]">
-                            {isLoading ? <Loader2 className="animate-spin" /> : <Save size={20} />} 변경사항 저장
+                        <button 
+                            disabled={isLoading} 
+                            onClick={handleSave} 
+                            style={{ color: '#ffffff', backgroundColor: '#2563eb' }}
+                            className="flex-1 md:flex-none px-14 py-4 rounded-[20px] font-black shadow-xl shadow-blue-200 transition-all hover:bg-blue-700 active:scale-95 text-lg flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:shadow-none min-w-[200px]"
+                        >
+                            {isLoading ? <Loader2 className="animate-spin" /> : <Save size={20} />} <span style={{ color: '#ffffff' }}>변경사항 저장</span>
                         </button>
                     </div>
                 </div>
