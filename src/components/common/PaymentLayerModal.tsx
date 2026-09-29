@@ -64,7 +64,7 @@ export const PaymentLayerModal: React.FC<PaymentLayerModalProps> = ({
 
             {/* Modal Box */}
             <div 
-                className="relative bg-white w-full h-full md:h-[700px] md:max-w-xl md:rounded-[32px] shadow-2xl overflow-hidden flex flex-col z-10 animate-in zoom-in-95 duration-200"
+                className="relative bg-white w-full h-full md:w-[860px] md:max-w-[95vw] md:h-[680px] md:max-h-[95vh] md:rounded-[32px] shadow-2xl overflow-hidden flex flex-col z-10 animate-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
