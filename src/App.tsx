@@ -186,14 +186,15 @@ const App: React.FC = () => {
   // renderContent removed in favor of lazy keep-alive divs
 
   // 🚀 [WP INTEGRATION] Detect public view mode for Shortcode usage
-  // window.KKF_VIEW가 설정되어 있으면 해당 뷰를 우선 적용합니다.
-  const forcedView = (window as any).KKF_VIEW;
+  // window.KKF_VIEW 또는 #root의 data-view 속성이 설정되어 있으면 해당 뷰를 우선 적용합니다.
+  const rootDataView = typeof document !== 'undefined' ? document.getElementById('root')?.getAttribute('data-view') : '';
+  const forcedView = (window as any).KKF_VIEW || rootDataView || '';
   const isPublicEventView = forcedView === 'public_event' || window.location.search.includes('view=public_event');
   const isPublicCompView = forcedView === 'public_competition' || window.location.search.includes('view=public_competition');
   // 🚀 [PORTAL ROUTING]
-  // 뷰 상태를 URL 파라미터와 연계하여 동적으로 감지
+  // 뷰 상태를 URL 파라미터 및 숏코드 forcedView와 연계하여 동적으로 감지
   const params = new URLSearchParams(window.location.search);
-  const rawView = params.get("view") || '';
+  const rawView = params.get("view") || forcedView || '';
   
   // 오타나 뒤에 붙은 특수문자 대응을 위해 includes로 유연하게 처리
   let currentView = rawView;
