@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Loader2, Check, Info } from 'lucide-react';
+import { PaymentLayerModal } from '../../common/PaymentLayerModal';
 
 interface FormShellProps {
     title: string;
@@ -14,6 +15,10 @@ interface FormShellProps {
     totalAmount?: number;
     paymentMethod?: 'card' | 'bank';
     setPaymentMethod?: (method: 'card' | 'bank') => void;
+    paymentState?: { isOpen: boolean; payUrl: string | null };
+    onPaymentClose?: () => void;
+    onPaymentSuccess?: () => void;
+    onPaymentFail?: (msg: string) => void;
 }
 
 export const FormShell: React.FC<FormShellProps> = ({
@@ -28,7 +33,11 @@ export const FormShell: React.FC<FormShellProps> = ({
     onOptionToggle,
     totalAmount = 0,
     paymentMethod,
-    setPaymentMethod
+    setPaymentMethod,
+    paymentState,
+    onPaymentClose,
+    onPaymentSuccess,
+    onPaymentFail
 }) => {
     return (
         <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 lg:p-10 font-sans">
@@ -105,7 +114,7 @@ export const FormShell: React.FC<FormShellProps> = ({
                             )}
                             {paymentMethod === 'card' && (
                                 <div className="bg-orange-50/70 p-3.5 rounded-xl border border-orange-100/50 text-xs font-bold text-orange-950/80 leading-relaxed">
-                                    📌 [최종 신청 완료] 버튼 클릭 시 PG 결제 팝업창이 표시되며 결제 완료 즉시 접수 처리됩니다.
+                                    📌 [최종 신청 완료] 버튼 클릭 시 안전한 KG모빌리언스 결제창이 화면 내에 표시됩니다.
                                 </div>
                             )}
                         </div>
@@ -127,6 +136,18 @@ export const FormShell: React.FC<FormShellProps> = ({
                     </button>
                 </div>
             </div>
+
+            {/* 💳 KG모빌리언스 대회 신청 전용 안전 결제 레이어 모달 */}
+            {paymentState && (
+                <PaymentLayerModal
+                    isOpen={paymentState.isOpen}
+                    payUrl={paymentState.payUrl}
+                    title="대회 신청 참가비 결제"
+                    onClose={onPaymentClose || (() => {})}
+                    onSuccess={onPaymentSuccess || (() => {})}
+                    onFail={onPaymentFail || (() => {})}
+                />
+            )}
 
             <style>{`
                 .custom-scrollbar {

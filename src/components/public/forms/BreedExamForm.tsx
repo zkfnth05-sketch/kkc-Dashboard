@@ -11,7 +11,8 @@ export const BreedExamForm: React.FC<{ competition: any, onClose: () => void, sh
         entries, addEntry, removeEntry, updateEntry, toggleEntryOption, handleSearchDogForEntry,
         isSubmitting, isSearching, handleSave,
         eventOptions, totalAmount,
-        paymentMethod, setPaymentMethod
+        paymentMethod, setPaymentMethod,
+        paymentState, setPaymentState, handlePaymentSuccess, handlePaymentFail
     } = usePublicForm(
         competition, 'breed_exam_applicant', onClose, showAlert
     );
@@ -26,6 +27,10 @@ export const BreedExamForm: React.FC<{ competition: any, onClose: () => void, sh
             totalAmount={totalAmount}
             paymentMethod={paymentMethod}
             setPaymentMethod={setPaymentMethod}
+            paymentState={paymentState}
+            onPaymentClose={() => setPaymentState({ isOpen: false, payUrl: null })}
+            onPaymentSuccess={handlePaymentSuccess}
+            onPaymentFail={handlePaymentFail}
         >
             <div className="space-y-6">
                 {/* 1. 신청자 기본 정보 */}

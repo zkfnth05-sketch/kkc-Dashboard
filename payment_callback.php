@@ -31,17 +31,20 @@ function kkc_show_parent_message($status, $message, $type = '') {
         <title>결제 완료</title>
         <script>
             try {
-                if (window.opener) {
-                    window.opener.postMessage({
+                var targetWin = window.opener || (window.parent !== window ? window.parent : null);
+                if (targetWin) {
+                    targetWin.postMessage({
                         status: '<?php echo esc_js($status); ?>',
                         message: '<?php echo esc_js($message); ?>',
                         type: '<?php echo esc_js($type); ?>'
                     }, '*');
                 }
+                if (window.opener) {
+                    window.close();
+                }
             } catch (e) {
                 console.error("Parent communication error", e);
             }
-            window.close();
         </script>
     </head>
     <body style="background: #F8FAFB; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">

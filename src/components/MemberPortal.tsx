@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { User, Dog, Award, History, LogOut, ChevronRight, Star, Calendar, CreditCard, Phone, Mail, MapPin, ShieldCheck, Smartphone, X, Save, Loader2, Settings, Gem, Banknote, CheckCircle, Info, Check, Lock, Globe, ArrowLeft, Trophy, BadgeCheck, ExternalLink } from 'lucide-react';
 import { portalGetMyData, portalUpdateMyData, portalApplyMembership, portalGetNiceAuthUrl, portalNiceGetVerifiedData } from '../services/portalService';
 import { registerPgTransaction } from '../services/memberService';
+import { PaymentLayerModal } from './common/PaymentLayerModal';
 import { formatMemberRank } from '../types';
 
 interface MemberPortalProps {
@@ -18,6 +19,7 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
   const [selectedDog, setSelectedDog] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [paymentState, setPaymentState] = useState<{ isOpen: boolean; payUrl: string | null }>({ isOpen: false, payUrl: null });
   const [selectedApp, setSelectedApp] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -541,48 +543,20 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
             setIsUpdating(true);
             try {
               if (reqData.payment_method === 'card') {
-                // 💳 신용카드 결제 연동 (팝업 차단 우회를 위해 동기적으로 빈 창 선 오픈)
-                const paymentWindow = window.open('', 'kkc_payment', 'width=820,height=600,scrollbars=yes');
-                if (!paymentWindow) {
-                  alert('팝업 차단이 설정되어 있습니다. 브라우저 설정에서 팝업을 허용해 주세요.');
-                  return;
-                }
-
-                try {
-                  const res = await registerPgTransaction('membership', {
-                    mid: userData.mid,
-                    mem_no: profile.mem_no || '',
-                    name: profile.name || '',
-                    req_degree: reqData.req_degree,
-                    req_years: Number(reqData.req_years || 0),
-                    amount: Number(reqData.amount || 0)
-                  });
-                  
-                  if (res.success && res.pay_url) {
-                    // 결제 완료/실패 메시지 리스너 등록
-                    const handlePaymentMessage = (e: MessageEvent) => {
-                      if (e.data && e.data.status) {
-                        window.removeEventListener('message', handlePaymentMessage);
-                        if (e.data.status === 'success') {
-                          alert('결제가 완료되었습니다. 정회원 등급이 즉시 반영되었습니다.');
-                          setIsUpgradeModalOpen(false);
-                          fetchData();
-                        } else {
-                          alert(e.data.message || '결제 처리에 실패하였습니다.');
-                        }
-                      }
-                    };
-                    window.addEventListener('message', handlePaymentMessage);
-                    
-                    // 결제창 URL로 리다이렉트
-                    paymentWindow.location.href = res.pay_url;
-                  } else {
-                    paymentWindow.close();
-                    alert(res.error || '결제창을 요청하지 못했습니다.');
-                  }
-                } catch (err: any) {
-                  paymentWindow.close();
-                  throw err;
+                // 💳 신용카드 결제 연동 (화면 내 레이어 모달로 팝업 차단 원천 방지)
+                const res = await registerPgTransaction('membership', {
+                  mid: userData.mid,
+                  mem_no: profile.mem_no || '',
+                  name: profile.name || '',
+                  req_degree: reqData.req_degree,
+                  req_years: Number(reqData.req_years || 0),
+                  amount: Number(reqData.amount || 0)
+                });
+                
+                if (res.success && res.pay_url) {
+                  setPaymentState({ isOpen: true, payUrl: res.pay_url });
+                } else {
+                  alert(res.error || '결제창을 요청하지 못했습니다.');
                 }
               } else {
                 // 🏦 기존 무통장 입금 연동
@@ -612,6 +586,24 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
           }}
         />
       )}
+
+      {/* 💳 KG모빌리언스 안전 결제 레이어 모달 (팝업 차단 원천 방지) */}
+      <PaymentLayerModal
+        isOpen={paymentState.isOpen}
+        payUrl={paymentState.payUrl}
+        title="한국애견협회 멤버십 결제"
+        onClose={() => setPaymentState({ isOpen: false, payUrl: null })}
+        onSuccess={() => {
+          alert('결제가 완료되었습니다. 정회원 등급이 즉시 반영되었습니다.');
+          setPaymentState({ isOpen: false, payUrl: null });
+          setIsUpgradeModalOpen(false);
+          fetchData();
+        }}
+        onFail={(msg) => {
+          alert(msg);
+          setPaymentState({ isOpen: false, payUrl: null });
+        }}
+      />
 
       {/* Edit Profile Modal */}
       {isEditModalOpen && (

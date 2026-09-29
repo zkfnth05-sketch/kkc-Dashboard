@@ -22,7 +22,8 @@ export const SportsForm: React.FC<{ competition: any, onClose: () => void, showA
         entries, addEntry, removeEntry, updateEntry, toggleEntryOption, copyEntryFromFirst, handleSearchDogForEntry,
         isSubmitting, isSearching, handleImageUpload, handleSave,
         eventOptions, totalAmount,
-        paymentMethod, setPaymentMethod
+        paymentMethod, setPaymentMethod,
+        paymentState, setPaymentState, handlePaymentSuccess, handlePaymentFail
     } = usePublicForm(
         competition, targetTable, onClose, showAlert
     );
@@ -39,6 +40,10 @@ export const SportsForm: React.FC<{ competition: any, onClose: () => void, showA
             totalAmount={totalAmount}
             paymentMethod={paymentMethod}
             setPaymentMethod={setPaymentMethod}
+            paymentState={paymentState}
+            onPaymentClose={() => setPaymentState({ isOpen: false, payUrl: null })}
+            onPaymentSuccess={handlePaymentSuccess}
+            onPaymentFail={handlePaymentFail}
         >
             <div className="space-y-8">
                 {/* 1. 신청자 기본 정보 */}

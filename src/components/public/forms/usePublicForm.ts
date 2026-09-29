@@ -53,6 +53,7 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
 
     const [eventOptions, setEventOptions] = useState<any[]>([]);
     const [selectedOptionIds, setSelectedOptionIds] = useState<Set<string>>(new Set());
+    const [paymentState, setPaymentState] = useState<{ isOpen: boolean; payUrl: string | null }>({ isOpen: false, payUrl: null });
 
     // 📋 [ENTRIES ARRAY (MULTI-ENTRY)]
     const [entries, setEntries] = useState<any[]>([createDefaultEntry()]);
@@ -419,42 +420,18 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
             });
 
             if (totalAmount > 0 && paymentMethod === 'card') {
-                // 💳 신용카드 결제 연동
-                const paymentWindow = window.open('', 'kkc_payment', 'width=820,height=600,scrollbars=yes');
-                if (!paymentWindow) {
-                    throw new Error('팝업 차단이 설정되어 있습니다. 브라우저 설정에서 팝업을 허용해 주세요.');
-                }
+                // 💳 신용카드 결제 연동 (화면 내 레이어 모달로 팝업 차단 원천 방지)
+                const mainPayload = {
+                    ...payloads[0],
+                    total_amount: totalAmount,
+                    multi_entries: payloads
+                };
 
-                try {
-                    // 다중 출전 시 대표 정보 및 상세 목록 전송
-                    const mainPayload = {
-                        ...payloads[0],
-                        total_amount: totalAmount,
-                        multi_entries: payloads
-                    };
-
-                    const res = await registerPgTransaction('applicant', mainPayload, targetTable, competition.title);
-                    if (res.success && res.pay_url) {
-                        const handlePaymentMessage = (e: MessageEvent) => {
-                            if (e.data && e.data.status) {
-                                window.removeEventListener('message', handlePaymentMessage);
-                                if (e.data.status === 'success') {
-                                    showAlert('성공', `대회 신청(${entries.length}건) 및 카드 결제가 정상 처리되었습니다.`);
-                                    onClose();
-                                } else {
-                                    showAlert('오류', e.data.message || '결제 처리에 실패하였습니다.');
-                                }
-                            }
-                        };
-                        window.addEventListener('message', handlePaymentMessage);
-                        paymentWindow.location.href = res.pay_url;
-                    } else {
-                        paymentWindow.close();
-                        throw new Error(res.error || '결제 등록 실패');
-                    }
-                } catch (err: any) {
-                    paymentWindow.close();
-                    throw err;
+                const res = await registerPgTransaction('applicant', mainPayload, targetTable, competition.title);
+                if (res.success && res.pay_url) {
+                    setPaymentState({ isOpen: true, payUrl: res.pay_url });
+                } else {
+                    throw new Error(res.error || '결제 등록 실패');
                 }
             } else {
                 // 🏦 무통장 입금 연동: 각 엔트리별로 독립된 DB 행(Row) 생성
@@ -469,6 +446,17 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handlePaymentSuccess = () => {
+        showAlert('성공', `대회 신청(${entries.length}건) 및 카드 결제가 정상 처리되었습니다.`);
+        setPaymentState({ isOpen: false, payUrl: null });
+        onClose();
+    };
+
+    const handlePaymentFail = (message: string) => {
+        showAlert('오류', message || '결제 처리에 실패하였습니다.');
+        setPaymentState({ isOpen: false, payUrl: null });
     };
 
     return {
@@ -496,6 +484,10 @@ export const usePublicForm = (competition: any, targetTable: string, onClose: ()
         totalAmount,
         handleOptionToggle,
         paymentMethod,
-        setPaymentMethod
+        setPaymentMethod,
+        paymentState,
+        setPaymentState,
+        handlePaymentSuccess,
+        handlePaymentFail
     };
 };

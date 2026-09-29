@@ -11,7 +11,8 @@ export const DiscDogForm: React.FC<{ competition: any, onClose: () => void, show
         entries, addEntry, removeEntry, updateEntry, toggleEntryOption, copyEntryFromFirst,
         isSubmitting, isSearching, handleImageUpload, handleSave,
         eventOptions, totalAmount,
-        paymentMethod, setPaymentMethod
+        paymentMethod, setPaymentMethod,
+        paymentState, setPaymentState, handlePaymentSuccess, handlePaymentFail
     } = usePublicForm(
         competition, 'discdog_applicant', onClose, showAlert
     );
@@ -35,6 +36,10 @@ export const DiscDogForm: React.FC<{ competition: any, onClose: () => void, show
             totalAmount={totalAmount}
             paymentMethod={paymentMethod}
             setPaymentMethod={setPaymentMethod}
+            paymentState={paymentState}
+            onPaymentClose={() => setPaymentState({ isOpen: false, payUrl: null })}
+            onPaymentSuccess={handlePaymentSuccess}
+            onPaymentFail={handlePaymentFail}
         >
             <div className="space-y-6">
                 {/* 1. 신청자 기본 정보 */}

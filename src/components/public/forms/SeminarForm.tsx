@@ -10,7 +10,8 @@ export const SeminarForm: React.FC<{ competition: any, onClose: () => void, show
         applicantInfo, handleApplicantChange, handleSearchMember, isSearching,
         isSubmitting, handleSave,
         eventOptions, selectedOptionIds, totalAmount, toggleEntryOption,
-        paymentMethod, setPaymentMethod
+        paymentMethod, setPaymentMethod,
+        paymentState, setPaymentState, handlePaymentSuccess, handlePaymentFail
     } = usePublicForm(
         competition, 'seminar_applicant', onClose, showAlert
     );
@@ -25,6 +26,10 @@ export const SeminarForm: React.FC<{ competition: any, onClose: () => void, show
             totalAmount={totalAmount}
             paymentMethod={paymentMethod}
             setPaymentMethod={setPaymentMethod}
+            paymentState={paymentState}
+            onPaymentClose={() => setPaymentState({ isOpen: false, payUrl: null })}
+            onPaymentSuccess={handlePaymentSuccess}
+            onPaymentFail={handlePaymentFail}
         >
             <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
