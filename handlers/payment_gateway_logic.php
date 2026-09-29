@@ -20,10 +20,6 @@ function kkc_pg_register($input) {
         return ['success' => false, 'error' => '결제 금액은 0원보다 커야 합니다.'];
     }
 
-    // 한국 시간(KST) 강제 지정하여 타임스탬프 생성
-    $date = new DateTime("now", new DateTimeZone("Asia/Seoul"));
-    $time_stamp = $date->format("YmdHis");
-    
     // 고유 거래 ID 생성 (최대 40자)
     $prefix = ($type === 'membership') ? 'MEM_' : 'APP_';
     $trade_id = $prefix . uniqid() . '_' . time();
@@ -38,8 +34,8 @@ function kkc_pg_register($input) {
     $fail_url = $ok_url . '?status=fail';
     $close_url = $ok_url . '?status=cancel';
 
-    // 무결성 검증을 위한 HMAC 생성 (amount + ok_url + trade_id + time_stamp)
-    $message = $amount . $ok_url . $trade_id . $time_stamp;
+    // 무결성 검증을 위한 HMAC 생성 (amount + ok_url + trade_id)
+    $message = $amount . $ok_url . $trade_id;
     $hmac = base64_encode(hash_hmac('sha256', $message, MOBILIANS_CARD_SKEY, true));
 
     // 세션 대용으로 WordPress Transient에 임시 결제 정보 저장 (2시간 유효)
@@ -76,7 +72,6 @@ function kkc_pg_register($input) {
         'close_url' => $close_url,
         'call_type' => 'P', // P = Popup 방식결제
         'hybrid_pay' => 'Y',
-        'time_stamp' => $time_stamp,
         'hmac' => $hmac,
         'user_id' => $user_id,
         'user_name' => $user_name,
