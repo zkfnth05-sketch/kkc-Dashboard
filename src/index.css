@@ -1,28 +1,13 @@
-@import "tailwindcss/theme.css";
-@import "tailwindcss/utilities.css";
+@import "tailwindcss";
 
-/* 🛡️ [WP SCOPED ISOLATION] 워드프레스 테마를 침범하지 않도록 리액트 루트 영역 내에서만 스타일 적용 */
-.kkf-system-root, #root {
-  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  text-align: left;
-  line-height: 1.5;
-  box-sizing: border-box;
-  color: #1e293b;
-  -webkit-font-smoothing: antialiased;
+@layer base {
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background-color: #f3f4f6;
+    margin: 0;
+  }
 }
 
-.kkf-system-root *, #root * {
-  box-sizing: border-box;
-}
-
-.kkf-system-root button, #root button {
-  cursor: pointer;
-}
-
-.kkf-system-root input, .kkf-system-root button, .kkf-system-root select, .kkf-system-root textarea,
-#root input, #root button, #root select, #root textarea {
-  font-family: inherit;
-}
 
 
 
