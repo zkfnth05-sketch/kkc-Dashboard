@@ -8,10 +8,114 @@
   }
 }
 
+/* 🛡️ [WP THEME BUTTON & TEXT COLOR OVERRIDE PROTECTION] */
+.kkf-system-root, #root {
+  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  text-align: left;
+  box-sizing: border-box;
+}
 
+.kkf-system-root *, #root * {
+  box-sizing: border-box;
+}
 
+.kkf-system-root button, #root button {
+  cursor: pointer;
+}
 
-/* Global scrollbar styles */
+/* 1. 흰색 텍스트 유틸리티 완벽 보존 */
+.kkf-system-root .text-white,
+.kkf-system-root [class*="text-white"],
+#root .text-white,
+#root [class*="text-white"] {
+  color: #ffffff !important;
+}
+
+/* 2. 유색/다크 배경을 가진 모든 버튼 및 텍스트 강제 보호 */
+.kkf-system-root button[class*="bg-slate-"],
+.kkf-system-root button[class*="bg-gray-"],
+.kkf-system-root button[class*="bg-zinc-"],
+.kkf-system-root button[class*="bg-neutral-"],
+.kkf-system-root button[class*="bg-black"],
+.kkf-system-root button[class*="bg-blue-"],
+.kkf-system-root button[class*="bg-indigo-"],
+.kkf-system-root button[class*="bg-orange-"],
+.kkf-system-root button[class*="bg-emerald-"],
+.kkf-system-root button[class*="bg-green-"],
+.kkf-system-root button[class*="bg-red-"],
+.kkf-system-root button[class*="bg-rose-"],
+.kkf-system-root button[class*="bg-teal-"],
+.kkf-system-root button[class*="bg-purple-"],
+.kkf-system-root button[class*="bg-violet-"],
+.kkf-system-root button[class*="from-orange-"],
+.kkf-system-root button[class*="from-blue-"],
+.kkf-system-root button[class*="from-teal-"],
+.kkf-system-root button[class*="from-emerald-"],
+.kkf-system-root button[class*="from-red-"],
+#root button[class*="bg-slate-"],
+#root button[class*="bg-gray-"],
+#root button[class*="bg-zinc-"],
+#root button[class*="bg-neutral-"],
+#root button[class*="bg-black"],
+#root button[class*="bg-blue-"],
+#root button[class*="bg-indigo-"],
+#root button[class*="bg-orange-"],
+#root button[class*="bg-emerald-"],
+#root button[class*="bg-green-"],
+#root button[class*="bg-red-"],
+#root button[class*="bg-rose-"],
+#root button[class*="bg-teal-"],
+#root button[class*="bg-purple-"],
+#root button[class*="bg-violet-"],
+#root button[class*="from-orange-"],
+#root button[class*="from-blue-"],
+#root button[class*="from-teal-"],
+#root button[class*="from-emerald-"],
+#root button[class*="from-red-"] {
+  color: #ffffff !important;
+}
+
+/* 3. 위 어두운/유색 버튼 내부 자식 요소 텍스트도 흰색 보장 */
+.kkf-system-root button[class*="bg-slate-"] > *,
+.kkf-system-root button[class*="bg-gray-"] > *,
+.kkf-system-root button[class*="bg-black"] > *,
+.kkf-system-root button[class*="bg-blue-"] > *,
+.kkf-system-root button[class*="bg-orange-"] > *,
+.kkf-system-root button[class*="bg-emerald-"] > *,
+.kkf-system-root button[class*="bg-green-"] > *,
+.kkf-system-root button[class*="bg-red-"] > *,
+.kkf-system-root button[class*="bg-teal-"] > *,
+.kkf-system-root button[class*="from-orange-"] > *,
+.kkf-system-root button[class*="from-blue-"] > *,
+#root button[class*="bg-slate-"] > *,
+#root button[class*="bg-gray-"] > *,
+#root button[class*="bg-black"] > *,
+#root button[class*="bg-blue-"] > *,
+#root button[class*="bg-orange-"] > *,
+#root button[class*="bg-emerald-"] > *,
+#root button[class*="bg-green-"] > *,
+#root button[class*="bg-red-"] > *,
+#root button[class*="bg-teal-"] > *,
+#root button[class*="from-orange-"] > *,
+#root button[class*="from-blue-"] > * {
+  color: #ffffff !important;
+}
+
+/* 4. 밝은 버튼의 텍스트 색상 명시적 보호 */
+.kkf-system-root .text-slate-400, #root .text-slate-400 { color: #94a3b8 !important; }
+.kkf-system-root .text-slate-500, #root .text-slate-500 { color: #64748b !important; }
+.kkf-system-root .text-slate-600, #root .text-slate-600 { color: #475569 !important; }
+.kkf-system-root .text-slate-700, #root .text-slate-700 { color: #334155 !important; }
+.kkf-system-root .text-slate-800, #root .text-slate-800 { color: #1e293b !important; }
+.kkf-system-root .text-slate-900, #root .text-slate-900 { color: #0f172a !important; }
+.kkf-system-root .text-blue-600, #root .text-blue-600 { color: #2563eb !important; }
+.kkf-system-root .text-blue-700, #root .text-blue-700 { color: #1d4ed8 !important; }
+.kkf-system-root .text-orange-600, #root .text-orange-600 { color: #ea580c !important; }
+.kkf-system-root .text-orange-700, #root .text-orange-700 { color: #c2410c !important; }
+.kkf-system-root .text-teal-600, #root .text-teal-600 { color: #0d9488 !important; }
+.kkf-system-root .text-emerald-600, #root .text-emerald-600 { color: #059669 !important; }
+.kkf-system-root .text-red-600, #root .text-red-600 { color: #dc2626 !important; }
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

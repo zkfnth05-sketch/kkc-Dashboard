@@ -736,19 +736,29 @@ const MembershipUpgradeModal = ({ onClose, onApply }: any) => {
                     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                         {/* 결제 수단 선택 */}
                         <div className="space-y-2">
-                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-2 block mb-2">결제 방식 선택</label>
+                            <label className="text-xs font-black text-slate-800 uppercase tracking-widest ml-2 block mb-2" style={{ color: '#1e293b' }}>결제 방식 선택</label>
                             <div className="grid grid-cols-2 gap-4">
                                 <button 
                                     onClick={() => setPaymentMethod('card')}
-                                    className={`py-4 px-6 rounded-[24px] border-2 font-black text-sm transition-all ${paymentMethod === 'card' ? 'border-orange-500 bg-orange-50/50 text-orange-600 shadow-md' : 'border-slate-200 text-slate-600 bg-slate-50/50 hover:bg-slate-100'}`}
+                                    style={{
+                                        color: paymentMethod === 'card' ? '#ea580c' : '#334155',
+                                        backgroundColor: paymentMethod === 'card' ? '#fff7ed' : '#ffffff',
+                                        borderColor: paymentMethod === 'card' ? '#ea580c' : '#cbd5e1'
+                                    }}
+                                    className="py-4 px-6 rounded-[24px] border-2 font-black text-sm transition-all shadow-sm flex items-center justify-center gap-2"
                                 >
-                                    💳 신용카드 결제
+                                    <span>💳</span> <span>신용카드 결제</span>
                                 </button>
                                 <button 
                                     onClick={() => setPaymentMethod('bank')}
-                                    className={`py-4 px-6 rounded-[24px] border-2 font-black text-sm transition-all ${paymentMethod === 'bank' ? 'border-orange-500 bg-orange-50/50 text-orange-600 shadow-md' : 'border-slate-200 text-slate-600 bg-slate-50/50 hover:bg-slate-100'}`}
+                                    style={{
+                                        color: paymentMethod === 'bank' ? '#ea580c' : '#334155',
+                                        backgroundColor: paymentMethod === 'bank' ? '#fff7ed' : '#ffffff',
+                                        borderColor: paymentMethod === 'bank' ? '#ea580c' : '#cbd5e1'
+                                    }}
+                                    className="py-4 px-6 rounded-[24px] border-2 font-black text-sm transition-all shadow-sm flex items-center justify-center gap-2"
                                 >
-                                    🏦 무통장 입금
+                                    <span>🏦</span> <span>무통장 입금</span>
                                 </button>
                             </div>
                         </div>
@@ -761,24 +771,24 @@ const MembershipUpgradeModal = ({ onClose, onApply }: any) => {
                                   <div className="text-sm font-bold text-blue-700">(사단법인 한국애견협회)</div>
                                 </div>
                                 <div className="space-y-2">
-                                   <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest ml-2 block mb-2">실제 입금자 성함을 입력해 주세요</label>
+                                   <label className="text-xs font-black text-slate-800 uppercase tracking-widest ml-2 block mb-2" style={{ color: '#1e293b' }}>실제 입금자 성함을 입력해 주세요</label>
                                    <input 
-                                      className="w-full bg-slate-50 border-2 border-slate-200 focus:border-blue-500 focus:bg-white rounded-[24px] px-6 py-4 text-lg font-black outline-none transition-all text-slate-900" 
+                                      className="w-full bg-slate-50 border-2 border-slate-300 focus:border-blue-500 focus:bg-white rounded-[24px] px-6 py-4 text-lg font-black outline-none transition-all text-slate-900" 
                                       placeholder="입금자 성함 입력" 
                                       value={depositor} 
                                       onChange={e => setDepositor(e.target.value)} 
                                    />
-                                   <p className="text-[11px] text-slate-500 font-bold ml-2 mt-2 leading-relaxed">
+                                   <p className="text-[12px] text-slate-600 font-bold ml-2 mt-2 leading-relaxed">
                                      * 입금 확인 후 등급 변경까지 영업일 기준 약 1일이 소요됩니다.
                                    </p>
                                 </div>
                             </div>
                         ) : (
-                            <div className="bg-orange-50/60 p-8 rounded-[28px] border border-orange-200 space-y-2 text-center">
+                            <div className="bg-orange-50 p-8 rounded-[28px] border-2 border-orange-200 space-y-3 text-center">
                                 <div className="text-3xl mb-1">💳</div>
-                                <h4 className="font-black text-orange-950 text-lg">신용카드 결제 진행</h4>
-                                <p className="text-xs text-orange-900/80 font-bold leading-relaxed">
-                                    [신청 완료하기] 버튼을 누르시면 안전한 KG모빌리언스 신용카드 결제창이 팝업으로 표시됩니다.
+                                <h4 className="font-black text-orange-950 text-xl" style={{ color: '#431407' }}>신용카드 결제 진행</h4>
+                                <p className="text-sm text-slate-700 font-bold leading-relaxed" style={{ color: '#334155' }}>
+                                    하단의 <span className="text-orange-600 font-black">[신청 완료하기]</span> 버튼을 누르시면 안전한 KG모빌리언스 신용카드 결제창이 팝업으로 표시됩니다.
                                 </p>
                             </div>
                         )}
@@ -789,20 +799,26 @@ const MembershipUpgradeModal = ({ onClose, onApply }: any) => {
             <div className="p-6 md:p-8 bg-slate-50 border-t border-slate-200 flex gap-4 shrink-0">
                 <button 
                   onClick={() => step === 1 ? onClose() : setStep(1)} 
-                  className="flex-1 py-4 bg-white border-2 border-slate-300 rounded-[22px] font-black text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all shadow-sm active:scale-95"
+                  style={{ color: '#1e293b', backgroundColor: '#ffffff', borderColor: '#cbd5e1' }}
+                  className="flex-1 py-4 border-2 rounded-[22px] font-black text-base transition-all shadow-sm active:scale-95 hover:bg-slate-100"
                 >
-                  {step === 1 ? '취소' : '이전으로'}
+                  <span style={{ color: '#1e293b' }}>{step === 1 ? '취소' : '이전으로'}</span>
                 </button>
                 <button 
                   disabled={step === 1 && !selectedPlan} 
                   onClick={() => step === 1 ? handleNext() : handleFinalSubmit()} 
-                  className={`flex-[1.5] py-4 rounded-[22px] font-black text-sm flex items-center justify-center gap-2 transition-all shadow-xl active:scale-95 ${
-                    step === 1 && !selectedPlan 
-                      ? 'bg-slate-200 text-slate-500 border border-slate-300 cursor-not-allowed shadow-none' 
-                      : 'bg-orange-600 text-white hover:bg-orange-700 shadow-orange-200 cursor-pointer'
+                  style={{
+                    color: '#ffffff',
+                    backgroundColor: (step === 1 && !selectedPlan) ? '#94a3b8' : '#ea580c',
+                    boxShadow: (step === 1 && !selectedPlan) ? 'none' : '0 10px 25px -5px rgba(234, 88, 12, 0.4)'
+                  }}
+                  className={`flex-[1.5] py-4 rounded-[22px] font-black text-base flex items-center justify-center gap-2 transition-all active:scale-95 ${
+                    step === 1 && !selectedPlan ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:brightness-110'
                   }`}
                 >
-                  {step === 1 ? (selectedPlan ? '계속하기' : '등급을 먼저 선택해 주세요') : '신청 완료하기'}
+                  <span style={{ color: '#ffffff', fontWeight: 900 }}>
+                    {step === 1 ? (selectedPlan ? '계속하기' : '등급을 먼저 선택해 주세요') : '신청 완료하기'}
+                  </span>
                 </button>
             </div>
         </div>
