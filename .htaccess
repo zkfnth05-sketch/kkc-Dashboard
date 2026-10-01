@@ -9,7 +9,10 @@ RewriteRule ^(handlers|lib)/ - [F,L]
 # 2. 민감한 시스템 및 로그 파일 직접 접근 차단
 RewriteRule ^(\.env|\.user\.ini|\.git|.*\.log|.*\.sql|debug_.*\.txt) - [F,L]
 
-# 3. 워드프레스 기본 라우팅 유지
+# 3. NICE 모바일 혈통서 API 게이트웨이 직통 라우팅 (워드프레스 404 및 301 리다이렉트 방지)
+RewriteRule ^nice/(.*)$ /nice_api_bridge.php [QSA,L]
+
+# 4. 워드프레스 기본 라우팅 유지
 RewriteRule ^index\.php$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
