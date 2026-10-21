@@ -155,8 +155,8 @@ if (!function_exists('kkc_handle_create_custom_invoice')) {
             return ['success' => false, 'error' => '결제 항목명을 입력해 주세요.'];
         }
 
-        if ($amount < 1000) {
-            return ['success' => false, 'error' => '최소 결제 금액은 1,000원 이상이어야 합니다.'];
+        if ($amount < 100) {
+            return ['success' => false, 'error' => '최소 결제 금액은 100원 이상이어야 합니다.'];
         }
 
         // 고유 코드 생성

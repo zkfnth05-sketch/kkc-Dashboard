@@ -107,8 +107,8 @@ export const CustomInvoiceManagement: React.FC<CustomInvoiceManagementProps> = (
       return;
     }
     const numAmount = parseInt(createForm.amount.replace(/[^0-9]/g, ''), 10);
-    if (!numAmount || numAmount < 1000) {
-      alert('결제 금액은 최소 1,000원 이상이어야 합니다.');
+    if (!numAmount || numAmount < 100) {
+      alert('결제 금액은 최소 100원 이상이어야 합니다.');
       return;
     }
 
@@ -575,8 +575,8 @@ export const CustomInvoiceManagement: React.FC<CustomInvoiceManagementProps> = (
                   <input
                     type="number"
                     required
-                    min="1000"
-                    step="1000"
+                    min="100"
+                    step="100"
                     placeholder="예: 150000"
                     value={createForm.amount}
                     onChange={e => setCreateForm({ ...createForm, amount: e.target.value })}
