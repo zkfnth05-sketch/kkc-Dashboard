@@ -158,20 +158,24 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
           >
             <Globe size={18} /> <span style={{ color: '#334155', fontWeight: 700 }}>홈페이지</span>
           </button>
-          {onBackToCompetition && (
-            <button 
-              onClick={() => {
+          <button 
+            onClick={() => {
+              if (onBackToCompetition) {
+                onBackToCompetition();
+              } else if (typeof window !== 'undefined' && (window.location.hostname.includes('kkc.or.kr'))) {
+                window.location.href = "https://kkc.or.kr/신청하기/";
+              } else {
                 const url = new URL(window.location.href);
                 url.searchParams.set("view", "public_competition");
                 window.history.pushState(null, "", url.href);
                 window.location.href = url.href; 
-              }} 
-              style={{ color: '#ffffff', backgroundColor: '#2563eb' }}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl font-bold transition-all shadow-lg shadow-blue-100 hover:bg-blue-700 group"
-            >
-              <Trophy size={18} className="group-hover:rotate-12 transition-transform" /> <span style={{ color: '#ffffff', fontWeight: 900 }}>대회 신청하기</span>
-            </button>
-          )}
+              }
+            }} 
+            style={{ color: '#ffffff', backgroundColor: '#2563eb' }}
+            className="flex items-center gap-2 px-5 py-2 rounded-xl font-bold transition-all shadow-lg shadow-blue-100 hover:bg-blue-700 group"
+          >
+            <Trophy size={18} className="group-hover:rotate-12 transition-transform" /> <span style={{ color: '#ffffff', fontWeight: 900 }}>대회 신청하기</span>
+          </button>
           <button onClick={onLogout} style={{ color: '#64748b' }} className="flex items-center gap-2 font-bold ml-2 transition-colors hover:text-red-500">
             <LogOut size={20} /> <span style={{ color: '#64748b' }}>로그아웃</span>
           </button>

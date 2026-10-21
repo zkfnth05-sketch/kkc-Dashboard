@@ -43,7 +43,7 @@ export const FormShell: React.FC<FormShellProps> = ({
         <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 lg:p-10 font-sans">
             <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300" onClick={onClose} />
 
-            <div className="relative bg-white w-full max-w-3xl max-h-[90vh] rounded-[48px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
+            <div className="relative bg-white w-full max-w-5xl max-h-[90vh] rounded-[48px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
                 {/* Modal Header */}
                 <div className="px-6 md:px-8 py-5 md:py-6 bg-slate-50/80 border-b border-slate-100 flex justify-between items-center shrink-0">
                     <div className="space-y-1">

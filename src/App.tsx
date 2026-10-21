@@ -285,8 +285,14 @@ const App: React.FC = () => {
           window.history.pushState(null, "", url.href);
         }} 
         onBackToCompetition={() => {
-          // 🏠 워드프레스 메인 홈페이지로 이동
-          window.location.href = "https://kkc.or.kr";
+          if (typeof window !== 'undefined' && (window.location.hostname.includes('kkc.or.kr'))) {
+            window.location.href = "https://kkc.or.kr/신청하기/";
+          } else {
+            const url = new URL(window.location.href);
+            url.searchParams.set("view", "public_competition");
+            window.history.pushState(null, "", url.href);
+            window.location.href = url.href;
+          }
         }}
       />
     );
@@ -294,7 +300,7 @@ const App: React.FC = () => {
 
   if (isPublicCompView) {
     return (
-      <div className="bg-white min-h-screen flex flex-col">
+      <div className="bg-white min-h-screen w-full flex flex-col">
         <PublicCompetitionPage />
       </div>
     );
