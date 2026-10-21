@@ -6,6 +6,64 @@ import { registerPgTransaction } from '../services/memberService';
 import { PaymentLayerModal } from './common/PaymentLayerModal';
 import { formatMemberRank } from '../types';
 
+// ─────────────────────────────────────────────────────────────
+// 💳 청구서 배너 (프리미엄 핀테크 디자인 / NICE 배너와 1:1 대칭)
+// ─────────────────────────────────────────────────────────────
+interface InvoiceBannerProps {
+  invoice: any;
+  onPay: (invoice: any) => void;
+}
+
+const InvoiceBanner: React.FC<InvoiceBannerProps> = ({ invoice, onPay }) => {
+  const isWaitingCash = invoice.status === 'WAITING_CASH';
+  const amountNum = parseInt(String(invoice.amount ?? '0'), 10) || 0;
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-orange-50/90 via-amber-50/70 to-white border border-orange-200/90 p-4 sm:px-6 rounded-2xl shadow-sm text-left transition-all hover:border-orange-300">
+      <div className="flex items-center gap-3.5">
+        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 text-white rounded-2xl flex items-center justify-center shadow-md shadow-orange-200 shrink-0">
+          <CreditCard size={20} />
+        </div>
+        <div>
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="bg-orange-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+              {isWaitingCash ? '입금 확인 중' : '결제 대기'}
+            </span>
+            <span className="text-[11px] font-mono text-slate-400 font-bold">
+              코드: {invoice.invoice_code}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-baseline gap-2">
+            <h3 className="text-[15px] font-black text-slate-900 tracking-tight">{invoice.title}</h3>
+            {invoice.expires_at && (
+              <span className="text-[11px] text-slate-400 font-normal">
+                (기한: {String(invoice.expires_at).substring(0, 10)}까지)
+              </span>
+            )}
+          </div>
+          <p className="text-xs font-bold text-slate-500 mt-0.5">
+            결제 금액: <span className="text-orange-600 text-base font-black ml-1">{amountNum.toLocaleString()}원</span>
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
+        {isWaitingCash ? (
+          <span className="w-full sm:w-auto text-center px-4 py-2.5 bg-orange-100 text-orange-700 rounded-xl text-xs font-black border border-orange-200">
+            관리자 입금 확인 중
+          </span>
+        ) : (
+          <button
+            onClick={() => onPay(invoice)}
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 text-white px-5 py-2.5 rounded-xl text-xs font-black tracking-tight shadow-md shadow-orange-200 transition-all shrink-0 cursor-pointer"
+          >
+            지금 결제하기 (카드/현금)
+            <ChevronRight size={13} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 interface MemberPortalProps {
   userData: any;
   onLogout: () => void;
@@ -48,6 +106,16 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
     } catch (e) {
       console.error("Failed to load invoices", e);
     }
+  };
+
+  // 💳 청구서 결제 모달 오픈 핸들러
+  const handleOpenInvoicePay = (inv: any) => {
+    if (!inv) return;
+    setSelectedInvoice(inv);
+    setCashDepositor(profile?.name || userData?.name || '');
+    setPayTab('CARD');
+    setCashReceiptNo('');
+    setIsPayModalOpen(true);
   };
 
   const fetchData = async () => {
@@ -151,6 +219,11 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
 
   const safeName = profile.name ? String(profile.name) : '회원';
 
+  // 💳 활성 청구서 단일 계산 (렌더 스코프 1회)
+  const activeInvoices = (Array.isArray(invoices) ? invoices : []).filter(
+    (i: any) => i && (i.status === 'PENDING' || i.status === 'WAITING_CASH')
+  );
+
   const getCategorizedProClasses = () => {
     if (!profile.pro_class || typeof profile.pro_class !== 'string') return { skills: [], licenses: [] };
     const codes = profile.pro_class.split(/[- ,]+/).map((c: string) => c.trim()).filter((c: string) => c !== '');
@@ -209,56 +282,6 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
       </nav>
 
       <main className="max-w-[1000px] mx-auto p-6 md:p-10">
-        {(() => {
-          const activeInvoices = invoices.filter(i => i.status === 'PENDING' || i.status === 'WAITING_CASH');
-          if (activeInvoices.length === 0) return null;
-          return (
-            <div className="space-y-4 mb-8">
-              {activeInvoices.map((inv: any) => (
-                <div key={inv.id} className="p-6 md:p-8 rounded-[32px] bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-xl shadow-orange-100 flex flex-col md:flex-row items-center justify-between gap-6 border border-white/20">
-                  <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shrink-0">
-                      <CreditCard size={28} className="text-white" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="px-3 py-1 rounded-full text-xs font-black bg-white/25">
-                          {inv.status === 'WAITING_CASH' ? '입금확인 대기중' : '결제 대기'}
-                        </span>
-                        <span className="text-xs text-white/80 font-mono">코드: {inv.invoice_code}</span>
-                      </div>
-                      <h3 className="text-xl md:text-2xl font-black">{inv.title}</h3>
-                      <p className="text-sm text-white/90 font-bold mt-1">
-                        결제 금액: <span className="text-yellow-200 text-xl font-black">{parseInt(inv.amount, 10).toLocaleString()}원</span>
-                        {inv.expires_at && <span className="text-xs text-white/70 ml-2 font-normal">(기한: {inv.expires_at.substring(0, 10)}까지)</span>}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
-                    {inv.status === 'WAITING_CASH' ? (
-                      <span className="w-full md:w-auto text-center px-6 py-3.5 bg-white/20 backdrop-blur-md rounded-2xl text-xs font-bold text-white border border-white/20">
-                        관리자 입금 확인 중
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setSelectedInvoice(inv);
-                          setCashDepositor(profile.name || userData.name || '');
-                          setPayTab('CARD');
-                          setCashReceiptNo('');
-                          setIsPayModalOpen(true);
-                        }}
-                        className="w-full md:w-auto px-6 py-3.5 bg-white text-orange-600 rounded-2xl font-black text-sm shadow-xl hover:bg-orange-50 transition-all cursor-pointer active:scale-95"
-                      >
-                        지금 결제하기 (카드/현금)
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          );
-        })()}
         <div className="bg-white rounded-[40px] p-8 md:p-14 shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 mb-10 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-80 h-80 bg-blue-50/40 rounded-full -translate-y-1/2 translate-x-1/2 -z-10 group-hover:scale-110 transition-transform duration-700"></div>
           
@@ -319,6 +342,7 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
                   <div className="w-10 h-10 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-md shadow-emerald-200 shrink-0">
                     <CheckCircle size={22} />
                   </div>
+
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-[14px] font-black text-emerald-950">NICE 본인인증 완료</span>
@@ -373,6 +397,15 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
               </div>
             )}
           </div>
+
+          {/* 💳 청구서 결제 배너 (NICE 배너 바로 아래 / 고품격 핀테크 디자인) */}
+          {activeInvoices.length > 0 && (
+            <div className="mt-4 space-y-3">
+              {activeInvoices.map((inv: any) => (
+                <InvoiceBanner key={inv.id} invoice={inv} onPay={handleOpenInvoicePay} />
+              ))}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-14">
             <div className="bg-slate-50/50 p-8 rounded-[32px] border border-slate-100 group/stat">
