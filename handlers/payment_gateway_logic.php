@@ -21,7 +21,7 @@ function kkc_pg_register($input) {
     }
 
     // 고유 거래 ID 생성 (최대 40자)
-    $prefix = ($type === 'membership') ? 'MEM_' : 'APP_';
+    $prefix = ($type === 'membership') ? 'MEM_' : (($type === 'custom_invoice') ? 'INV_' : 'APP_');
     $trade_id = $prefix . uniqid() . '_' . time();
     if (strlen($trade_id) > 40) {
         $trade_id = substr($trade_id, 0, 40);
@@ -46,7 +46,7 @@ function kkc_pg_register($input) {
     ], 2 * HOUR_IN_SECONDS);
 
     // 결제 상품명 정의
-    $product_name = ($type === 'membership') ? '한국애견협회 정회원 승급/갱신' : ($input['title'] ?? $data['event_title'] ?? $data['title'] ?? '대회 참가 신청');
+    $product_name = ($type === 'membership') ? '한국애견협회 정회원 승급/갱신' : (($type === 'custom_invoice') ? ($data['title'] ?? $input['title'] ?? '개인결제') : ($input['title'] ?? $data['event_title'] ?? $data['title'] ?? '대회 참가 신청'));
     $product_name = mb_strimwidth($product_name, 0, 45, '...', 'UTF-8');
 
     // 사용자 정보

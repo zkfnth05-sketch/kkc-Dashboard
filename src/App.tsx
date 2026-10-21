@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Header, NAV_ITEMS } from './components/Header';
 import { DashboardPage } from './components/DashboardPage';
@@ -17,6 +16,7 @@ import { MemberExportPage } from './components/MemberExportPage';
 import { MembershipApplicationPage } from './components/MembershipApplicationPage';
 import { NiceMemberManagement } from './components/NiceMemberManagement';
 import { NicePedigreeManagement } from './components/NicePedigreeManagement';
+import { CustomInvoiceManagement } from './components/CustomInvoiceManagement';
 import { DbNavigator } from './components/DbNavigator';
 import { LoginModal } from './components/LoginModal';
 import { PortalLogin } from './components/PortalLogin';
@@ -391,6 +391,11 @@ const App: React.FC = () => {
                     showConfirm={showConfirm}
                     onGoToMember={(name) => { setMemberSearch({ query: name, field: 'name' }); jumpToTab('회원 관리'); }}
                 />
+              </div>
+            )}
+            {visitedTabs.has('개인결제 관리') && (
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: activeTab === '개인결제 관리' ? 'flex' : 'none' }}>
+                <CustomInvoiceManagement showAlert={showAlert} showConfirm={showConfirm} />
               </div>
             )}
             {visitedTabs.has('협회소식/공지') && (

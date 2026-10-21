@@ -164,6 +164,19 @@ else if ($type === 'applicant') {
     // DB 데이터 삽입
     $wpdb->insert($targetTable, $data);
 }
+else if ($type === 'custom_invoice') {
+    // 💳 개인결제 완료 처리
+    $invoice_code = $data['invoice_code'] ?? '';
+    if (!empty($invoice_code)) {
+        require_once $current_dir . '/handlers/custom_invoice_logic.php';
+        $wpdb->update('kkc_custom_invoices', [
+            'status'     => 'PAID',
+            'pay_method' => 'CARD',
+            'tid'        => $response['tid'] ?? '',
+            'paid_at'    => current_time('mysql')
+        ], ['invoice_code' => $invoice_code]);
+    }
+}
 
 // 🚀 6. 세션(Transient) 파기 및 성공 알림
 delete_transient('kkc_pay_' . $trade_id);

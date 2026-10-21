@@ -182,6 +182,26 @@ try {
             safe_req('payment_gateway_logic.php', $handler_root);
             $output = kkc_pg_register($input);
             break;
+
+        // 🔐 [ADMIN] 관리자 전용 6자리 임시비밀번호 발급 + 알리고 SMS 발송
+        case 'admin_reset_temp_password':
+            safe_req('member_logic.php', $handler_root);
+            $output = kkc_handle_admin_reset_temp_password($input);
+            break;
+
+        // 💳 [CUSTOM INVOICE] 관리자 개인결제 관리
+        case 'custom_invoice_create':
+        case 'custom_invoice_list':
+        case 'custom_invoice_action':
+            safe_req('custom_invoice_logic.php', $handler_root);
+            if ($mode === 'custom_invoice_create') {
+                $output = kkc_handle_create_custom_invoice($input);
+            } else if ($mode === 'custom_invoice_list') {
+                $output = kkc_handle_list_custom_invoices($input);
+            } else {
+                $output = kkc_handle_action_custom_invoice($input);
+            }
+            break;
     }
 } catch (Exception $e) { 
     $output = ['success' => false, 'error' => $e->getMessage()]; 

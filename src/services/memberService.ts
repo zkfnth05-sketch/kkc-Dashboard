@@ -772,3 +772,62 @@ export const approveMembershipApplication = async (uid: number, action: 'approve
         memo
     });
 };
+
+
+/**
+ * 🔑 [관리자 전용] 회원 6자리 임시 비밀번호 발급 및 SMS 전송
+ */
+export const resetMemberTempPassword = async (mid: string | number, loginId: string, name: string, hp: string) => {
+    return await fetchBridge({
+        mode: 'admin_reset_temp_password',
+        mid: typeof mid === 'string' ? parseInt(mid, 10) : mid,
+        id: loginId,
+        name,
+        hp
+    });
+};
+
+/**
+ * 💳 [ADMIN] 개인결제 청구 생성
+ */
+export const createCustomInvoice = async (payload: {
+  customer_name: string;
+  customer_hp: string;
+  title: string;
+  amount: number;
+  member_id?: string;
+  expire_days?: number;
+  admin_memo?: string;
+  send_sms?: boolean;
+}) => {
+  return await fetchBridge({
+    mode: 'custom_invoice_create',
+    ...payload
+  });
+};
+
+/**
+ * 💳 [ADMIN] 개인결제 청구 목록 조회
+ */
+export const getCustomInvoiceList = async (params: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+}) => {
+  return await fetchBridge({
+    mode: 'custom_invoice_list',
+    ...params
+  });
+};
+
+/**
+ * 💳 [ADMIN] 개인결제 관리 액션 (무통장 입금승인, 청구취소, SMS재발송)
+ */
+export const actionCustomInvoice = async (invoice_code: string, action: 'confirm_cash' | 'cancel' | 'resend_sms') => {
+  return await fetchBridge({
+    mode: 'custom_invoice_action',
+    invoice_code,
+    action
+  });
+};

@@ -1,4 +1,3 @@
-
 import { LogOut, RefreshCw } from 'lucide-react';
 import React from 'react';
 
@@ -13,6 +12,7 @@ export const NAV_ITEMS = [
   '대시보드',
   '회원 관리',
   '회원 등급 신청',
+  '개인결제 관리',
   '회원 대량추출',
   '직능관리',
   '혈통서 관리',

@@ -63,6 +63,12 @@ try {
         $output = kkf_portal_membership_application_action($input);
     } else if ($mode === 'portal_update_my_data') {
         $output = kkf_portal_update_my_data($input);
+    } else if ($mode === 'portal_get_my_invoices') {
+        require_once dirname(__FILE__) . '/handlers/custom_invoice_logic.php';
+        $output = kkc_handle_portal_my_invoices($input);
+    } else if ($mode === 'portal_apply_invoice_cash') {
+        require_once dirname(__FILE__) . '/handlers/custom_invoice_logic.php';
+        $output = kkc_handle_portal_apply_cash($input);
     } else if ($mode === 'portal_send_sms_verification') {
         $output = kkf_portal_send_sms_verification($input);
     } else if ($mode === 'portal_verify_sms_code') {

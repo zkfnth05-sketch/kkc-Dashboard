@@ -2,6 +2,9 @@
 /**
  * 파일명: handlers/member_logic.php
  * 수정사항: 지역 및 키워드 검색 시 16진수 바이너리 매칭(UNHEX) 적용하여 "부산" -> "부산광역시" 매칭 보장
+ *           + [ADMIN] 관리자 전용 6자리 임시비밀번호 발급 및 알리고(Aligo) SMS 발송 핸들러 추가
+ *           + [FIX] kkc_send_aligo_sms 를 운영 검증된 kkf_portal_send_aligo_sms 와 100% 동일 로직으로 교체
+ *                   (mb_strcut EUC-KR 90바이트 절단 제거 → UTF-8 원본 메시지 그대로 전송, 한글 깨짐/문자 유실 해결)
  */
 
 if (!defined('ABSPATH')) exit;
@@ -272,4 +275,201 @@ function kkc_handle_membership_application_action($input) {
     );
 
     return ['success' => true, 'message' => "승인 완료! 회원 등급이 [{$req_degree}]로, 유효기간이 [{$new_end_date}]로 갱신되었습니다."];
+}
+
+/* =========================================================================
+ * 📱 [ALIGO SMS] 알리고 문자 발송 헬퍼
+ * ========================================================================= */
+
+/**
+ * 알리고(Aligo) SMS 발송 헬퍼
+ *
+ * 🚀 [운영 검증 로직 이식]
+ * handlers/member_portal_logic.php 의 kkf_portal_send_aligo_sms() 와
+ * 토씨 하나 틀리지 않고 완전히 동일한 로직으로 동작합니다.
+ *
+ * ⚠️ [치명적 버그 수정 이력]
+ * 기존 코드는 mb_strcut($msg, 0, 90, 'EUC-KR') 로 UTF-8 메시지를 90바이트에서 강제 절단했습니다.
+ * UTF-8 한글은 1글자당 3바이트이므로 90바이트 경계에서 한글 중간이 잘려
+ * 깨진 바이트(0x80~0xBF 단독 바이트)가 생성되었고, 이통사 단말에서
+ * 문자 전체가 유실되는 장애가 발생했습니다.
+ * → 절단 로직을 전면 제거하고 UTF-8 원본 메시지를 그대로 전송합니다.
+ *
+ * @param string $receiver 수신번호 ('-' 포함 가능, 내부에서 제거)
+ * @param string $msg      발송할 메시지 (UTF-8 원본 그대로)
+ * @return array ['success' => bool, 'code' => string, 'message' => string, 'error' => string, 'raw' => array, 'data' => array]
+ */
+if (!function_exists('kkc_send_aligo_sms')) {
+    function kkc_send_aligo_sms($receiver, $msg) {
+        $api_url = "https://apis.aligo.in/send/";
+
+        // 🛡️ 수신번호 정규화 ('-' 제거) — 운영 검증 로직과 동일
+        $receiver = str_replace('-', '', (string)$receiver);
+
+        if ($receiver === '') {
+            return [
+                'success' => false,
+                'code'    => '-1',
+                'message' => '수신번호가 유효하지 않습니다.',
+                'error'   => '수신번호가 유효하지 않습니다.',
+                'raw'     => [],
+                'data'    => []
+            ];
+        }
+
+        // ✅ UTF-8 원본 메시지 그대로 전달 (절단 없음)
+        $post_data = [
+            'key'      => '0igka2rc8xvodn3dfaa1trcit0egkjai',
+            'userid'   => 'kkcdog',
+            'sender'   => '010-9999-3349',
+            'receiver' => $receiver,
+            'msg'      => (string)$msg,
+            'msg_type' => 'SMS'
+        ];
+
+        $ch = curl_init($api_url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post_data));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+        $res = curl_exec($ch);
+        curl_close($ch);
+
+        $json = json_decode($res, true);
+
+        // 알리고 성공 코드는 '1'
+        if ($json && intval($json['result_code'] ?? 0) === 1) {
+            return [
+                'success' => true,
+                'code'    => '1',
+                'message' => 'SMS 발송 성공',
+                'raw'     => $json,
+                'data'    => $json
+            ];
+        }
+
+        $err = $json['message'] ?? '알리고 API 전송 응답 오류';
+
+        return [
+            'success' => false,
+            'code'    => (string)($json['result_code'] ?? '-1'),
+            'message' => $err,
+            'error'   => $err,
+            'raw'     => $json,
+            'data'    => $json
+        ];
+    }
+}
+
+/* =========================================================================
+ * 🔐 [ADMIN] 관리자 전용 6자리 임시비밀번호 발급 + SMS 발송
+ * ========================================================================= */
+
+/**
+ * 관리자 전용 임시비밀번호(6자리) 발급 및 알리고 SMS 발송
+ *
+ * @param array $input ['mid' => int, 'hp' => string, 'name' => string]
+ * @return array JSON 직렬화 대상 결과 배열
+ */
+function kkc_handle_admin_reset_temp_password($input) {
+    global $wpdb, $KKC_TABLE_MAP;
+
+    $mid  = intval($input['mid'] ?? 0);
+    $hp   = trim((string)($input['hp'] ?? ''));
+    $name = trim((string)($input['name'] ?? ''));
+
+    // ✅ 1. 유효성 검사
+    if (!$mid) {
+        return ['success' => false, 'error' => '유효하지 않은 회원 식별자(mid)입니다.'];
+    }
+
+    $hp_digits = preg_replace('/[^0-9]/', '', $hp);
+    if ($hp_digits === '' || strlen($hp_digits) < 9) {
+        return ['success' => false, 'error' => '휴대폰 번호가 유효하지 않습니다.'];
+    }
+
+    if ($name === '') {
+        return ['success' => false, 'error' => '회원 이름이 유효하지 않습니다.'];
+    }
+
+    // ✅ 2. 6자리 숫자 임시비밀번호 생성
+    $temp_pw = sprintf("%06d", mt_rand(100000, 999999));
+
+    // ✅ 3. memTab 비밀번호 갱신 (바이너리 세션 + 이스케이프)
+    $enc = $KKC_TABLE_MAP['memTab']['encoding'] ?? 'CP949';
+
+    $wpdb->query("SET NAMES 'binary'");
+
+    // 🛡️ 회원 존재 여부 확인
+    $exists = $wpdb->get_var($wpdb->prepare("SELECT mid FROM memTab WHERE mid = %d", $mid));
+    if ($exists === null) {
+        $wpdb->query("SET NAMES 'utf8mb4'");
+        return ['success' => false, 'error' => '해당 회원을 찾을 수 없습니다.'];
+    }
+
+    // 🛡️ 이스케이프 처리된 비밀번호 (바이너리 세션 대응)
+    $esc_pw = esc_sql($temp_pw);
+
+    $up_res = $wpdb->query($wpdb->prepare(
+        "UPDATE memTab SET passwd = %s WHERE mid = %d",
+        $esc_pw, $mid
+    ));
+
+    if ($up_res === false) {
+        $wpdb->query("SET NAMES 'utf8mb4'");
+        return ['success' => false, 'error' => '비밀번호 갱신 중 DB 오류가 발생했습니다.'];
+    }
+
+    // ✅ 4. memo 컬럼에 감사 로그 추가 (기존 메모 보존 + append)
+    $log_stamp = date('Y-m-d H:i');
+    $log_text  = "[{$log_stamp} 관리자 임시비밀번호(6자리) SMS 발송]";
+
+    $prev_memo = $wpdb->get_var($wpdb->prepare("SELECT memo FROM memTab WHERE mid = %d", $mid));
+    $prev_memo = ($prev_memo === null) ? '' : (string)$prev_memo;
+
+    $new_memo = ($prev_memo === '') ? $log_text : ($prev_memo . "\n" . $log_text);
+
+    // 🛡️ CP949(바이너리) 저장을 위한 인코딩 변환 + 이스케이프
+    $enc_memo = mb_convert_encoding($new_memo, $enc, 'UTF-8');
+    $esc_memo = esc_sql($enc_memo);
+
+    $wpdb->query($wpdb->prepare(
+        "UPDATE memTab SET memo = %s WHERE mid = %d",
+        $esc_memo, $mid
+    ));
+
+    // 🛡️ 세션 원복
+    $wpdb->query("SET NAMES 'utf8mb4'");
+
+    // ✅ 5. SMS 발송 (UTF-8 원본 메시지 그대로 전달)
+    $msg = "[KKC 한국애견협회] 임시비밀번호는 [" . $temp_pw . "] 입니다. 로그인 후 변경 바랍니다.";
+    $sms = kkc_send_aligo_sms($hp_digits, $msg);
+
+    // ✅ 6. 결과 JSON 반환 (기존 호출부와 완벽 호환)
+    if (empty($sms['success'])) {
+        return [
+            'success'     => false,
+            'error'       => '임시비밀번호는 발급되었으나 SMS 발송에 실패했습니다. (' . ($sms['message'] ?? $sms['error'] ?? '알 수 없는 오류') . ')',
+            'mid'         => $mid,
+            'name'        => $name,
+            'hp'          => $hp_digits,
+            'sms_sent'    => false,
+            'sms_code'    => $sms['code'] ?? '',
+            'sms_message' => $sms['message'] ?? '',
+            'sms_raw'     => $sms['raw'] ?? []
+        ];
+    }
+
+    return [
+        'success'     => true,
+        'message'     => "[{$name}] 회원의 임시비밀번호가 발급되어 SMS로 발송되었습니다.",
+        'mid'         => $mid,
+        'name'        => $name,
+        'hp'          => $hp_digits,
+        'sms_sent'    => true,
+        'sms_code'    => $sms['code'] ?? '',
+        'sms_message' => $sms['message'] ?? '',
+        'sms_raw'     => $sms['raw'] ?? []
+    ];
 }

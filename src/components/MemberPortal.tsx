@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { User, Dog, Award, History, LogOut, ChevronRight, Star, Calendar, CreditCard, Phone, Mail, MapPin, ShieldCheck, Smartphone, X, Save, Loader2, Settings, Gem, Banknote, CheckCircle, Info, Check, Lock, Globe, ArrowLeft, Trophy, BadgeCheck, ExternalLink } from 'lucide-react';
-import { portalGetMyData, portalUpdateMyData, portalApplyMembership, portalGetNiceAuthUrl, portalNiceGetVerifiedData } from '../services/portalService';
+import { portalGetMyData, portalUpdateMyData, portalApplyMembership, portalGetNiceAuthUrl, portalNiceGetVerifiedData, portalGetMyInvoices, portalApplyInvoiceCash } from '../services/portalService';
 import { registerPgTransaction } from '../services/memberService';
 import { PaymentLayerModal } from './common/PaymentLayerModal';
 import { formatMemberRank } from '../types';
@@ -20,10 +20,35 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [paymentState, setPaymentState] = useState<{ isOpen: boolean; payUrl: string | null }>({ isOpen: false, payUrl: null });
+  // 💳 개인결제(청구서) 상태
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+  const [isPayModalOpen, setIsPayModalOpen] = useState<boolean>(false);
+  const [payTab, setPayTab] = useState<'CARD' | 'CASH'>('CARD');
+  const [cashDepositor, setCashDepositor] = useState<string>('');
+  const [cashReceiptNo, setCashReceiptNo] = useState<string>('');
+  const [isCashSubmitting, setIsCashSubmitting] = useState<boolean>(false);
   const [selectedApp, setSelectedApp] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+
+  const fetchInvoices = async () => {
+    try {
+      // ⚠️ profile은 이 함수보다 아래에서 선언되므로 TDZ(ReferenceError) 방지를 위해
+      //    안전한 지역 참조(localProfile)를 사용한다.
+      const localProfile = data?.profile || userData || {};
+      const mid = localProfile.id || localProfile.mid || userData?.id || userData?.mid;
+      const hp = localProfile.hp || userData?.hp;
+      if (!mid && !hp) return;
+      const res = await portalGetMyInvoices(mid, hp);
+      if (res && res.success && Array.isArray(res.data)) {
+        setInvoices(res.data);
+      }
+    } catch (e) {
+      console.error("Failed to load invoices", e);
+    }
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -39,6 +64,7 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
       console.error("Fetch Data Error:", e);
     }
     setIsLoading(false);
+    fetchInvoices();
   };
 
   useEffect(() => {
@@ -183,6 +209,56 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
       </nav>
 
       <main className="max-w-[1000px] mx-auto p-6 md:p-10">
+        {(() => {
+          const activeInvoices = invoices.filter(i => i.status === 'PENDING' || i.status === 'WAITING_CASH');
+          if (activeInvoices.length === 0) return null;
+          return (
+            <div className="space-y-4 mb-8">
+              {activeInvoices.map((inv: any) => (
+                <div key={inv.id} className="p-6 md:p-8 rounded-[32px] bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-xl shadow-orange-100 flex flex-col md:flex-row items-center justify-between gap-6 border border-white/20">
+                  <div className="flex items-center gap-5">
+                    <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shrink-0">
+                      <CreditCard size={28} className="text-white" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="px-3 py-1 rounded-full text-xs font-black bg-white/25">
+                          {inv.status === 'WAITING_CASH' ? '입금확인 대기중' : '결제 대기'}
+                        </span>
+                        <span className="text-xs text-white/80 font-mono">코드: {inv.invoice_code}</span>
+                      </div>
+                      <h3 className="text-xl md:text-2xl font-black">{inv.title}</h3>
+                      <p className="text-sm text-white/90 font-bold mt-1">
+                        결제 금액: <span className="text-yellow-200 text-xl font-black">{parseInt(inv.amount, 10).toLocaleString()}원</span>
+                        {inv.expires_at && <span className="text-xs text-white/70 ml-2 font-normal">(기한: {inv.expires_at.substring(0, 10)}까지)</span>}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+                    {inv.status === 'WAITING_CASH' ? (
+                      <span className="w-full md:w-auto text-center px-6 py-3.5 bg-white/20 backdrop-blur-md rounded-2xl text-xs font-bold text-white border border-white/20">
+                        관리자 입금 확인 중
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setSelectedInvoice(inv);
+                          setCashDepositor(profile.name || userData.name || '');
+                          setPayTab('CARD');
+                          setCashReceiptNo('');
+                          setIsPayModalOpen(true);
+                        }}
+                        className="w-full md:w-auto px-6 py-3.5 bg-white text-orange-600 rounded-2xl font-black text-sm shadow-xl hover:bg-orange-50 transition-all cursor-pointer active:scale-95"
+                      >
+                        지금 결제하기 (카드/현금)
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
         <div className="bg-white rounded-[40px] p-8 md:p-14 shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 mb-10 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-80 h-80 bg-blue-50/40 rounded-full -translate-y-1/2 translate-x-1/2 -z-10 group-hover:scale-110 transition-transform duration-700"></div>
           
@@ -606,16 +682,158 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
         title="한국애견협회 멤버십 결제"
         onClose={() => setPaymentState({ isOpen: false, payUrl: null })}
         onSuccess={() => {
-          alert('결제가 완료되었습니다. 정회원 등급이 즉시 반영되었습니다.');
-          setPaymentState({ isOpen: false, payUrl: null });
-          setIsUpgradeModalOpen(false);
-          fetchData();
+          if (selectedInvoice) {
+            alert('개인결제가 완료되었습니다.');
+            setPaymentState({ isOpen: false, payUrl: null });
+            setSelectedInvoice(null);
+            fetchInvoices();
+            fetchData();
+          } else {
+            alert('결제가 완료되었습니다. 정회원 등급이 즉시 반영되었습니다.');
+            setPaymentState({ isOpen: false, payUrl: null });
+            setIsUpgradeModalOpen(false);
+            fetchData();
+          }
         }}
         onFail={(msg) => {
           alert(msg);
           setPaymentState({ isOpen: false, payUrl: null });
         }}
       />
+
+      {/* 💳 개인결제(청구서) 카드/무통장 선택 모달 */}
+      {isPayModalOpen && selectedInvoice && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-white rounded-[32px] shadow-2xl overflow-hidden">
+            <div className="flex items-start justify-between p-6 md:p-8 border-b border-slate-100">
+              <div>
+                <p className="text-xs font-black text-orange-500 mb-1">개인결제</p>
+                <h3 className="text-xl font-black text-slate-900">{selectedInvoice.title}</h3>
+                <p className="text-sm text-slate-500 font-mono mt-1">코드: {selectedInvoice.invoice_code}</p>
+              </div>
+              <button
+                onClick={() => setIsPayModalOpen(false)}
+                className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 md:p-8">
+              <div className="p-5 rounded-2xl bg-orange-50 border border-orange-100 mb-6 text-center">
+                <p className="text-xs font-bold text-orange-500 mb-1">결제 금액</p>
+                <p className="text-3xl font-black text-orange-600">
+                  {parseInt(selectedInvoice.amount, 10).toLocaleString()}원
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-2xl mb-6">
+                <button
+                  onClick={() => setPayTab('CARD')}
+                  className={`py-3 rounded-xl text-sm font-black transition-all cursor-pointer ${payTab === 'CARD' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  카드 결제
+                </button>
+                <button
+                  onClick={() => setPayTab('CASH')}
+                  className={`py-3 rounded-xl text-sm font-black transition-all cursor-pointer ${payTab === 'CASH' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  무통장 입금
+                </button>
+              </div>
+
+              {payTab === 'CARD' ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    신용/체크카드로 즉시 결제합니다. 결제 완료 시 담당자 확인 후 처리가 진행됩니다.
+                  </p>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await registerPgTransaction('custom_invoice', {
+                          invoice_code: selectedInvoice.invoice_code,
+                          amount: parseInt(selectedInvoice.amount, 10),
+                          title: selectedInvoice.title,
+                          name: profile.name || userData.name || '',
+                          email: profile.email || '',
+                          handler_id: profile.id || userData.id || ''
+                        }, undefined, selectedInvoice.title);
+                        if (res && res.pay_url) {
+                          setPaymentState({ isOpen: true, payUrl: res.pay_url });
+                          setIsPayModalOpen(false);
+                        } else {
+                          alert('결제 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+                        }
+                      } catch (e) {
+                        console.error('PG Request Error:', e);
+                        alert('결제 요청 중 오류가 발생했습니다.');
+                      }
+                    }}
+                    className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-orange-200 transition-all cursor-pointer active:scale-95"
+                  >
+                    카드로 결제하기
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-black text-slate-600 mb-2">입금자명 <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={cashDepositor}
+                      onChange={(e) => setCashDepositor(e.target.value)}
+                      placeholder="입금자명을 입력해 주세요"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none text-sm font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-slate-600 mb-2">현금영수증 번호 (선택)</label>
+                    <input
+                      type="text"
+                      value={cashReceiptNo}
+                      onChange={(e) => setCashReceiptNo(e.target.value)}
+                      placeholder="휴대폰번호 또는 사업자번호"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none text-sm font-bold"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-4 rounded-xl">
+                    입금 계좌는 신청 후 안내됩니다. 입금자명과 실제 입금자명이 다르면 확인이 지연될 수 있습니다.
+                  </p>
+                  <button
+                    disabled={isCashSubmitting}
+                    onClick={async () => {
+                      setIsCashSubmitting(true);
+                      try {
+                        const res = await portalApplyInvoiceCash({
+                          invoice_code: selectedInvoice.invoice_code,
+                          depositor_name: cashDepositor.trim() || profile.name,
+                          cash_receipt_no: cashReceiptNo.trim() || undefined
+                        });
+                        if (res && res.success) {
+                          alert('무통장 입금 신청이 접수되었습니다.\n입금 확인 후 담당자가 처리해 드립니다.');
+                          await fetchInvoices();
+                          setIsPayModalOpen(false);
+                        } else {
+                          alert((res && res.message) || '입금 신청에 실패했습니다.');
+                        }
+                      } catch (e) {
+                        console.error('Cash Apply Error:', e);
+                        alert('입금 신청 중 오류가 발생했습니다.');
+                      } finally {
+                        setIsCashSubmitting(false);
+                      }
+                    }}
+                    className="w-full py-4 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-2xl font-black text-sm shadow-lg transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    {isCashSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Banknote size={18} />}
+                    {isCashSubmitting ? '신청 중...' : '무통장 입금 신청하기'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Profile Modal */}
       {isEditModalOpen && (

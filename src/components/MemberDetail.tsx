@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import DaumPostcode from 'react-daum-postcode';
 import { Member, MEMBER_RANK_MAP, ProClass } from '../types';
 import { CheckpointBar } from './CheckpointBar';
-import { RotateCcw, Save, Search, Plus, X, Loader2, Check } from 'lucide-react';
+import { RotateCcw, Save, Search, Plus, X, Loader2, Check, KeyRound } from 'lucide-react';
 import { formatSkillNames } from './SkillManagementPage';
 import { fetchPedigrees } from '../services/pedigreeService';
-import { fetchProClasses } from '../services/memberService';
+import { fetchProClasses, resetMemberTempPassword } from '../services/memberService';
 
 interface MemberDetailProps {
   member: Member | null;
@@ -130,6 +130,7 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
   const [skillModalType, setSkillModalType] = useState<number>(1);
   const [proClasses, setProClasses] = useState<ProClass[]>([]);
   const [postcodeTarget, setPostcodeTarget] = useState<'main' | 'dm' | null>(null);
+  const [isResettingPw, setIsResettingPw] = useState(false);
 
   useEffect(() => {
     fetchProClasses().then(setProClasses).catch(console.error);
@@ -161,6 +162,54 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
       console.error("Save error:", error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  /**
+   * 🔑 [관리자 전용] 6자리 임시 비밀번호 발급 및 SMS 전송
+   */
+  const handleResetTempPassword = async () => {
+    if (!formData) return;
+
+    // 1) 휴대폰 번호 확보 (hp 우선, 없으면 tel)
+    const rawHp = (formData.hp || formData.tel || '').toString();
+    const cleanHp = rawHp.replace(/[^0-9]/g, '');
+
+    if (cleanHp.length < 10) {
+      alert('휴대폰 번호가 올바르지 않습니다.\nSMS를 수신할 휴대전화 번호를 정확히 입력해 주세요.');
+      return;
+    }
+
+    // 2) 발급 전 최종 확인
+    const confirmMsg =
+      `[임시 비밀번호 발급]\n\n` +
+      `· 회원명: ${formData.name || '-'}\n` +
+      `· 아이디: ${formData.loginId || '-'}\n` +
+      `· 수신번호: ${cleanHp}\n\n` +
+      `위 회원에게 6자리 임시 비밀번호를 발급하고 SMS로 발송하시겠습니까?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    // 3) 서버 요청
+    setIsResettingPw(true);
+    try {
+      const res = await resetMemberTempPassword(
+        formData.mid || formData.id || '',
+        formData.loginId || '',
+        formData.name || '',
+        cleanHp
+      );
+
+      if (res && res.success === false) {
+        throw new Error(res.error || '임시 비밀번호 발급에 실패했습니다.');
+      }
+
+      alert(`임시 비밀번호가 발급되어 SMS로 발송되었습니다.\n\n· 수신번호: ${cleanHp}`);
+    } catch (e: any) {
+      console.error('[임시 비밀번호 발급 실패]', e);
+      alert(`임시 비밀번호 발급 실패\n\n${e?.message || '알 수 없는 오류가 발생했습니다.'}`);
+    } finally {
+      setIsResettingPw(false);
     }
   };
 
@@ -234,7 +283,32 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({ member, onSave, chec
             {/* Row: 비밀번호 */}
             <Label>비밀번호</Label>
             <InputWrapper>
-              <input type="password" placeholder="변경 시에만 입력" className="w-full h-8 px-2 border border-gray-300 rounded-sm text-sm focus:border-blue-500 outline-none" value={formData.loginId || ''} readOnly />
+              <input
+                type="password"
+                placeholder="변경 시에만 입력"
+                className="flex-1 min-w-0 h-8 px-2 border border-gray-300 rounded-sm text-sm bg-gray-50 text-gray-500 focus:border-blue-500 outline-none"
+                value="●●●●●●"
+                readOnly
+              />
+              <button
+                type="button"
+                onClick={handleResetTempPassword}
+                disabled={isResettingPw}
+                title="6자리 임시 비밀번호를 발급하여 회원 휴대폰으로 SMS 발송합니다."
+                className="shrink-0 h-8 px-3 bg-[#4285f4] hover:bg-[#3b75c3] text-white text-[11px] font-bold rounded-sm shadow-sm transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap"
+              >
+                {isResettingPw ? (
+                  <>
+                    <Loader2 className="animate-spin" size={13} />
+                    발급 중...
+                  </>
+                ) : (
+                  <>
+                    <KeyRound size={13} />
+                    임시비밀번호 발급 (SMS)
+                  </>
+                )}
+              </button>
             </InputWrapper>
 
             {/* Row: 이름 */}

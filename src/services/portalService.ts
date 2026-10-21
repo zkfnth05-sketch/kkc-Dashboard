@@ -192,3 +192,18 @@ export const niceAdminUpdatePedigreeAll = (data: any) =>
 export const niceAdminGetOwnerHistory = (reg_no?: string, dog_uid?: string | number) =>
   portalFetchNice('admin_nice_get_owner_history', { reg_no, dog_uid });
 
+
+/**
+ * 💳 [PORTAL] 내 개인결제 청구 목록 조회
+ */
+export const portalGetMyInvoices = (member_id?: string, hp?: string) =>
+  portalFetch('portal_get_my_invoices', { member_id, hp });
+
+/**
+ * 🏦 [PORTAL] 무통장 입금 신청
+ */
+export const portalApplyInvoiceCash = (params: {
+  invoice_code: string;
+  depositor_name: string;
+  cash_receipt_no?: string;
+}) => portalFetch('portal_apply_invoice_cash', params);
