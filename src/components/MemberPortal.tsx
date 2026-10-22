@@ -19,15 +19,17 @@ const InvoiceBanner: React.FC<InvoiceBannerProps> = ({ invoice, onPay }) => {
   const isWaitingCash = invoice.status === 'WAITING_CASH';
   const amountNum = parseInt(String(invoice.amount ?? '0'), 10) || 0;
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-orange-50/90 via-amber-50/70 to-white border border-orange-200/90 p-4 sm:px-6 rounded-2xl shadow-sm text-left transition-all hover:border-orange-300">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200/90 p-4 sm:px-6 rounded-2xl shadow-sm text-left transition-all hover:border-slate-300 hover:shadow-md">
       <div className="flex items-center gap-3.5">
-        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 text-white rounded-2xl flex items-center justify-center shadow-md shadow-orange-200 shrink-0">
-          <CreditCard size={20} />
+        <div className="w-11 h-11 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-md shadow-slate-200 shrink-0">
+          <CreditCard size={20} className="text-amber-300" />
         </div>
         <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="bg-orange-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              {isWaitingCash ? '입금 확인 중' : '결제 대기'}
+          <div className="flex items-center gap-2 mb-1">
+            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+              isWaitingCash ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
+            }`}>
+              {isWaitingCash ? '입금 확인 중' : '결제 요청'}
             </span>
             <span className="text-[11px] font-mono text-slate-400 font-bold">
               코드: {invoice.invoice_code}
@@ -42,21 +44,21 @@ const InvoiceBanner: React.FC<InvoiceBannerProps> = ({ invoice, onPay }) => {
             )}
           </div>
           <p className="text-xs font-bold text-slate-500 mt-0.5">
-            결제 금액: <span className="text-orange-600 text-base font-black ml-1">{amountNum.toLocaleString()}원</span>
+            청구 금액: <span className="text-slate-900 text-base font-black ml-1">{amountNum.toLocaleString()}원</span>
           </p>
         </div>
       </div>
       <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
         {isWaitingCash ? (
-          <span className="w-full sm:w-auto text-center px-4 py-2.5 bg-orange-100 text-orange-700 rounded-xl text-xs font-black border border-orange-200">
-            관리자 입금 확인 중
+          <span className="w-full sm:w-auto text-center px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-black border border-slate-200">
+            관리자 확인 중
           </span>
         ) : (
           <button
             onClick={() => onPay(invoice)}
-            className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 text-white px-5 py-2.5 rounded-xl text-xs font-black tracking-tight shadow-md shadow-orange-200 transition-all shrink-0 cursor-pointer"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white px-5 py-2.5 rounded-xl text-xs font-black tracking-tight shadow-md shadow-slate-200 transition-all shrink-0 cursor-pointer"
           >
-            지금 결제하기 (카드/현금)
+            결제하기
             <ChevronRight size={13} />
           </button>
         )}
@@ -252,18 +254,19 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20 font-sans">
-      <nav className="bg-white border-b border-slate-100 flex items-center justify-between px-6 py-4 sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="bg-blue-600 text-white p-2 rounded-xl"><User size={24} /></div>
-          <span className="text-xl font-black text-slate-900 tracking-tight">KKC MY PORTAL</span>
+      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-4 sm:px-8 py-3 sticky top-0 z-50">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-sm">
+            <User size={16} />
+          </div>
+          <span className="text-base sm:text-lg font-black text-slate-900 tracking-tight">KKC 마이포털</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button 
             onClick={() => window.location.href = "https://kkc.or.kr"} 
-            style={{ color: '#334155', backgroundColor: '#ffffff', borderColor: '#cbd5e1' }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all border shadow-sm hover:bg-slate-50"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all cursor-pointer"
           >
-            <Globe size={18} /> <span style={{ color: '#334155', fontWeight: 700 }}>홈페이지</span>
+            <Globe size={14} /> 홈페이지
           </button>
           <button 
             onClick={() => {
@@ -278,10 +281,9 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
                 window.location.href = url.href; 
               }
             }} 
-            style={{ color: '#ffffff', backgroundColor: '#2563eb' }}
-            className="flex items-center gap-2 px-5 py-2 rounded-xl font-bold transition-all shadow-lg shadow-blue-100 hover:bg-blue-700 group"
+            className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 active:scale-95 transition-all cursor-pointer"
           >
-            <Trophy size={18} className="group-hover:rotate-12 transition-transform" /> <span style={{ color: '#ffffff', fontWeight: 900 }}>대회 신청하기</span>
+            <Trophy size={14} /> <span className="font-black">대회 신청</span>
           </button>
           <button 
             onClick={() => {
@@ -290,142 +292,153 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
               window.history.pushState(null, "", url.href);
               window.location.href = url.href; 
             }} 
-            style={{ color: '#ffffff', backgroundColor: '#ea580c' }}
-            className="flex items-center gap-2 px-5 py-2 rounded-xl font-bold transition-all shadow-lg shadow-orange-100 hover:bg-orange-700 group cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-900 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer"
           >
-            <CreditCard size={18} className="group-hover:rotate-12 transition-transform" /> <span style={{ color: '#ffffff', fontWeight: 900 }}>온라인 카드결제</span>
+            <CreditCard size={14} /> <span className="font-black">온라인 카드결제</span>
           </button>
-          <button onClick={onLogout} style={{ color: '#64748b' }} className="flex items-center gap-2 font-bold ml-2 transition-colors hover:text-red-500">
-            <LogOut size={20} /> <span style={{ color: '#64748b' }}>로그아웃</span>
+          <button 
+            onClick={onLogout} 
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-red-600 transition-colors ml-1 cursor-pointer"
+            title="로그아웃"
+          >
+            <LogOut size={15} />
           </button>
         </div>
       </nav>
 
-      <main className="max-w-[1000px] mx-auto p-6 md:p-10">
-        <div className="bg-white rounded-[40px] p-8 md:p-14 shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 mb-10 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-blue-50/40 rounded-full -translate-y-1/2 translate-x-1/2 -z-10 group-hover:scale-110 transition-transform duration-700"></div>
-          
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-10 relative z-10">
-            <div className="relative">
-              <div className="w-32 h-32 bg-gradient-to-br from-blue-600 to-blue-800 rounded-[32px] flex items-center justify-center text-white shadow-2xl shadow-blue-200 overflow-hidden border-4 border-white">
-                {profile.mem_pic ? <img src={`https://kkc.or.kr/data/member/${profile.mem_pic}`} alt={safeName} className="w-full h-full object-cover" /> : <span className="text-5xl font-black">{safeName.charAt(0)}</span>}
+      <main className="max-w-[1000px] mx-auto p-4 sm:p-6 md:p-8">
+        {/* 💳 [VIP DIGITAL MEMBERSHIP CARD] 애플 월렛 / 카카오뱅크 감성 명품 회원증 */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 p-6 sm:p-8 text-white shadow-2xl mb-6 border border-slate-800/80">
+          {/* 은은한 배경 앰비언트 라이트 */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16"></div>
+          <div className="absolute bottom-0 left-1/3 w-60 h-60 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+          <div className="relative z-10">
+            {/* 상단 바: KKC 공식 심볼 & 등급 뱃지 */}
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center border border-white/15">
+                  <ShieldCheck size={16} className="text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">KKC Official Member</p>
+                  <p className="text-[11px] font-mono text-slate-300">ID: {profile.id || profile.mid || '-'}</p>
+                </div>
               </div>
-              <div className="absolute -bottom-2 -right-2 bg-green-500 text-white p-1.5 rounded-full border-4 border-white shadow-lg"><ShieldCheck size={20} /></div>
+              
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-sm">
+                  {formatMemberRank(profile.mem_degree)}
+                </span>
+                {pendingApp && pendingApp.status === 'P' && (
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30 animate-pulse flex items-center gap-1">
+                    <Loader2 size={10} className="animate-spin" /> 입금 확인 대기
+                  </span>
+                )}
+              </div>
             </div>
-            
-            <div className="flex-1 text-center md:text-left">
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4">
-                <h2 className="text-4xl font-black text-slate-900 tracking-tight">{safeName}님</h2>
-                <div className="flex gap-2">
-                  <div className="bg-blue-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-100">
-                    {formatMemberRank(profile.mem_degree)}
-                  </div>
-                  {pendingApp && pendingApp.status === 'P' && (
-                    <div className="bg-orange-100 text-orange-600 border border-orange-200 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse flex items-center gap-1">
-                      <Loader2 size={12} className="animate-spin" /> 입금 확인 대기 중
-                    </div>
+
+            {/* 중단: 회원 성명 & 주요 액션 버튼 */}
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+              <div>
+                <p className="text-[11px] text-slate-400 font-bold mb-1">회원 성명</p>
+                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2.5 flex-wrap">
+                  <span>{safeName}님</span>
+                  {Boolean(profile.nice_ci || profile.nice_verified_at || (profile.mid && localStorage.getItem(`kkf_nice_verified_${profile.mid}`) === 'Y')) && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <BadgeCheck size={11} /> NICE 인증
+                    </span>
                   )}
                 </div>
               </div>
 
-              <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-6">
+              <div className="flex items-center gap-2">
                 <button 
                   onClick={() => setIsEditModalOpen(true)} 
-                  style={{ color: '#334155', backgroundColor: '#ffffff', borderColor: '#cbd5e1' }}
-                  className="flex items-center gap-2 border px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 active:scale-95 text-white border border-white/15 transition-all shadow-sm cursor-pointer"
                 >
-                  <Settings size={14} /> <span style={{ color: '#334155' }}>내 정보 관리</span>
+                  <Settings size={13} /> 내 정보 관리
                 </button>
                 {(!pendingApp || pendingApp.status !== 'P') && profile.mem_degree !== 'C0' && (
                   <button 
                     onClick={() => setIsUpgradeModalOpen(true)} 
-                    style={{ color: '#ffffff' }}
-                    className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-[0.1em] shadow-xl shadow-orange-100/50 hover:scale-105 active:scale-95 transition-all group"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 active:scale-95 text-white shadow-md shadow-blue-500/30 transition-all cursor-pointer"
                   >
-                    <Gem size={14} className="group-hover:animate-bounce" /> <span style={{ color: '#ffffff' }}>{profile.mem_degree === 'B0' ? '정회원 신청하기' : '멤버십 갱신/전환'}</span>
+                    <Gem size={13} /> {profile.mem_degree === 'B0' ? '정회원 신청' : '멤버십 갱신'}
                   </button>
                 )}
               </div>
-              
-              <div className="flex flex-wrap justify-center md:justify-start gap-6 text-slate-500">
-                <div className="flex items-center gap-2"><Mail size={16} /><span className="font-bold text-sm">{profile.email || '이메일 없음'}</span></div>
-                <div className="flex items-center gap-2"><Smartphone size={16} /><span className="font-bold text-sm">{profile.hp || '연락처 없음'}</span></div>
+            </div>
+
+            {/* 하단: 연락처 및 이메일 */}
+            <div className="pt-4 border-t border-white/10 flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-slate-300">
+              <div className="flex items-center gap-1.5">
+                <Smartphone size={13} className="text-slate-400" />
+                <span className="font-mono">{profile.hp || '연락처 없음'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Mail size={13} className="text-slate-400" />
+                <span>{profile.email || '이메일 없음'}</span>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* 🛡️ NICE 본인인증 상태 및 안내 배너 (프로필 사진 '김'의 맨 좌측 시작선부터 정렬) */}
-          <div className="mt-8 pt-6 border-t border-slate-100/80">
-            {Boolean(profile.nice_ci || profile.nice_verified_at || (profile.mid && localStorage.getItem(`kkf_nice_verified_${profile.mid}`) === 'Y')) ? (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-emerald-50/90 border border-emerald-200/80 p-4 sm:px-6 rounded-2xl shadow-sm text-left">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-md shadow-emerald-200 shrink-0">
-                    <CheckCircle size={22} />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[14px] font-black text-emerald-950">NICE 본인인증 완료</span>
-                      <span className="bg-emerald-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">Verified</span>
-                    </div>
-                    <p className="text-[12px] font-bold text-emerald-700/90 mt-0.5">모바일 혈통서(NICE 펫핀) 발급 및 정상 연동 상태입니다.</p>
-                  </div>
-                </div>
-                <a
-                  href="https://www.niceipin.co.kr/event20260002.ni?utm_source=KKC"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-5 py-2.5 rounded-xl text-xs font-black tracking-tight shadow-md shadow-emerald-200 transition-all shrink-0 cursor-pointer text-center"
-                >
-                  모바일 혈통서 상세보기
-                  <ExternalLink size={13} />
-                </a>
+        {/* 🛡️ NICE 모바일 혈통서 인증 배너 (정제된 화이트 뱃지 카드) */}
+        <div className="mb-6 bg-white border border-slate-200/80 rounded-2xl p-4 sm:px-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-black text-slate-900">NICE 모바일 전자혈통서</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  Boolean(profile.nice_ci || profile.nice_verified_at || (profile.mid && localStorage.getItem(`kkf_nice_verified_${profile.mid}`) === 'Y'))
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {Boolean(profile.nice_ci || profile.nice_verified_at || (profile.mid && localStorage.getItem(`kkf_nice_verified_${profile.mid}`) === 'Y')) ? '연동 완료' : '인증 필요'}
+                </span>
               </div>
-            ) : (
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-slate-50 border border-blue-100 rounded-2xl p-4 sm:px-6 shadow-sm text-left">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-md shadow-blue-200 shrink-0">
-                    <ShieldCheck size={22} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[14px] font-black text-slate-900">NICE 본인인증 필요</span>
-                      <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-blue-200">모바일 혈통서</span>
-                    </div>
-                    <p className="text-[12px] font-bold text-slate-600 mt-0.5">모바일 혈통서 발급을 위해서는 NICE 본인인증을 완료해 주세요.</p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                  <a
-                    href="https://www.niceipin.co.kr/event20260002.ni?utm_source=KKC"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 active:scale-95 text-slate-700 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
-                  >
-                    모바일 혈통서 상세보기
-                    <ExternalLink size={12} />
-                  </a>
-                  <button
-                    onClick={handleNiceAuth}
-                    disabled={isNiceLoading}
-                    className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-5 py-2.5 rounded-xl text-xs font-black tracking-tight shadow-md shadow-blue-200 transition-all shrink-0 cursor-pointer"
-                  >
-                    {isNiceLoading ? <Loader2 size={14} className="animate-spin" /> : 'NICE 인증하기'}
-                    <ChevronRight size={14} />
-                  </button>
-                </div>
-              </div>
+              <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                {Boolean(profile.nice_ci || profile.nice_verified_at || (profile.mid && localStorage.getItem(`kkf_nice_verified_${profile.mid}`) === 'Y'))
+                  ? '모바일 혈통서(NICE 펫핀) 발급 및 정상 연동 상태입니다.'
+                  : '모바일 혈통서 발급을 위해서는 NICE 본인인증을 완료해 주세요.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <a
+              href="https://www.niceipin.co.kr/event20260002.ni?utm_source=KKC"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+            >
+              혈통서 상세
+              <ExternalLink size={12} />
+            </a>
+            {!Boolean(profile.nice_ci || profile.nice_verified_at || (profile.mid && localStorage.getItem(`kkf_nice_verified_${profile.mid}`) === 'Y')) && (
+              <button
+                onClick={handleNiceAuth}
+                disabled={isNiceLoading}
+                className="inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md shadow-blue-200 transition-all shrink-0 cursor-pointer"
+              >
+                {isNiceLoading ? <Loader2 size={13} className="animate-spin" /> : 'NICE 인증'}
+                <ChevronRight size={13} />
+              </button>
             )}
           </div>
+        </div>
 
-          {/* 💳 청구서 결제 배너 (NICE 배너 바로 아래 / 고품격 핀테크 디자인) */}
-          {activeInvoices.length > 0 && (
-            <div className="mt-4 space-y-3">
-              {activeInvoices.map((inv: any) => (
-                <InvoiceBanner key={inv.id} invoice={inv} onPay={handleOpenInvoicePay} />
-              ))}
-            </div>
-          )}
+        {/* 💳 청구서 결제 배너 (토스 스타일 화이트 카드) */}
+        {activeInvoices.length > 0 && (
+          <div className="mb-6 space-y-3">
+            {activeInvoices.map((inv: any) => (
+              <InvoiceBanner key={inv.id} invoice={inv} onPay={handleOpenInvoicePay} />
+            ))}
+          </div>
+        )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-14">
             <div className="bg-slate-50/50 p-8 rounded-[32px] border border-slate-100 group/stat">
@@ -453,7 +466,6 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
               </div>
             </div>
           </div>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <section>
