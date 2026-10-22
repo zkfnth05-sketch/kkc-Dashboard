@@ -1,9 +1,10 @@
 
 import React, { useEffect, useState } from 'react';
-import { User, Dog, Award, History, LogOut, ChevronRight, Star, Calendar, CreditCard, Phone, Mail, MapPin, ShieldCheck, Smartphone, X, Save, Loader2, Settings, Gem, Banknote, CheckCircle, Info, Check, Lock, Globe, ArrowLeft, Trophy, BadgeCheck, ExternalLink } from 'lucide-react';
+import { User, Dog, Award, History, LogOut, ChevronRight, Star, Calendar, CreditCard, Phone, Mail, MapPin, ShieldCheck, Smartphone, X, Save, Loader2, Settings, Gem, Banknote, CheckCircle, Info, Check, Lock, Globe, ArrowLeft, Trophy, BadgeCheck, ExternalLink, Receipt, FileCheck } from 'lucide-react';
 import { portalGetMyData, portalUpdateMyData, portalApplyMembership, portalGetNiceAuthUrl, portalNiceGetVerifiedData, portalGetMyInvoices, portalApplyInvoiceCash } from '../services/portalService';
 import { registerPgTransaction } from '../services/memberService';
 import { PaymentLayerModal } from './common/PaymentLayerModal';
+import { PaymentReceiptModal } from './portal/PaymentReceiptModal';
 import { formatMemberRank } from '../types';
 
 // ─────────────────────────────────────────────────────────────
@@ -87,6 +88,8 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
   const [cashReceiptNo, setCashReceiptNo] = useState<string>('');
   const [isCashSubmitting, setIsCashSubmitting] = useState<boolean>(false);
   const [selectedApp, setSelectedApp] = useState<any>(null);
+  // 🧾 전자영수증 모달 상태
+  const [selectedReceipt, setSelectedReceipt] = useState<any | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
@@ -224,6 +227,11 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
     (i: any) => i && (i.status === 'PENDING' || i.status === 'WAITING_CASH')
   );
 
+  // 🧾 결제 완료된 청구서 (전자영수증 보관함)
+  const paidInvoices = (Array.isArray(invoices) ? invoices : []).filter(
+    (i: any) => i && (i.status === 'PAID')
+  );
+
   const getCategorizedProClasses = () => {
     if (!profile.pro_class || typeof profile.pro_class !== 'string') return { skills: [], licenses: [] };
     const codes = profile.pro_class.split(/[- ,]+/).map((c: string) => c.trim()).filter((c: string) => c !== '');
@@ -274,6 +282,18 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
             className="flex items-center gap-2 px-5 py-2 rounded-xl font-bold transition-all shadow-lg shadow-blue-100 hover:bg-blue-700 group"
           >
             <Trophy size={18} className="group-hover:rotate-12 transition-transform" /> <span style={{ color: '#ffffff', fontWeight: 900 }}>대회 신청하기</span>
+          </button>
+          <button 
+            onClick={() => {
+              const url = new URL(window.location.href);
+              url.searchParams.set("view", "direct_payment");
+              window.history.pushState(null, "", url.href);
+              window.location.href = url.href; 
+            }} 
+            style={{ color: '#ffffff', backgroundColor: '#ea580c' }}
+            className="flex items-center gap-2 px-5 py-2 rounded-xl font-bold transition-all shadow-lg shadow-orange-100 hover:bg-orange-700 group cursor-pointer"
+          >
+            <CreditCard size={18} className="group-hover:rotate-12 transition-transform" /> <span style={{ color: '#ffffff', fontWeight: 900 }}>온라인 카드결제</span>
           </button>
           <button onClick={onLogout} style={{ color: '#64748b' }} className="flex items-center gap-2 font-bold ml-2 transition-colors hover:text-red-500">
             <LogOut size={20} /> <span style={{ color: '#64748b' }}>로그아웃</span>
@@ -537,6 +557,85 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
             )}
           </section>
         </div>
+
+        {/* 🧾 나의 결제 내역 및 전자영수증 */}
+        <section className="mt-10">
+          <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2 ml-2">
+            <div className="w-1.5 h-6 bg-emerald-600 rounded-full"></div>
+            나의 결제 내역 및 전자영수증
+          </h3>
+
+          {paidInvoices.length === 0 ? (
+            <div className="bg-white rounded-[40px] p-12 text-center border border-slate-50 shadow-sm flex flex-col items-center justify-center gap-4 group">
+              <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <Receipt size={40} className="text-emerald-500/40" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-black text-slate-900">결제 완료된 내역이 없습니다.</p>
+                <p className="text-xs font-bold text-slate-400 leading-relaxed break-keep">
+                  온라인 카드결제 이용 시 이곳에 영수증이 자동 보관됩니다.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('view', 'direct_payment');
+                  window.location.href = url.href;
+                }}
+                className="mt-2 inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-5 py-2.5 rounded-xl text-xs font-black tracking-tight shadow-md shadow-emerald-200 transition-all cursor-pointer"
+              >
+                <CreditCard size={14} />
+                온라인 카드결제 하러가기
+                <ChevronRight size={13} />
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {paidInvoices.map((inv: any, idx: number) => (
+                <div
+                  key={inv.id || inv.invoice_code || idx}
+                  className="bg-white rounded-[28px] border border-slate-100 shadow-sm hover:shadow-xl hover:translate-y-[-3px] transition-all p-6 flex flex-col gap-4"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider">
+                      <CheckCircle size={11} />
+                      결제완료
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-400 font-mono">
+                      {String(inv.paid_at || inv.created_at || '-').substring(0, 16)}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="font-black text-slate-900 text-[16px] tracking-tight break-keep leading-snug">
+                      {inv.title || '온라인 결제'}
+                    </h4>
+                    <p className="text-[11px] font-bold text-slate-400 font-mono mt-1 break-all">
+                      TID: {inv.tid || '-'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-end justify-between gap-3 pt-3 border-t border-dashed border-slate-200">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">결제 금액</p>
+                      <p className="text-xl font-black text-slate-900 leading-none">
+                        {parseInt(String(inv.amount ?? 0), 10).toLocaleString()}
+                        <span className="text-sm font-black text-slate-400 ml-1">원</span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedReceipt(inv)}
+                      className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white px-4 py-2.5 rounded-xl text-[11px] font-black tracking-tight shadow-md shadow-slate-200 transition-all shrink-0 cursor-pointer"
+                    >
+                      <Receipt size={13} />
+                      전자영수증 보기
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
 
       {/* Pedigree Detail Modal */}
@@ -902,6 +1001,13 @@ export const MemberPortal: React.FC<MemberPortalProps> = ({ userData, onLogout, 
             onClose={() => setSelectedApp(null)}
         />
       )}
+
+      {/* 🧾 전자영수증 모달 */}
+      <PaymentReceiptModal
+        isOpen={!!selectedReceipt}
+        invoice={selectedReceipt}
+        onClose={() => setSelectedReceipt(null)}
+      />
     </div>
   );
 };

@@ -22,6 +22,7 @@ import { LoginModal } from './components/LoginModal';
 import { PortalLogin } from './components/PortalLogin';
 import { PortalRegister } from './components/PortalRegister';
 import { MemberPortal } from './components/MemberPortal';
+import { DirectCardPayment } from './components/public/DirectCardPayment';
 import { setApiConfig, fetchAllTableNames, fetchMembers, fetchNotices } from './services/memberService';
 import { fetchPedigrees } from './services/pedigreeService';
 import { AlertCircle, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
@@ -191,6 +192,8 @@ const App: React.FC = () => {
   const forcedView = (window as any).KKF_VIEW || rootDataView || '';
   const isPublicEventView = forcedView === 'public_event' || window.location.search.includes('view=public_event');
   const isPublicCompView = forcedView === 'public_competition' || window.location.search.includes('view=public_competition');
+  // 💳 [DIRECT CARD PAYMENT] 홈페이지 직접 카드결제 뷰 (로그인 불필요)
+  const isDirectPaymentView = forcedView === 'direct_payment' || forcedView === 'card_pay' || window.location.search.includes('view=direct_payment') || window.location.search.includes('view=card_pay');
   // 🚀 [PORTAL ROUTING]
   // 뷰 상태를 URL 파라미터 및 숏코드 forcedView와 연계하여 동적으로 감지
   const params = new URLSearchParams(window.location.search);
@@ -209,10 +212,25 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!isPortalView) return;
     
-    // 로그인은 되었는데 로그인/가입 페이지에 머물러 있는 경우 -> 홈으로 이동
+    // 로그인은 되었는데 로그인/가입 페이지에 머물러 있는 경우 -> 홈(또는 복귀 대상)으로 이동
     if (portalUser && (currentView === 'portal_login' || currentView === 'portal_register')) {
+      // 🔁 로그인 후 복귀 대상 확인 (URL 파라미터 우선, 없으면 세션스토리지)
+      const redirectTarget = new URLSearchParams(window.location.search).get('redirect')
+        || sessionStorage.getItem('kkf_portal_redirect');
+
       const url = new URL(window.location.href);
+      if (redirectTarget === 'direct_payment') {
+        // 💳 카드결제 페이지에서 로그인 요청한 경우 -> 결제 페이지로 복귀
+        sessionStorage.removeItem('kkf_portal_redirect');
+        url.searchParams.set("view", "direct_payment");
+        url.searchParams.delete("redirect");
+        window.history.pushState(null, "", url.href);
+        window.location.href = url.href;
+        return;
+      }
+
       url.searchParams.set("view", "portal_home");
+      url.searchParams.delete("redirect");
       window.history.pushState(null, "", url.href);
       setRefreshKey(p => p + 1); // 리액트 강제 업데이트 유도
     }
@@ -241,8 +259,22 @@ const App: React.FC = () => {
   }
 
   if (currentView === 'portal_login') {
-    // 세션 정보가 이미 있다면 자동으로 홈으로 전환 (UI 깜빡임 방지)
+    // 🔁 로그인 후 복귀 대상 (URL 파라미터 우선, 없으면 세션스토리지)
+    const loginRedirectTarget = new URLSearchParams(window.location.search).get('redirect')
+      || sessionStorage.getItem('kkf_portal_redirect');
+
+    // 세션 정보가 이미 있다면 자동으로 홈(또는 복귀 대상)으로 전환 (무한 스피너 방지)
     if (portalUser) {
+        if (loginRedirectTarget === 'direct_payment') {
+          // 💳 결제 페이지로 즉시 복귀 (스피너 없이 바로 이동)
+          sessionStorage.removeItem('kkf_portal_redirect');
+          const url = new URL(window.location.href);
+          url.searchParams.set("view", "direct_payment");
+          url.searchParams.delete("redirect");
+          window.history.pushState(null, "", url.href);
+          window.location.href = url.href;
+          return <div className="p-20 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" size={48} /></div>;
+        }
         return <div className="p-20 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" size={48} /></div>;
     }
     return (
@@ -250,10 +282,27 @@ const App: React.FC = () => {
         onLoginSuccess={(user) => { 
           sessionStorage.setItem('kkf_portal_user', JSON.stringify(user));
           setPortalUser(user); 
-          // 🚀 URL을 변경하고 상태를 즉시 업데이트하여 마이페이지로 전환
+
+          // 🔁 로그인 직후 복귀 대상 재확인
+          const redirectTarget = new URLSearchParams(window.location.search).get('redirect')
+            || sessionStorage.getItem('kkf_portal_redirect');
+
           const url = new URL(window.location.href);
+          if (redirectTarget === 'direct_payment') {
+            // 💳 카드결제 페이지로 복귀
+            sessionStorage.removeItem('kkf_portal_redirect');
+            url.searchParams.set("view", "direct_payment");
+            url.searchParams.delete("redirect");
+            window.history.pushState(null, "", url.href);
+            window.location.href = url.href;
+            return;
+          }
+
+          // 🚀 URL을 변경하고 상태를 즉시 업데이트하여 마이페이지로 전환
           url.searchParams.set("view", "portal_home");
+          url.searchParams.delete("redirect");
           window.history.pushState(null, "", url.href);
+          setRefreshKey(p => p + 1);
         }} 
         onSwitchToRegister={() => {
           const url = new URL(window.location.href);
@@ -314,6 +363,15 @@ const App: React.FC = () => {
           showAlert={(t: string, m: string) => alert(`${t}: ${m}`)}
           showConfirm={(t: string, m: string, cb: () => void) => { if (window.confirm(`${t}\n\n${m}`)) cb(); }}
         />
+      </div>
+    );
+  }
+
+  // 💳 [DIRECT CARD PAYMENT] 로그인 없이 접근 가능한 홈페이지 직접 카드결제 뷰
+  if (isDirectPaymentView) {
+    return (
+      <div className="bg-white min-h-screen w-full flex flex-col">
+        <DirectCardPayment />
       </div>
     );
   }

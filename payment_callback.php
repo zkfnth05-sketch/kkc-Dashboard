@@ -165,16 +165,60 @@ else if ($type === 'applicant') {
     $wpdb->insert($targetTable, $data);
 }
 else if ($type === 'custom_invoice') {
-    // 💳 개인결제 완료 처리
-    $invoice_code = $data['invoice_code'] ?? '';
+    // 💳 개인결제(홈페이지 직접 카드결제) 완료 처리
+    $invoice_code = trim($data['invoice_code'] ?? '');
+
     if (!empty($invoice_code)) {
         require_once $current_dir . '/handlers/custom_invoice_logic.php';
-        $wpdb->update('kkc_custom_invoices', [
-            'status'     => 'PAID',
-            'pay_method' => 'CARD',
-            'tid'        => $response['tid'] ?? '',
-            'paid_at'    => current_time('mysql')
-        ], ['invoice_code' => $invoice_code]);
+
+        // 🛡️ 테이블 존재 보장 (없으면 자동 생성)
+        if (function_exists('kkc_ensure_custom_invoices_table')) {
+            kkc_ensure_custom_invoices_table();
+        } elseif (function_exists('kkc_custom_invoices_ddl')) {
+            $wpdb->query(kkc_custom_invoices_ddl());
+        }
+
+        $wpdb->query("SET NAMES 'utf8'");
+
+        $paid_at   = current_time('mysql');
+        $paid_tid  = $response['tid'] ?? $tid;
+        $paid_amt  = intval($amount);
+        $cust_name = trim($data['customer_name'] ?? ($data['name'] ?? ''));
+        $cust_hp   = preg_replace('/[^0-9]/', '', $data['customer_hp'] ?? ($data['hp'] ?? ''));
+        $member_id = trim($data['member_id'] ?? ($data['handler_id'] ?? ''));
+        $inv_title = trim($data['title'] ?? '');
+        $admin_memo = '홈페이지 직접 카드결제 완료 건';
+
+        // 1) 기존 청구 내역 존재 여부 확인
+        $existing = $wpdb->get_var(
+            $wpdb->prepare("SELECT id FROM `kkc_custom_invoices` WHERE invoice_code = %s LIMIT 1", $invoice_code)
+        );
+
+        if ($existing) {
+            // 2-A) 이미 존재하는 청구 건 → 결제 완료 상태로 UPDATE
+            $wpdb->update('kkc_custom_invoices', [
+                'status'     => 'PAID',
+                'pay_method' => 'CARD',
+                'tid'        => $paid_tid,
+                'paid_at'    => $paid_at
+            ], ['invoice_code' => $invoice_code]);
+        } else {
+            // 2-B) 사전 청구서 없이 홈페이지에서 직접 결제한 건 → 신규 INSERT
+            $wpdb->insert('kkc_custom_invoices', [
+                'invoice_code'  => $invoice_code,
+                'member_id'     => ($member_id !== '') ? $member_id : null,
+                'customer_name' => $cust_name,
+                'customer_hp'   => $cust_hp,
+                'title'         => $inv_title,
+                'amount'        => $paid_amt,
+                'pay_method'    => 'CARD',
+                'status'        => 'PAID',
+                'tid'           => $paid_tid,
+                'paid_at'       => $paid_at,
+                'admin_memo'    => $admin_memo,
+                'created_at'    => $paid_at
+            ], ['%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s']);
+        }
     }
 }
 
